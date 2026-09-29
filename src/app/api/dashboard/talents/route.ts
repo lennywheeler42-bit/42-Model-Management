@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError, writeAudit } from "@/lib/api";
 import { z } from "zod";
 import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
 
@@ -41,11 +42,11 @@ export async function GET() {
     .select("id,talent_id,slug,first_name,last_name,display_name,location,publication_status,show_on_website,featured,updated_at")
     .is("archived_at", null)
     .order("updated_at", { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return databaseError(error, "save talent");
 
   const ids = (data ?? []).map((talent) => talent.id);
   const assignments = ids.length ? await supabase.from("talent_board_assignments").select("talent_id,boards(name,slug)").in("talent_id", ids) : { data: [], error: null };
-  if (assignments.error) return NextResponse.json({ error: assignments.error.message }, { status: 500 });
+  if (assignments.error) return databaseError(assignments.error, "save talent");
 
   const boardMap = new Map<string, { name: string; slug: string }>();
   for (const assignment of assignments.data ?? []) {
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
   const context = await getAgencyContext();
   if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+  if (!canManageTalent(context.membership?.role)) return NextResponse.json({ error: "Talent management access required" }, { status: 403 });
   const { supabase, user } = context;
 
   const parsed = createTalentSchema.safeParse(await request.json());
@@ -120,11 +122,11 @@ export async function POST(request: Request) {
     created_by: user.id,
     updated_by: user.id,
   }).select("id,talent_id,slug,first_name,last_name,display_name,location,gender,date_of_birth,date_joined,birth_place,nationality,mobile,phone,email,website,is_minor,allow_sms,public_bio,minimum_tariff,minimum_hourly_rate,minimum_day_rate,publication_status,show_on_website,featured").single();
-  if (error || !talent) return NextResponse.json({ error: error?.message ?? "Unable to create talent" }, { status: 500 });
+  if (error || !talent) return databaseError(error, "create talent");
 
   const assignment = await supabase.from("talent_board_assignments").insert({ talent_id: talent.id, board_id: board.id, created_at: new Date().toISOString() });
-  if (assignment.error) return NextResponse.json({ error: assignment.error.message }, { status: 500 });
+  if (assignment.error) return databaseError(assignment.error, "assign the board");
 
-  await supabase.from("audit_log").insert({ table_name: "talent", record_id: talent.id, action: "create", changed_by: user.id, new_data: { slug } });
+  await writeAudit(supabase, { action: "talent.created", entityType: "talent", entityId: talent.id, after: { slug, board: boardSlug } });
   return NextResponse.json({ ...talent, status: "draft", showOnWebsite: false }, { status: 201 });
 }

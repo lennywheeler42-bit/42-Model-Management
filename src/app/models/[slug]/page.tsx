@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function TalentProfile({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const talent = await getPublicTalent(slug);
-  if (!talent) return <main className="grid min-h-screen place-items-center"><p>Talent not found.</p></main>;
+  if (!talent) notFound();
   const related = (await getPublicTalents(talent.boardSlug)).filter((item) => item.id !== talent.id).slice(0, 3);
   return (
     <main className="bg-[var(--paper)]">

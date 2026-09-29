@@ -44,21 +44,18 @@ type AgencyMembership = {
 export async function getAgencyContext() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) return { supabase, user: null, profile: null, membership: null, authorized: false } as const;
+  if (!user) return { supabase, user: null, profile: null, membership: null, authorized: false } as const;
 
-  const email = user.email.toLowerCase();
+  // Membership is bound to the Auth user id by the database (migration 009); the
+  // profile row is only a mirror and is never used for authorization.
   const [{ data: profile }, { data: membership }] = await Promise.all([
     supabase.from("profiles").select("id,email,full_name,role,status").eq("id", user.id).maybeSingle(),
-    supabase.from("agency_members").select("id,email,full_name,role,status").eq("email", email).maybeSingle(),
+    supabase.from("agency_members").select("id,email,full_name,role,status").eq("user_id", user.id).maybeSingle(),
   ]);
 
   const typedProfile = profile as AgencyProfile | null;
   const typedMembership = membership as AgencyMembership | null;
-  const authorized = Boolean(
-    typedProfile?.status === "active" &&
-      typedMembership?.status === "active" &&
-      agencyRoles.includes(typedMembership.role),
-  );
+  const authorized = Boolean(typedMembership?.status === "active" && agencyRoles.includes(typedMembership.role));
 
   return { supabase, user, profile: typedProfile, membership: typedMembership, authorized } as const;
 }

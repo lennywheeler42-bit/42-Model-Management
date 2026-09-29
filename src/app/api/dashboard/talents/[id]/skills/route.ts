@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError } from "@/lib/api";
 import { z } from "zod";
 import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
 
@@ -10,6 +11,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!context.authorized || !canManageTalent(context.membership?.role)) return NextResponse.json({ error: "Talent management access required" }, { status: 403 });
   const parsed = schema.safeParse(await request.json()); if (!parsed.success) return NextResponse.json({ error: "Category and skill are required" }, { status: 400 });
   const { data, error } = await context.supabase.from("talent_skills").insert({ talent_id: id, ...parsed.data }).select("*").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return databaseError(error, "save the skill");
   return NextResponse.json(data, { status: 201 });
 }

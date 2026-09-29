@@ -10,5 +10,7 @@
 | View private details | Yes | Limited | No | No | No | Yes | No | No |
 | View banking/legal/medical | Explicit grant | Explicit grant | No | No | No | Finance only | No | No |
 
+Roles resolve only from `agency_members` bound to the signed-in Auth user id (migration 009). `profiles.role` is a display mirror and grants nothing.
+
 The final matrix must be reviewed against actual business policy before staging. UI hiding is not the security boundary; RLS policies and server-side validation are.
 

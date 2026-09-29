@@ -1,19 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-
-function getEnv(name: string, fallback?: string) {
-  const value = process.env[name] ?? fallback;
-  if (!value) throw new Error(`Missing required environment variable: ${name}`);
-  return value;
-}
+import { getSupabasePublicEnv } from "@/lib/env";
 
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
-  const url = getEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const key = getEnv(
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  const { url, key } = getSupabasePublicEnv();
 
   return createServerClient(url, key, {
     cookies: {
@@ -24,10 +15,9 @@ export async function createServerSupabaseClient() {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // Server Components cannot always write cookies; middleware owns refresh persistence.
+          // Server Components cannot always write cookies; the proxy owns refresh persistence.
         }
       },
     },
   });
 }
-

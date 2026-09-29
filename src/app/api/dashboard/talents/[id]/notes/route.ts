@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError, writeAudit } from "@/lib/api";
 import { z } from "zod";
 import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
 
@@ -13,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = noteSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "A note is required" }, { status: 400 });
   const { data, error } = await context.supabase.from("talent_notes").insert({ talent_id: id, created_by: context.user.id, ...parsed.data }).select("id,note_type,body,created_at").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await context.supabase.from("audit_log").insert({ table_name: "talent_notes", record_id: data.id, action: "create", changed_by: context.user.id, new_data: { note_type: parsed.data.note_type } });
+  if (error) return databaseError(error, "save the note");
+  await writeAudit(context.supabase, { action: "note.added", entityType: "talent", entityId: id, metadata: { note_id: data.id, note_type: parsed.data.note_type } });
   return NextResponse.json(data, { status: 201 });
 }

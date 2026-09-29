@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError } from "@/lib/api";
 import { getAgencyContext } from "@/lib/agency-auth";
 
 export async function GET() {
@@ -11,6 +12,6 @@ export async function GET() {
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
     .order("name", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return databaseError(error, "load boards");
   return NextResponse.json(data ?? []);
 }

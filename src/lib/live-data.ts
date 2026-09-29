@@ -8,7 +8,7 @@ type DirectoryRow = {
   display_name: string;
   location: string | null;
   gender: string | null;
-  date_of_birth: string | null;
+  age: number | null;
   featured: boolean;
   board_name: string | null;
   board_slug: string | null;
@@ -16,8 +16,7 @@ type DirectoryRow = {
 };
 
 type ProfileRow = DirectoryRow & {
-  first_name: string;
-  last_name: string;
+  public_bio: string | null;
   boards: { name: string; slug: string }[] | null;
   height_cm: number | null;
   bust_cm: number | null;
@@ -31,14 +30,10 @@ type ProfileRow = DirectoryRow & {
 
 const placeholder = "/placeholder-talent.svg";
 
-function ageFromDate(date: string | null) {
-  if (!date) return 0;
-  const today = new Date();
-  const dob = new Date(`${date}T00:00:00`);
-  let age = today.getFullYear() - dob.getFullYear();
-  const month = today.getMonth() - dob.getMonth();
-  if (month < 0 || (month === 0 && today.getDate() < dob.getDate())) age -= 1;
-  return Math.max(age, 0);
+// Rounds to whole inches before splitting, so 182 cm renders 6' 0" rather than 6' 12".
+function formatHeight(cm: number) {
+  const totalInches = Math.round(cm / 2.54);
+  return `${Math.floor(totalInches / 12)}' ${totalInches % 12}" / ${cm} cm`;
 }
 
 function mediaUrl(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, path: string | null) {
@@ -58,7 +53,7 @@ function toTalent(supabase: Awaited<ReturnType<typeof createServerSupabaseClient
     board: row.board_name ?? "Unassigned",
     boardSlug: row.board_slug ?? "",
     gender: row.gender ?? "",
-    age: ageFromDate(row.date_of_birth),
+    age: row.age ?? 0,
     height: "—",
     stats: [],
     image: mediaUrl(supabase, row.primary_image_path),
@@ -96,7 +91,7 @@ export async function getPublicTalent(slug: string) {
   const boards = row.boards ?? [];
   const board = boards[0];
   const stats = [
-    ["Height", row.height_cm ? `${Math.round(row.height_cm / 2.54 / 12)}' ${Math.round((row.height_cm / 2.54) % 12)}\" / ${row.height_cm} cm` : "—"],
+    ["Height", row.height_cm ? formatHeight(row.height_cm) : "—"],
     ["Bust / Chest", row.bust_cm ? `${row.bust_cm} cm` : "—"],
     ["Waist", row.waist_cm ? `${row.waist_cm} cm` : "—"],
     ["Hips", row.hips_cm ? `${row.hips_cm} cm` : "—"],
@@ -106,9 +101,7 @@ export async function getPublicTalent(slug: string) {
   ].map(([label, value]) => ({ label, value }));
   return {
     ...toTalent(supabase, { ...row, board_name: board?.name ?? null, board_slug: board?.slug ?? null }),
-    firstName: row.first_name,
-    lastName: row.last_name,
-    bio: "Approved talent profile managed by 42 Model Management.",
+    bio: row.public_bio || "Approved talent profile managed by 42 Model Management.",
     stats,
     gallery: (row.gallery ?? []).map((item) => mediaUrl(supabase, item.storage_path)),
     board: board?.name ?? "Unassigned",

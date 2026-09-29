@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError } from "@/lib/api";
 import { getAgencyContext } from "@/lib/agency-auth";
 
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
   ]);
 
   const failed = [total, published, review, drafts, boards, recent].find((result) => result.error);
-  if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
+  if (failed?.error) return databaseError(failed.error, "load the overview");
 
   return NextResponse.json({
     metrics: {

@@ -79,57 +79,26 @@ http://localhost:3000/auth/callback
 https://<your-vercel-domain>/auth/callback
 ```
 
-Google sign-in authenticates a user but does not grant agency access. The owner must explicitly allowlist each email. The production owner is `lennywheeler42@gmail.com` (`Lenny Wheeler`). Run this query in Supabase SQL Editor if the owner membership needs to be restored:
+Google sign-in authenticates a user but does not grant agency access. The owner must explicitly allowlist each email under **Team access**. Access comes only from `public.agency_members`, which the database binds to the signed-in Auth user once that user's email is confirmed. Profiles and role rows are synced from it automatically. The last active owner cannot be demoted or removed.
+
+The production owner is `lennywheeler42@gmail.com` (`Lenny Wheeler`). If the owner membership ever needs to be restored, run this in the Supabase SQL Editor. It works whether or not the owner has signed in yet:
 
 ```sql
 insert into public.agency_members (email, full_name, role, status)
-select lower('lennywheeler42@gmail.com'),
-       'Lenny Wheeler',
-       'owner',
-       'active'
-from auth.users
-where lower(email) = lower('lennywheeler42@gmail.com')
-  and not exists (
-    select 1 from public.agency_members
-    where lower(email) = lower('lennywheeler42@gmail.com')
-  );
-
-update public.agency_members
-set role = 'owner', status = 'active', updated_at = now()
-where lower(email) = lower('lennywheeler42@gmail.com');
-
-update public.profiles
-set full_name = 'Lenny Wheeler', role = 'owner', status = 'active'
-where lower(email) = lower('lennywheeler42@gmail.com');
-
-insert into public.profile_roles (profile_id, role_id)
-select p.id, r.id
-from public.profiles p
-join public.roles r on r.key = 'owner'
-where lower(p.email) = lower('lennywheeler42@gmail.com')
-on conflict do nothing;
+values (lower('lennywheeler42@gmail.com'), 'Lenny Wheeler', 'owner', 'active')
+on conflict ((lower(email))) do update set role = 'owner', status = 'active', updated_at = now();
 ```
 
-If the owner has not signed in yet, run this pre-approval instead:
-
-```sql
-insert into public.agency_members (email, full_name, role, status)
-select lower('lennywheeler42@gmail.com'), 'Lenny Wheeler', 'owner', 'active'
-where not exists (
-  select 1 from public.agency_members
-  where lower(email) = lower('lennywheeler42@gmail.com')
-);
-```
-
-The Auth trigger will apply the owner role when that email first signs in. Do not grant `owner` to every Google account. After entering the dashboard, use **Team access** to approve staff and assign least-privilege roles such as `administrator`, `staff`, `talent_manager`, `booker`, `creative`, `accounting`, or `read_only`.
+Do not grant `owner` to every Google account. Assign staff least-privilege roles such as `administrator`, `staff`, `talent_manager`, `booker`, `creative`, `accounting`, or `read_only`. Keep email confirmation enabled in Supabase Auth.
 
 ## Media and publishing flow
 
 1. Create talent from the authenticated dashboard.
-2. Add measurements, board assignments, and media in Supabase.
-3. Upload approved public media to the `talent-public` bucket.
-4. Set the talent record to `published` and enable `show_on_website`.
-5. Confirm the record appears in `/models` and its public profile route.
+2. Add measurements and a board assignment in the talent editor.
+3. Upload media in the **Media** tab. Uploads are stored privately in `talent-private`.
+4. Click **Make public** on approved images. This copies them to the `talent-public` bucket; the private original is kept.
+5. Set the talent record to `published` and enable `show_on_website`.
+6. Confirm the record appears in `/models` and its public profile route.
 
 Records remain private until they are explicitly published. An empty roster is expected immediately after a fresh schema deployment.
 
@@ -150,13 +119,18 @@ Use `Config` for variables beginning with `NEXT_PUBLIC_` and `Secret` for `SUPAB
 
 ```bash
 npm run lint
+npm run test:rls
 npm run build
 npm run start
 ```
 
 After deployment, smoke-test `/`, `/models`, `/login`, `/dashboard`, Google sign-in, and one published talent profile.
 
+`npm run test:rls` replays every migration on an in-memory Postgres and checks RLS for each role; see [Security review](docs/security-review.md).
+
 ## Documentation
+
+- [Permissions](docs/permissions.md)
 
 - [Database notes](docs/database.md)
 - [Architecture](docs/architecture.md)

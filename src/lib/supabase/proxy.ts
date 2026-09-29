@@ -1,12 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getSupabasePublicEnv } from "@/lib/env";
 
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) return response;
+  const { url, key } = getSupabasePublicEnv();
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -30,13 +28,9 @@ export async function updateSupabaseSession(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    const email = user.email?.toLowerCase();
-    const [{ data: profile }, { data: membership }] = await Promise.all([
-      supabase.from("profiles").select("status").eq("id", user.id).maybeSingle(),
-      email ? supabase.from("agency_members").select("status").eq("email", email).maybeSingle() : Promise.resolve({ data: null }),
-    ]);
+    const { data: membership } = await supabase.from("agency_members").select("status").eq("user_id", user.id).maybeSingle();
 
-    if (profile?.status !== "active" || membership?.status !== "active") {
+    if (membership?.status !== "active") {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
       loginUrl.searchParams.set("error", "not_authorized");

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError, writeAudit } from "@/lib/api";
 import { z } from "zod";
 import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
 
@@ -38,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const parsed = measurementSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid measurement record" }, { status: 400 });
   const { data, error } = await context.supabase.from("talent_measurements").insert({ talent_id: id, ...parsed.data }).select("*").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await context.supabase.from("audit_log").insert({ table_name: "talent_measurements", record_id: data.id, action: "create", changed_by: context.user.id, new_data: parsed.data });
+  if (error) return databaseError(error, "save the measurements");
+  await writeAudit(context.supabase, { action: "measurements.added", entityType: "talent", entityId: id, metadata: { measurement_id: data.id, measured_on: parsed.data.measured_on, is_official: parsed.data.is_official } });
   return NextResponse.json(data, { status: 201 });
 }

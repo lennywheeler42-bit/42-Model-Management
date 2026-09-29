@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError } from "@/lib/api";
 import { z } from "zod";
 import { getOwnerContext, ownerManagedRoles } from "@/lib/agency-auth";
 
@@ -17,7 +18,7 @@ export async function GET() {
     .from("agency_members")
     .select("id,email,full_name,role,status,created_at,updated_at")
     .order("created_at", { ascending: true });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return databaseError(error, "load the team");
   return NextResponse.json(data ?? []);
 }
 
@@ -34,25 +35,16 @@ export async function POST(request: Request) {
     .select("id")
     .eq("email", email)
     .maybeSingle();
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 });
+  if (existingError) return databaseError(existingError, "load the team");
 
   const memberPayload = { email, full_name: fullName, role, status, invited_by: context.user.id, updated_at: new Date().toISOString() };
   const memberQuery = existing
     ? context.supabase.from("agency_members").update(memberPayload).eq("id", existing.id)
     : context.supabase.from("agency_members").insert(memberPayload);
   const { data: member, error: memberError } = await memberQuery.select("id,email,full_name,role,status,created_at,updated_at").single();
-  if (memberError || !member) return NextResponse.json({ error: memberError?.message ?? "Unable to save member" }, { status: 500 });
+  if (memberError || !member) return databaseError(memberError, "save this team member");
 
-  const { data: profile } = await context.supabase.from("profiles").select("id").eq("email", email).maybeSingle();
-  if (profile) {
-    const { data: roleRecord, error: roleError } = await context.supabase.from("roles").select("id").eq("key", role).single();
-    if (roleError || !roleRecord) return NextResponse.json({ error: "Selected role is not configured" }, { status: 500 });
-    await context.supabase.from("profiles").update({ full_name: fullName, role, status, updated_at: new Date().toISOString() }).eq("id", profile.id);
-    await context.supabase.from("profile_roles").delete().eq("profile_id", profile.id);
-    const { error: profileRoleError } = await context.supabase.from("profile_roles").insert({ profile_id: profile.id, role_id: roleRecord.id });
-    if (profileRoleError) return NextResponse.json({ error: profileRoleError.message }, { status: 500 });
-  }
-
-  await context.supabase.from("audit_log").insert({ table_name: "agency_members", record_id: member.id, action: existing ? "update_access" : "grant_access", changed_by: context.user.id, new_data: { email, role, status } });
+  // The database binds the membership to the Auth user, mirrors the role onto the
+  // profile, and writes the audit event (migration 009).
   return NextResponse.json(member, { status: existing ? 200 : 201 });
 }

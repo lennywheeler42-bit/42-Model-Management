@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { databaseError, writeAudit } from "@/lib/api";
 import { z } from "zod";
 import { getAgencyContext, type AgencyRole } from "@/lib/agency-auth";
 
@@ -52,8 +53,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ? table.upsert(payload, { onConflict: "talent_id" }).select("*").single()
     : table.insert(payload).select("*").single();
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return databaseError(error, "save this record");
   if (!data) return NextResponse.json({ error: "The record could not be saved" }, { status: 500 });
-  await context.supabase.from("audit_log").insert({ table_name: config.table, record_id: data.id ?? id, action: config.single ? "upsert" : "create", changed_by: context.user.id, new_data: { talent_id: id } });
+  await writeAudit(context.supabase, { action: `${operationalModule}.saved`, entityType: "talent", entityId: id, metadata: { module: operationalModule, record_id: data.id ?? null, fields: Object.keys(parsed.data) } });
   return NextResponse.json(data, { status: config.single ? 200 : 201 });
 }
