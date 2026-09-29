@@ -5,10 +5,11 @@ Production-oriented talent management software for 42 Model Management. The proj
 ## Routes
 
 - `/` — public editorial homepage
-- `/models` — searchable public talent directory
-- `/models/[slug]` — public talent profile
+- `/models` — public talent roster with board filters
+- `/models/[...path]` — public board page (`/models/teens/boys`) or talent profile (`/models/<slug>`)
+- `/preview/talent/[id]` — staff-only preview of a talent's public profile
 - `/login` — email/password and Google sign-in
-- `/dashboard` — authenticated agency dashboard
+- `/dashboard` — authenticated agency dashboard (talent, boards, media, search, settings)
 
 Public pages read only from approved Supabase views. Draft, private, legal, financial, and internal fields are not exposed through the public site.
 
@@ -130,8 +131,8 @@ After deployment, smoke-test `/`, `/models`, `/login`, `/dashboard`, Google sign
 
 ## Documentation
 
+- **[Project handoff](docs/HANDOFF.md)** — current status, what is done, and what to do next
 - [Permissions](docs/permissions.md)
-
 - [Database notes](docs/database.md)
 - [Architecture](docs/architecture.md)
 - [Security review](docs/security-review.md)
