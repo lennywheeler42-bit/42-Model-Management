@@ -79,34 +79,34 @@ http://localhost:3000/auth/callback
 https://<your-vercel-domain>/auth/callback
 ```
 
-Google sign-in authenticates a user but does not grant agency access. The owner must explicitly allowlist each email. Run this query in Supabase SQL Editor with the intended owner email:
+Google sign-in authenticates a user but does not grant agency access. The owner must explicitly allowlist each email. The production owner is `lennywheeler42@gmail.com` (`Lenny Wheeler`). Run this query in Supabase SQL Editor if the owner membership needs to be restored:
 
 ```sql
 insert into public.agency_members (email, full_name, role, status)
-select lower('owner@youragency.com'),
-       coalesce(raw_user_meta_data->>'full_name', raw_user_meta_data->>'name', ''),
+select lower('lennywheeler42@gmail.com'),
+       'Lenny Wheeler',
        'owner',
        'active'
 from auth.users
-where lower(email) = lower('owner@youragency.com')
+where lower(email) = lower('lennywheeler42@gmail.com')
   and not exists (
     select 1 from public.agency_members
-    where lower(email) = lower('owner@youragency.com')
+    where lower(email) = lower('lennywheeler42@gmail.com')
   );
 
 update public.agency_members
 set role = 'owner', status = 'active', updated_at = now()
-where lower(email) = lower('owner@youragency.com');
+where lower(email) = lower('lennywheeler42@gmail.com');
 
 update public.profiles
-set role = 'owner', status = 'active'
-where lower(email) = lower('owner@youragency.com');
+set full_name = 'Lenny Wheeler', role = 'owner', status = 'active'
+where lower(email) = lower('lennywheeler42@gmail.com');
 
 insert into public.profile_roles (profile_id, role_id)
 select p.id, r.id
 from public.profiles p
 join public.roles r on r.key = 'owner'
-where lower(p.email) = lower('owner@youragency.com')
+where lower(p.email) = lower('lennywheeler42@gmail.com')
 on conflict do nothing;
 ```
 
@@ -114,10 +114,10 @@ If the owner has not signed in yet, run this pre-approval instead:
 
 ```sql
 insert into public.agency_members (email, full_name, role, status)
-select lower('owner@youragency.com'), 'Owner Name', 'owner', 'active'
+select lower('lennywheeler42@gmail.com'), 'Lenny Wheeler', 'owner', 'active'
 where not exists (
   select 1 from public.agency_members
-  where lower(email) = lower('owner@youragency.com')
+  where lower(email) = lower('lennywheeler42@gmail.com')
 );
 ```
 
