@@ -25,19 +25,18 @@ describe("anonymous visitors", () => {
     assert.equal((await superuser("select count(*)::int as n from public.audit_log where action = 'forged'"))[0].n, 0);
   });
 
-  test("public directory exposes no DOB or legal names and hides drafts", async () => {
-    const rows = await rowsAs(db, "anon", "select * from public.public_talent_directory");
+  test("public talents view exposes no DOB or legal names and hides drafts", async () => {
+    const rows = await rowsAs(db, "anon", "select * from public.public_talents_view");
     assert.equal(rows.length, 1);
     assert.equal(rows[0].slug, "saih-test");
-    for (const column of ["date_of_birth", "first_name", "last_name"]) assert.ok(!(column in rows[0]), `${column} exposed`);
+    for (const column of ["date_of_birth", "first_name", "last_name", "talent_id", "mobile", "email"]) assert.ok(!(column in rows[0]), `${column} exposed`);
+    assert.equal(rows[0].age, null, "age must be opt-in");
   });
 
-  test("public profile exposes no DOB, legal names, or private media", async () => {
-    const [row] = await rowsAs(db, "anon", "select * from public.public_talent_profiles where slug = 'saih-test'");
-    for (const column of ["date_of_birth", "first_name", "last_name"]) assert.ok(!(column in row), `${column} exposed`);
-    assert.equal(row.age, null, "age must be opt-in");
-    assert.deepEqual(row.gallery.map((image) => image.storage_path), [`talent/${ids.publishedTalent}/approved.jpg`]);
-    assert.equal((await rowsAs(db, "anon", "select * from public.public_talent_profiles where slug = 'draft-test'")).length, 0);
+  test("public media view exposes only promoted public images", async () => {
+    const rows = await rowsAs(db, "anon", "select * from public.public_talent_media_view where talent_id = $1", [ids.publishedTalent]);
+    assert.deepEqual(rows.map((row) => row.image_path), [`talent/${ids.publishedTalent}/approved.jpg`]);
+    assert.equal((await rowsAs(db, "anon", "select * from public.public_talents_view where slug = 'draft-test'")).length, 0);
   });
 
   test("cannot list talent storage buckets", async () => {

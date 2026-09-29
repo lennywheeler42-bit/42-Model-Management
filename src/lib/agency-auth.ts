@@ -1,15 +1,7 @@
+import { cache } from "react";
+import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-
-export const agencyRoles = [
-  "owner",
-  "administrator",
-  "staff",
-  "booker",
-  "talent_manager",
-  "creative",
-  "accounting",
-  "read_only",
-] as const;
+import { hasAll, toPermissionSet, type Permission, type PermissionSet } from "@/lib/permissions";
 
 export const ownerManagedRoles = [
   "administrator",
@@ -21,48 +13,55 @@ export const ownerManagedRoles = [
   "read_only",
 ] as const;
 
-export type AgencyRole = (typeof agencyRoles)[number];
+// "talent" logins are linked to a talent record (agency_members.talent_id); the
+// talent portal that manages them is a later phase.
+export type AgencyRole = "owner" | "talent" | (typeof ownerManagedRoles)[number];
 
-export const talentManagerRoles: AgencyRole[] = ["owner", "administrator", "talent_manager"];
+type AgencyProfile = { id: string; email: string; full_name: string; role: string; status: string };
+type AgencyMembership = { id: string; email: string; full_name: string; role: AgencyRole; status: "active" | "pending" | "suspended" };
 
-type AgencyProfile = {
-  id: string;
-  email: string;
-  full_name: string;
-  role: string;
-  status: string;
-};
-
-type AgencyMembership = {
-  id: string;
-  email: string;
-  full_name: string;
-  role: AgencyRole;
-  status: "active" | "pending" | "suspended";
-};
-
-export async function getAgencyContext() {
+// One lookup per request: the Auth user, their bound membership, and their
+// permissions from the database. RLS enforces the same permissions server-side.
+export const getAgencyContext = cache(async () => {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, profile: null, membership: null, authorized: false } as const;
+  const empty = new Set<Permission>() as PermissionSet;
+  if (!user) return { supabase, user: null, profile: null, membership: null, permissions: empty, authorized: false } as const;
 
-  // Membership is bound to the Auth user id by the database (migration 009); the
-  // profile row is only a mirror and is never used for authorization.
-  const [{ data: profile }, { data: membership }] = await Promise.all([
+  const [{ data: profile }, { data: membership }, { data: permissions }] = await Promise.all([
     supabase.from("profiles").select("id,email,full_name,role,status").eq("id", user.id).maybeSingle(),
     supabase.from("agency_members").select("id,email,full_name,role,status").eq("user_id", user.id).maybeSingle(),
+    supabase.rpc("current_permissions"),
   ]);
 
-  const typedProfile = profile as AgencyProfile | null;
+  const permissionSet = toPermissionSet(permissions);
   const typedMembership = membership as AgencyMembership | null;
-  const authorized = Boolean(typedMembership?.status === "active" && agencyRoles.includes(typedMembership.role));
+  const authorized = typedMembership?.status === "active" && permissionSet.has("dashboard.access");
 
-  return { supabase, user, profile: typedProfile, membership: typedMembership, authorized } as const;
+  return { supabase, user, profile: profile as AgencyProfile | null, membership: typedMembership, permissions: permissionSet, authorized } as const;
+});
+
+export type AgencyContext = Awaited<ReturnType<typeof getAgencyContext>>;
+export type AuthorizedContext = AgencyContext & { user: NonNullable<AgencyContext["user"]>; membership: AgencyMembership; authorized: true };
+
+// For API route handlers: returns the context, or a ready 401/403 response.
+export async function requireApi(required?: Permission | Permission[]): Promise<{ context: AuthorizedContext } | { response: NextResponse }> {
+  const context = await getAgencyContext();
+  if (!context.user) return { response: NextResponse.json({ error: "Authentication required" }, { status: 401 }) };
+  if (!context.authorized) return { response: NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 }) };
+  if (required && !hasAll(context.permissions, required)) {
+    return { response: NextResponse.json({ error: "You do not have permission to do this" }, { status: 403 }) };
+  }
+  return { context: context as AuthorizedContext };
 }
 
-export async function getOwnerContext() {
+// For server-rendered dashboard pages: the context if permitted, otherwise null
+// (the page renders the Unauthorized state).
+export async function requirePage(required?: Permission | Permission[]) {
   const context = await getAgencyContext();
-  return context.authorized && context.membership?.role === "owner" ? context : null;
+  if (!context.authorized) return null;
+  if (required && !hasAll(context.permissions, required)) return null;
+  return context as AuthorizedContext;
 }
 
 export function displayNameForUser(user: { email?: string | null; user_metadata?: Record<string, unknown> | null }, profile?: { full_name?: string | null } | null) {
@@ -71,8 +70,4 @@ export function displayNameForUser(user: { email?: string | null; user_metadata?
     (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : "") ||
     user.email?.split("@")[0] ||
     "Agency user";
-}
-
-export function canManageTalent(role: AgencyRole | string | null | undefined) {
-  return Boolean(role && talentManagerRoles.includes(role as AgencyRole));
 }

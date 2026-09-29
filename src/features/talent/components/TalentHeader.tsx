@@ -1,0 +1,58 @@
+"use client";
+
+import { Archive, ArchiveRestore, Globe2, Send, Star, Undo2 } from "lucide-react";
+import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Thumb } from "@/components/ui/Thumb";
+import { useMutation } from "@/lib/use-mutation";
+import type { TalentCore } from "../types";
+
+export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, boardCount }: {
+  talent: TalentCore; age: number | null; thumbnail: string | null; canPublish: boolean; canArchive: boolean; boardCount: number;
+}) {
+  const { run, pending } = useMutation();
+  const live = talent.publication_status === "published" && talent.show_on_website;
+  const archived = talent.publication_status === "archived";
+  const act = (action: string, success: string) => run(`/api/dashboard/talents/${talent.id}/publication`, { body: { action }, success });
+
+  async function publish() {
+    if (boardCount === 0 && !window.confirm("This talent is not on any board, so it will not appear on board pages or the roster. Publish anyway?")) return;
+    if (talent.is_minor && talent.consent_status !== "granted" && !window.confirm("Guardian consent is not recorded as granted for this minor. Publish anyway?")) return;
+    await act("publish", "Published — the website now shows this talent");
+  }
+
+  return <header className="flex flex-col gap-5 border-b border-[#e7e7e3] pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex items-end gap-4">
+      <Thumb src={thumbnail} alt={talent.display_name} className="h-24 w-20" />
+      <div>
+        <p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#c26a48]">{talent.talent_id ?? "Talent"}</p>
+        <h1 className="mt-1 text-3xl font-700 tracking-[-.03em]">{talent.display_name}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8d8f88]">
+          <StatusBadge status={talent.publication_status} />
+          {live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
+          {talent.featured && <Badge tone="review">Featured</Badge>}
+          {talent.is_minor && <Badge tone="internal">Minor</Badge>}
+          <span>{[talent.location, talent.gender, age !== null ? `${age} yrs` : null].filter(Boolean).join(" · ")}</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="flex flex-wrap gap-2">
+      {live && <ButtonLink href={`/models/${talent.slug}`} variant="secondary" size="sm" icon={<Globe2 size={13} />} target="_blank">View live</ButtonLink>}
+      {canPublish && !archived && <>
+        {talent.publication_status !== "review" && !live && <Button size="sm" variant="secondary" icon={<Send size={13} />} disabled={pending} onClick={() => act("review", "Sent to review")}>Send to review</Button>}
+        <Button size="sm" variant="secondary" icon={<Star size={13} />} disabled={pending}
+          onClick={() => run(`/api/dashboard/talents/${talent.id}/publication`, { body: { featured: !talent.featured }, success: talent.featured ? "Removed from featured" : "Featured on the website" })}>
+          {talent.featured ? "Unfeature" : "Feature"}
+        </Button>
+        {live
+          ? <Button size="sm" variant="danger" icon={<Undo2 size={13} />} disabled={pending} onClick={() => act("unpublish", "Unpublished — removed from the website")}>Unpublish</Button>
+          : <Button size="sm" variant="success" icon={<Globe2 size={13} />} disabled={pending} onClick={publish}>Publish</Button>}
+      </>}
+      {canArchive && (archived
+        ? <Button size="sm" variant="secondary" icon={<ArchiveRestore size={13} />} disabled={pending} onClick={() => act("restore", "Restored as a draft")}>Restore</Button>
+        : <Button size="sm" variant="ghost" icon={<Archive size={13} />} disabled={pending}
+          onClick={() => window.confirm("Archive this talent? It is removed from the website but every record is kept.") && act("archive", "Archived")}>Archive</Button>)}
+    </div>
+  </header>;
+}

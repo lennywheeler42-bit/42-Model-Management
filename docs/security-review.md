@@ -14,6 +14,19 @@ _Last updated: 2026-09-29 (Phase 1b, migration `009_security_hardening.sql`)._
 - **Last owner:** the last active owner cannot be demoted or deleted (enforced by a trigger).
 - **The app checks the same thing.** `getAgencyContext()` and the proxy (`src/proxy.ts`) look up membership by `user_id`.
 
+## Supabase advisor: Security Definer View (2026-09-30)
+
+- **Finding:** the advisor flagged `public_talent_directory` and `public_talent_profiles` (lint 0010, critical). Migration 009 created them as ordinary views, which run with the owner's rights and bypass RLS.
+- **Fix (migration 010):** both views are now `security_invoker`. Anonymous visitors read published rows through anon-only policies:
+  - `talent`
+  - `talent_photos`
+  - `talent_measurements`
+  - `talent_board_assignments`
+  - `boards` (policy already existed)
+- **Column grants:** anon gets column grants only for public-safe fields. DOB, contact details, rates and notes are never granted, and `talent_public_age()` returns an age only when `show_age` is on.
+- **Later views:** migration 017 builds the new public views the same way. `tests/rls/public-views.test.mjs` asserts that no public view lacks `security_invoker`, both at the production-equivalent state (through 010) and with every migration.
+- **Expected remaining advisor warnings (not critical):** `talent_public_age()` and the role helpers are `SECURITY DEFINER` functions callable by API roles. They are deliberate. Each has a fixed `search_path` and returns only booleans, permission keys, or an opt-in age.
+
 ## Findings from discovery and their status
 
 | ID | Finding | Status |

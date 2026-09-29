@@ -1,16 +1,50 @@
 # Permissions
 
-| Capability | Owner | Administrator | Booker | Talent Manager | Creative | Accounting | Talent | Read Only |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| View published talent | Yes | Yes | Yes | Yes | Yes | Limited | Own | Yes |
-| Create/edit talent core | Yes | Yes | Limited | Yes | No | No | Limited | No |
-| Publish/unpublish | Yes | Yes | Limited | Yes | No | No | No | No |
-| Manage boards | Yes | Yes | No | Yes | No | No | No | No |
-| Manage public media | Yes | Yes | Limited | Yes | Yes | No | Own uploads later | No |
-| View private details | Yes | Limited | No | No | No | Yes | No | No |
-| View banking/legal/medical | Explicit grant | Explicit grant | No | No | No | Finance only | No | No |
+Roles resolve **only** from `agency_members`, bound to the signed-in Auth user id (migration 009). `profiles.role` is a display mirror and grants nothing.
 
-Roles resolve only from `agency_members` bound to the signed-in Auth user id (migration 009). `profiles.role` is a display mirror and grants nothing.
+**Where permissions live:** each role holds permissions through `public.role_permissions` (migration 011). The same matrix is used in three places:
 
-The final matrix must be reviewed against actual business policy before staging. UI hiding is not the security boundary; RLS policies and server-side validation are.
+1. **Database:** RLS policies call `has_permission('<key>')`. This is the security boundary.
+2. **API routes:** `requireApi('<key>')` in `src/lib/agency-auth.ts` returns 401/403 before touching data.
+3. **Pages and navigation:** `requirePage('<key>')` renders the Unauthorized state server-side, and the navigation hides items the role cannot use. Hiding an item is never the security boundary.
 
+**Changing the matrix:** it is data, so it can be changed without a deploy. The owner (`team.manage`) can insert or delete `role_permissions` rows. **Settings → Roles & permissions** shows the live matrix.
+
+## Default matrix
+
+✓ = granted. *Owner* holds every permission. *Administrator* holds every permission except `team.manage`.
+
+| Permission | Talent mgr | Booker | Creative | Accounting | Staff | Read only | Talent |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| dashboard.access | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | |
+| talent.view | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | own record |
+| talent.create / talent.edit | ✓ | ✓ | | | | | |
+| talent.publish | ✓ | | | | | | |
+| talent.archive | ✓ | | | | | | |
+| talent.private.view | ✓ | ✓ | | ✓ | | | own record |
+| talent.private.edit | ✓ | ✓ | | | | | |
+| boards.view | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | |
+| boards.manage | ✓ | | | | | | |
+| boards.assign | ✓ | ✓ | | | | | |
+| measurements.edit | ✓ | ✓ | | | | | |
+| skills.edit | ✓ | ✓ | | | | | |
+| agencies.manage | ✓ | | | | | | |
+| notes.view | ✓ | ✓ | | | ✓ | | |
+| notes.edit | ✓ | ✓ | | | | | |
+| media.view | ✓ | ✓ | ✓ | | ✓ | ✓ | own record |
+| media.manage | ✓ | | ✓ | | | | |
+| legal.view / legal.edit | | | | ✓ | | | |
+| banking.view / banking.edit | | | | ✓ | | | |
+| medical.view / medical.edit | | | | | | | |
+| documents.view / documents.manage | ✓ | | | ✓ | | | |
+| operations.view | ✓ | ✓ | | ✓ | ✓ | ✓ | own appointments |
+| operations.manage | ✓ | ✓ | | | | | |
+| website.manage, audit.view, settings.manage | | | | | | | |
+| team.manage | owner only | | | | | | |
+
+## Notes on the defaults
+
+- **Publishing:** a trigger enforces `talent.publish` and `talent.archive` on the columns involved, so a role that may edit details cannot publish, and the reverse.
+- **Medical:** records are limited to owner and administrator. Grant `medical.view` to other roles only if the business needs it.
+- **Talent logins** (`role = 'talent'`, linked through `agency_members.talent_id`) can read only their own talent record and its approved sub-records. They cannot open the staff dashboard. The talent portal itself is Phase 14.
+- **Anonymous visitors** have no permissions. They read the public views through anon-only RLS policies over published rows, with column grants limited to public-safe fields (migrations 010 and 017).

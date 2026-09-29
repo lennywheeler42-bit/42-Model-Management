@@ -206,3 +206,74 @@ Notes:
 3. **Applications:** should the GoHighLevel "Join Us" funnel be replaced by Supabase-native applications, or kept and synced?
 4. **Medical:** should the module be kept at all? If yes, which roles may read it?
 5. **Branding:** confirm the gold/burgundy palette, the real founding facts, and the contact emails for the new site.
+
+## 12. Phase 1–8 implementation assessment (2026-09-30)
+
+Starting point: `main` at `7f69b32`, with migrations 001–009 applied to production.
+
+1. **What already exists**
+   - Supabase Auth with Google and email sign-in.
+   - An owner-managed allowlist, `agency_members`, bound to Auth user ids (009).
+   - Row-level-security (RLS) role helpers.
+   - An `audit_logs` table and the `write_audit()` function that writes to it.
+   - All six storage buckets, with size and file-type limits.
+   - The `talent` table and 16 per-talent module tables.
+   - Append-only measurement history.
+   - A private-first photo upload with a promote-to-public step.
+   - Two owner-rights public views.
+   - `/models` and `/models/[slug]`, which read those views.
+   - A single-page client dashboard with a 16-tab editor.
+   - A 40-test RLS suite that runs against PGlite.
+2. **Reusable as-is**
+   - The Supabase SSR clients, `proxy.ts`, and the env validation.
+   - The auth context.
+   - `databaseError()` and `writeAudit()`.
+   - The Zod-validated API route pattern.
+   - All existing tables. They keep their names; see the mapping below.
+   - The RLS test harness.
+   - The public page designs.
+3. **Needs modification**
+   - **RLS:** policies are hard-coded role arrays. Move them to data-driven permissions (`permissions`, `role_permissions`, `has_permission()`).
+   - **Private fields:** contact, DOB and rate fields live on `talent`, where every staff role can read them. Move them to `talent_private_details` and lock the old columns out of the API with column grants (expand/contract; no data is deleted).
+   - **Boards:** single-board assignment only, and no hierarchy data or management UI.
+   - **Dashboard:** the single client page must become route-based pages that are enforced on the server.
+4. **Missing**
+   - Permission tables.
+   - Visibility flags beyond `show_on_website`, `show_in_search` and `featured`.
+   - A talent-user link (needed for "Talent A cannot read Talent B").
+   - Publish-permission enforcement.
+   - Archive and restore.
+   - Board CRUD and hierarchy.
+   - Skill and agency catalogues.
+   - Videos, portfolios and digital books.
+   - Photo reorder, featured image and archive.
+   - Real document upload and signed downloads.
+   - Banking reveal.
+   - Public board pages and public-safe `*_view` views.
+   - Portfolio, video and skill display on profiles.
+   - Sitemap and robots.
+5. **Database state:** the table names differ from the spec's. They are kept and mapped rather than duplicated:
+
+   | This repo | Spec name |
+   |---|---|
+   | `talent` | `talents` |
+   | `talent_board_assignments` | `talent_boards` |
+   | `talent_photos` | `talent_images` |
+   | `talent_banking` | `talent_financial` |
+   | `talent_documents` | `documents` |
+   | `talent_measurements` (append-only) | `talent_measurement_history` |
+
+   A current-measurements view gives the spec's `talent_measurements` semantics.
+6. **Supabase state**
+   - There is one project (production) and no staging project.
+   - Docker is not installed, so there is no local Supabase stack.
+   - Production reads from this workstation are not permitted.
+   - **Validation strategy:** every migration is replayed on PGlite with Supabase stand-ins, and RLS and acceptance workflows are tested there.
+   - Nothing is pushed to production. Staging is prepared as runbook steps.
+7. **Security / RLS concerns**
+   - Private columns on `talent` (the S5 finding).
+   - Medical data readable by talent managers.
+   - No enforcement of who may publish.
+   - Legacy photos sitting in the public bucket.
+   - The talent-role portal has no own-record isolation.
+8. **Migration requirements:** continue numbering at `010`. All migrations are additive and idempotent. Old columns and views are kept until a later contract migration, after staging verification.

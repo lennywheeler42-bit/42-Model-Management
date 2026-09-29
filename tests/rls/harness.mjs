@@ -142,6 +142,24 @@ export async function createDatabase({ upto = Number.POSITIVE_INFINITY } = {}) {
   return db;
 }
 
+// Adds an approved member after all migrations: a confirmed Auth user plus an
+// agency_members row, which the database binds together.
+export async function addMember(db, user, role, talentId = null) {
+  await db.query("insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())", [user.id, user.email]);
+  await db.query(
+    "insert into public.agency_members (email, full_name, role, status, talent_id) values ($1, $2, $3, 'active', $4)",
+    [user.email, user.email, role, talentId],
+  );
+  return user;
+}
+
+let generatedUsers = 0;
+export function newUser(label) {
+  generatedUsers += 1;
+  const suffix = generatedUsers.toString(16).padStart(12, "0");
+  return { id: `20000000-0000-0000-0000-${suffix}`, email: `${label}-${generatedUsers}@example.test` };
+}
+
 // Runs one statement the way PostgREST would for this caller: inside a transaction,
 // as the anon/authenticated role, with the caller's JWT claims.
 export async function as(db, user, sql, params = []) {

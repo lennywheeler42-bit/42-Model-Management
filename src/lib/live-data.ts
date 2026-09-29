@@ -1,23 +1,21 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
+import { heightLabel, lengthLabel } from "@/lib/format";
 import type { Talent } from "@/lib/data";
 
-type DirectoryRow = {
+// Reads the public-safe views from migration 017 as the anonymous role.
+type BoardRef = { id: string; name: string; slug: string; path: string; sort_order: number | null };
+
+type TalentRow = {
   id: string;
   slug: string;
-  talent_id: string;
   display_name: string;
   location: string | null;
   gender: string | null;
   age: number | null;
   featured: boolean;
-  board_name: string | null;
-  board_slug: string | null;
-  primary_image_path: string | null;
-};
-
-type ProfileRow = DirectoryRow & {
   public_bio: string | null;
-  boards: { name: string; slug: string }[] | null;
+  primary_image_path: string | null;
   height_cm: number | null;
   bust_cm: number | null;
   waist_cm: number | null;
@@ -25,36 +23,34 @@ type ProfileRow = DirectoryRow & {
   shoe_size: string | null;
   eye_color: string | null;
   hair_color: string | null;
-  gallery: { storage_path: string; title: string | null; alt_text: string | null; display_order: number }[] | null;
+  boards: BoardRef[] | null;
+  board_paths: string[] | null;
 };
 
 const placeholder = "/placeholder-talent.svg";
 
-// Rounds to whole inches before splitting, so 182 cm renders 6' 0" rather than 6' 12".
-function formatHeight(cm: number) {
-  const totalInches = Math.round(cm / 2.54);
-  return `${Math.floor(totalInches / 12)}' ${totalInches % 12}" / ${cm} cm`;
-}
-
-function mediaUrl(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, path: string | null) {
+function mediaUrl(supabase: SupabaseClient, path: string | null) {
   if (!path) return placeholder;
-  if (path.startsWith("http")) return path;
   return supabase.storage.from("talent-public").getPublicUrl(path).data.publicUrl;
 }
 
-function toTalent(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, row: DirectoryRow): Talent {
+function toTalent(supabase: SupabaseClient, row: TalentRow, boardPath?: string): Talent {
+  const boards = row.boards ?? [];
+  const board = (boardPath && boards.find((item) => item.path === boardPath)) || boards[0];
+  const [firstName, ...rest] = row.display_name.split(" ");
+  const height = heightLabel(row.height_cm);
   return {
     id: row.id,
     slug: row.slug,
     name: row.display_name,
-    firstName: row.display_name.split(" ")[0] ?? row.display_name,
-    lastName: row.display_name.split(" ").slice(1).join(" "),
+    firstName,
+    lastName: rest.join(" "),
     location: row.location ?? "",
-    board: row.board_name ?? "Unassigned",
-    boardSlug: row.board_slug ?? "",
+    board: board?.name ?? "",
+    boardSlug: board?.path ?? "",
     gender: row.gender ?? "",
     age: row.age ?? 0,
-    height: "—",
+    height: height ? height.split(" / ")[0] : "—",
     stats: [],
     image: mediaUrl(supabase, row.primary_image_path),
     gallery: [],
@@ -62,50 +58,47 @@ function toTalent(supabase: Awaited<ReturnType<typeof createServerSupabaseClient
     status: "published",
     featured: row.featured,
     showOnWebsite: true,
-    bio: "",
+    bio: row.public_bio ?? "",
   };
 }
 
-export async function getPublicTalents(boardSlug?: string) {
-  const supabase = await createServerSupabaseClient();
-  let query = supabase.from("public_talent_directory").select("*").order("display_name");
-  if (boardSlug) query = query.eq("board_slug", boardSlug);
+// Roster listing: public talent on at least one public board, optionally one board.
+export async function getPublicTalents(boardPath?: string) {
+  const supabase = createPublicSupabaseClient();
+  let query = supabase.from("public_talents_view").select("*").neq("board_paths", "{}").order("featured", { ascending: false }).order("display_name");
+  if (boardPath) query = query.contains("board_paths", [boardPath]);
   const { data, error } = await query;
   if (error) {
-    console.error("Public talent query failed", error);
+    console.error("Public talent query failed", error.code, error.message);
     return [];
   }
-  const unique = new Map<string, DirectoryRow>();
-  for (const row of (data ?? []) as DirectoryRow[]) unique.set(`${row.id}:${row.board_slug ?? ""}`, row);
-  return [...unique.values()].map((row) => toTalent(supabase, row));
+  return ((data ?? []) as TalentRow[]).map((row) => toTalent(supabase, row, boardPath));
 }
 
 export async function getPublicTalent(slug: string) {
-  const supabase = await createServerSupabaseClient();
-  const { data, error } = await supabase.from("public_talent_profiles").select("*").eq("slug", slug).maybeSingle();
+  const supabase = createPublicSupabaseClient();
+  const { data, error } = await supabase.from("public_talents_view").select("*").eq("slug", slug).maybeSingle();
   if (error || !data) {
-    if (error) console.error("Public talent profile query failed", error);
+    if (error) console.error("Public talent profile query failed", error.code, error.message);
     return null;
   }
-  const row = data as ProfileRow;
-  const boards = row.boards ?? [];
-  const board = boards[0];
+  const row = data as TalentRow;
+  const media = await supabase.from("public_talent_media_view").select("image_path").eq("talent_id", row.id).eq("media_type", "image").order("display_order");
+  const images = ((media.data ?? []) as { image_path: string | null }[]).filter((item) => item.image_path);
   const stats = [
-    ["Height", row.height_cm ? formatHeight(row.height_cm) : "—"],
-    ["Bust / Chest", row.bust_cm ? `${row.bust_cm} cm` : "—"],
-    ["Waist", row.waist_cm ? `${row.waist_cm} cm` : "—"],
-    ["Hips", row.hips_cm ? `${row.hips_cm} cm` : "—"],
-    ["Shoe", row.shoe_size ?? "—"],
-    ["Eyes", row.eye_color ?? "—"],
-    ["Hair", row.hair_color ?? "—"],
-  ].map(([label, value]) => ({ label, value }));
+    ["Height", heightLabel(row.height_cm)],
+    ["Bust / Chest", lengthLabel(row.bust_cm)],
+    ["Waist", lengthLabel(row.waist_cm)],
+    ["Hips", lengthLabel(row.hips_cm)],
+    ["Shoe", row.shoe_size],
+    ["Eyes", row.eye_color],
+    ["Hair", row.hair_color],
+  ].filter(([, value]) => value).map(([label, value]) => ({ label: label as string, value: value as string }));
+
   return {
-    ...toTalent(supabase, { ...row, board_name: board?.name ?? null, board_slug: board?.slug ?? null }),
-    bio: row.public_bio || "Approved talent profile managed by 42 Model Management.",
+    ...toTalent(supabase, row),
+    bio: row.public_bio || "Represented by 42 Model Management.",
     stats,
-    gallery: (row.gallery ?? []).map((item) => mediaUrl(supabase, item.storage_path)),
-    board: board?.name ?? "Unassigned",
-    boardSlug: board?.slug ?? "",
+    gallery: images.map((item) => mediaUrl(supabase, item.image_path)),
   } satisfies Talent;
 }
-

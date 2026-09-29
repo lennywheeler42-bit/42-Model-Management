@@ -7,7 +7,7 @@ export function TalentCard({ talent, index = 0 }: { talent: Talent; index?: numb
     <Link href={`/models/${talent.slug}`} className="group block fade-up" style={{ animationDelay: `${index * 70}ms` }}>
       <div className="image-hover relative aspect-[.76] bg-[#dedbd4]">
         <Image src={talent.image} alt={`${talent.name} — 42 Model Management`} fill sizes="(max-width: 700px) 50vw, 25vw" className="object-cover" />
-        <span className="absolute left-3 top-3 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-800 uppercase tracking-[.14em] backdrop-blur">{talent.board.split(" / ")[1]}</span>
+        <span className="absolute left-3 top-3 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-800 uppercase tracking-[.14em] backdrop-blur">{talent.board.split(" / ").pop()}</span>
         <span className="absolute bottom-3 right-3 flex h-8 w-8 translate-y-2 items-center justify-center rounded-full bg-white text-sm opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">↗</span>
       </div>
       <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] py-4">
