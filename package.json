@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:rls": "node --test \"tests/rls/*.test.mjs\"",
-    "test": "npm run test:rls"
+    "test": "node --test \"tests/rls/*.test.mjs\" \"tests/acceptance/*.test.mjs\"",
+    "test:acceptance": "node --test \"tests/acceptance/*.test.mjs\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

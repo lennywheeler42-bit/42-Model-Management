@@ -13,7 +13,7 @@ export const dashboardNav: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", anyOf: ["dashboard.access"] },
       { href: "/dashboard/talent", label: "Talent", icon: "talent", anyOf: ["talent.view"] },
-      { href: "/dashboard/boards", label: "Boards", icon: "boards", anyOf: ["boards.view"], phase: "Phase 4" },
+      { href: "/dashboard/boards", label: "Boards", icon: "boards", anyOf: ["boards.view"] },
       { href: "/dashboard/search", label: "Search", icon: "search", anyOf: ["talent.view"] },
       { href: "/dashboard/calendar", label: "Calendar", icon: "calendar", anyOf: ["operations.view"], phase: "Phase 12" },
       { href: "/dashboard/tasks", label: "Tasks", icon: "tasks", anyOf: ["dashboard.access"], phase: "Phase 12" },

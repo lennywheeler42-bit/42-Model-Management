@@ -21,6 +21,8 @@ Migration order:
 16. `016_sensitive_modules.sql` — Identification and finance fields on `talent_legal`. Stamping and value-free audit triggers for legal, banking and medical. Private document metadata, and documents are archived rather than deleted.
 17. `017_public_views.sql` — `public_boards_view`, `public_talents_view`, `public_talent_media_view`, `public_talent_portfolios_view` and `public_talent_skills_view`, all `security_invoker`. Anon-only policies and column grants, respecting `show_measurements`, `show_videos` and `show_portfolio`. The 010 views are dropped.
 
+18. `018_function_privileges.sql` — Removes API execute rights from trigger functions; Postgres fires triggers without checking them. Removes anonymous access to the role helpers and `board_path()`, and fixes the search path of `digital_book_published_at()`. This clears advisor lints 0011, 0028 and 0029, except the deliberate ones listed in `security-review.md`.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

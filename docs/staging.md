@@ -23,7 +23,15 @@ Each environment sets its own `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_
 
 **Ordering:** migrations 011 and 012 change grants that the previous app build relies on. Deploy the matching app build immediately after pushing them. Expect a few minutes of dashboard errors in between, but not on the public site.
 
-## Current release plan (2026-09-30)
+## Release status (2026-09-30)
+
+- **Released to production at the owner's request, without staging:** migrations 010–017 and Phases 1–2.
+- **Phases 3–8 release:** migration 018 plus the dashboard and public-site work.
+  - **Validated with:** 94 automated tests (RLS, per-phase behaviour, and the Saih acceptance workflow at database level), type check, lint and build.
+  - **Also checked:** the public pages in a local browser against production data.
+- **Not yet verified in a browser:** the signed-in dashboard flows, including real Storage uploads, copies and signed URLs. Verify these on first use, or in staging once it exists.
+
+## Earlier release plan (for reference)
 
 - **Hotfix, production-ready on its own:** `010_public_views_security_invoker.sql` fixes the Supabase advisor's Security Definer View findings. It keeps the views' columns, so the currently deployed site works unchanged. To apply it alone, while 011–017 are not yet approved, run:
   1. `npx supabase db query --linked -f supabase/migrations/010_public_views_security_invoker.sql`

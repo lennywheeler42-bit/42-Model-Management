@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, ArchiveRestore, Globe2, Send, Star, Undo2 } from "lucide-react";
+import { Archive, ArchiveRestore, Eye, Globe2, Send, Star, Undo2 } from "lucide-react";
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Thumb } from "@/components/ui/Thumb";
@@ -38,6 +38,7 @@ export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, b
     </div>
 
     <div className="flex flex-wrap gap-2">
+      <ButtonLink href={`/preview/talent/${talent.id}`} variant="secondary" size="sm" icon={<Eye size={13} />} target="_blank">Preview profile</ButtonLink>
       {live && <ButtonLink href={`/models/${talent.slug}`} variant="secondary" size="sm" icon={<Globe2 size={13} />} target="_blank">View live</ButtonLink>}
       {canPublish && !archived && <>
         {talent.publication_status !== "review" && !live && <Button size="sm" variant="secondary" icon={<Send size={13} />} disabled={pending} onClick={() => act("review", "Sent to review")}>Send to review</Button>}

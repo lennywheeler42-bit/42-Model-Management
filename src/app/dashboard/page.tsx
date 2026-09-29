@@ -36,7 +36,7 @@ export default async function DashboardHome() {
 
   const name = displayNameForUser(context.user, context.profile).split(" ")[0];
   return <div className="space-y-8">
-    <PageHeader eyebrow="Agency OS" title={`Welcome back, ${name}.`} description="Live figures from the talent database. Sections appear according to your role."
+    <PageHeader eyebrow="42 Model Management" title={`Welcome back, ${name}.`} description="Live figures from the talent database. Sections appear according to your role."
       actions={permissions.has("talent.create") ? <ButtonLink href="/dashboard/talent/new" icon={<Plus size={14} />}>New talent</ButtonLink> : null} />
 
     {data.metrics && <section aria-label="Talent totals" className="grid grid-cols-2 gap-4 lg:grid-cols-4">

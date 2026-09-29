@@ -3,14 +3,14 @@ import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
-import { getPublicTalents } from "@/lib/live-data";
+import { getRoster } from "@/features/public/queries";
 
 const heroImage = "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1800&q=90";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const publicTalents = await getPublicTalents();
+  const publicTalents = await getRoster({ limit: 8 });
   return (
     <main className="overflow-hidden">
       <section className="relative flex min-h-[min(860px,100vh)] items-end bg-[#6d6960] text-white">
@@ -20,7 +20,7 @@ export default async function Home() {
         <div className="container relative z-10 pb-14 pt-40 sm:pb-20">
           <div className="flex flex-col justify-between gap-12 md:flex-row md:items-end">
             <div className="max-w-4xl">
-              <p className="eyebrow mb-6 text-white/70">Independent talent / established 2001</p>
+              <p className="eyebrow mb-6 text-white/70">Independent talent / Dallas–Fort Worth</p>
               <h1 className="display max-w-4xl text-[clamp(72px,13vw,190px)] leading-[.78] tracking-[-.06em]">The faces<br /><em>of now.</em></h1>
             </div>
             <Link href="/models" className="group flex w-fit items-center gap-4 text-[11px] font-800 uppercase tracking-[.18em]">
@@ -29,7 +29,7 @@ export default async function Home() {
             </Link>
           </div>
           <div className="mt-16 flex items-center justify-between border-t border-white/25 pt-4 text-[10px] font-700 uppercase tracking-[.16em] text-white/65">
-            <span>Dallas · New York · Los Angeles</span><span className="hidden sm:block">Scroll to discover ↓</span>
+            <span>Dallas–Fort Worth · USA – UK</span><span className="hidden sm:block">Scroll to discover ↓</span>
           </div>
         </div>
       </section>
@@ -55,14 +55,14 @@ export default async function Home() {
             <div><p className="eyebrow mb-3 text-[var(--accent)]">The roster</p><h2 className="display text-5xl leading-none">Selected talent</h2></div>
             <Link href="/models" className="hidden text-[10px] font-800 uppercase tracking-[.16em] sm:block">View all talent ↗</Link>
           </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-6">{publicTalents.slice(0, 4).map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
+          {publicTalents.length ? <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-6">{publicTalents.slice(0, 4).map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div> : <p className="border border-dashed border-[var(--line)] px-6 py-16 text-center text-sm text-[var(--muted)]">New faces are being added to the roster. <Link href="/models" className="underline">Browse all talent</Link>.</p>}
         </div>
       </section>
 
       <section id="about" className="container grid gap-14 py-24 sm:py-36 md:grid-cols-[1fr_1.3fr] md:gap-28">
         <div className="relative aspect-[.85] overflow-hidden bg-[#d7d0c5]">
           <Image src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1000&q=85" alt="42 agency editorial portrait" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
-          <div className="absolute bottom-4 left-4 rounded-full bg-white/85 px-3 py-2 text-[9px] font-800 uppercase tracking-[.14em]">42 / 2001—2026</div>
+          <div className="absolute bottom-4 left-4 rounded-full bg-white/85 px-3 py-2 text-[9px] font-800 uppercase tracking-[.14em]">42 Model Management</div>
         </div>
         <div className="flex flex-col justify-center">
           <p className="eyebrow mb-7 text-[var(--accent)]">More than a roster</p>
@@ -76,7 +76,7 @@ export default async function Home() {
         <div className="container">
           <div className="grid gap-16 md:grid-cols-[1.4fr_1fr] md:items-end">
             <div><p className="eyebrow mb-7 text-[#d69172]">Start a conversation</p><h2 className="display max-w-3xl text-[clamp(56px,9vw,124px)] leading-[.8] tracking-[-.05em]">Let&apos;s make<br /><em>something real.</em></h2></div>
-            <div className="text-sm leading-7 text-white/60"><p>For bookings, castings, and general inquiries:</p><a href="mailto:hello@42modelmanagement.com" className="mt-2 inline-block border-b border-white/35 pb-1 text-white">hello@42modelmanagement.com</a><p className="mt-8">Dallas · New York · Los Angeles</p></div>
+            <div className="text-sm leading-7 text-white/60"><p>For bookings, castings, and general inquiries:</p><a href="mailto:hello@42modelmanagement.com" className="mt-2 inline-block border-b border-white/35 pb-1 text-white">hello@42modelmanagement.com</a><p className="mt-8">Dallas–Fort Worth · USA – UK</p></div>
           </div>
           <footer className="mt-24 flex flex-col justify-between gap-8 border-t border-white/20 pt-5 text-[10px] font-700 uppercase tracking-[.15em] text-white/45 sm:flex-row"><span>© 42 Model Management</span><div className="flex gap-6"><a href="#">Privacy</a><a href="#">Instagram ↗</a></div></footer>
         </div>

@@ -25,7 +25,14 @@ _Last updated: 2026-09-29 (Phase 1b, migration `009_security_hardening.sql`)._
   - `boards` (policy already existed)
 - **Column grants:** anon gets column grants only for public-safe fields. DOB, contact details, rates and notes are never granted, and `talent_public_age()` returns an age only when `show_age` is on.
 - **Later views:** migration 017 builds the new public views the same way. `tests/rls/public-views.test.mjs` asserts that no public view lacks `security_invoker`, both at the production-equivalent state (through 010) and with every migration.
-- **Expected remaining advisor warnings (not critical):** `talent_public_age()` and the role helpers are `SECURITY DEFINER` functions callable by API roles. They are deliberate. Each has a fixed `search_path` and returns only booleans, permission keys, or an opt-in age.
+- **Advisor warnings after migration 018.**
+  - **Removed:** trigger functions no longer have API execute rights. The role helpers and `board_path()` are no longer callable by anonymous visitors.
+  - **Deliberate, remaining:**
+    - `talent_public_age()` is callable by anon, because the public views call it.
+    - `has_permission()`, `current_permissions()`, `current_agency_role()`, `current_talent_id()`, `write_audit()`, `has_role()`, `has_any_role()`, `is_active_agency_member()` and `board_path()` are callable by signed-in users, because RLS policies and the app use them.
+    - Each has a fixed `search_path` and returns only booleans, permission keys, a path, or an opt-in age.
+  - **Unknown origin:** `rls_auto_enable()` predates the tracked migrations. Review it in the Supabase dashboard.
+  - **Dashboard setting to enable:** Auth leaked-password protection (Authentication → Settings).
 
 ## Findings from discovery and their status
 

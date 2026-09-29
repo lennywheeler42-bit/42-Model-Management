@@ -2,7 +2,7 @@
 
 _Last updated: 2026-09-29, audited at commit `e42cf22`. This replaces the earlier discovery note, which was written when the workspace was empty._
 
-> **Status:** Phase 1b (security fix) is complete. S1–S4 and S7 are fixed by migration `009_security_hardening.sql`, and S6 is partly fixed. F2 (image host) and F8 (404) are also fixed, and F1 is fixed via the "Make public" media control. See `docs/security-review.md` for current status; the findings below record the state at audit time.
+> **Status:** Phases 1–8 are implemented (migrations 009–018, the dashboard, and the public site). See `docs/architecture.md`, `docs/permissions.md` and `docs/security-review.md` for the current state, and `docs/staging.md` for release status. The findings below record the state at audit time.
 
 This compares the repository and the tracked Supabase migrations with `42_Agency_OS_Claude_Master_Prompt.md`. Nothing in the application or the database was changed during the audit.
 

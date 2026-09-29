@@ -37,7 +37,7 @@ export function DashboardFrame({ nav, viewer, children }: { nav: NavSection[]; v
     {open && <button type="button" aria-label="Close menu" className="fixed inset-0 z-30 bg-[#20211f]/40 lg:hidden" onClick={() => setOpen(false)} />}
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-y-auto bg-[#20211f] px-4 py-6 text-white transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
       <div className="flex items-center justify-between px-2">
-        <Link href="/dashboard" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 text-[11px] font-800 tracking-[-.08em]">42</span><span className="text-[10px] font-800 uppercase tracking-[.16em]">Agency OS</span></Link>
+        <Link href="/dashboard" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 text-[11px] font-800 tracking-[-.08em]">42</span><span className="text-[10px] font-800 uppercase tracking-[.16em]">Model Management</span></Link>
         <button type="button" className="lg:hidden" aria-label="Close menu" onClick={() => setOpen(false)}><X size={18} /></button>
       </div>
       <nav aria-label="Dashboard" className="mt-8 flex-1 space-y-7">

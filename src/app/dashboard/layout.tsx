@@ -7,7 +7,7 @@ import { visibleNav } from "@/features/dashboard/nav";
 import { displayNameForUser, getAgencyContext } from "@/lib/agency-auth";
 
 export const metadata: Metadata = {
-  title: { default: "Dashboard", template: "%s — Agency OS" },
+  title: { default: "Dashboard", template: "%s — 42 Model Management" },
   robots: { index: false, follow: false },
 };
 
