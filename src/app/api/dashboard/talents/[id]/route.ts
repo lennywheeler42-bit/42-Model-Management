@@ -41,7 +41,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
 
-  const [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult] = await Promise.all([
+  const [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult, legalResult, bankingResult, agenciesResult, documentsResult, itemsResult, usagesResult, appointmentsResult, medicalResult] = await Promise.all([
     context.supabase.from("talent").select("*").eq("id", id).maybeSingle(),
     context.supabase.from("talent_board_assignments").select("board_id,boards(id,name,slug)").eq("talent_id", id),
     context.supabase.from("talent_measurements").select("*").eq("talent_id", id).order("measured_on", { ascending: false }),
@@ -52,8 +52,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     context.supabase.from("talent_skills").select("*").eq("talent_id", id).order("category,skill"),
     context.supabase.from("talent_social_accounts").select("*").eq("talent_id", id).order("platform"),
     context.supabase.from("talent_photos").select("id,storage_path,title,alt_text,photographer,image_type,display_order,featured,public,publish_to_website").eq("talent_id", id).is("archived_at", null).order("display_order"),
+    context.supabase.from("talent_legal").select("*").eq("talent_id", id).maybeSingle(),
+    context.supabase.from("talent_banking").select("*").eq("talent_id", id).maybeSingle(),
+    context.supabase.from("talent_agencies").select("*").eq("talent_id", id).order("created_at"),
+    context.supabase.from("talent_documents").select("id,file_name,description,category,visibility,created_at").eq("talent_id", id).order("created_at", { ascending: false }),
+    context.supabase.from("talent_items").select("*").eq("talent_id", id).order("created_at", { ascending: false }),
+    context.supabase.from("talent_usages").select("*").eq("talent_id", id).order("start_date", { ascending: false }),
+    context.supabase.from("talent_appointments").select("*").eq("talent_id", id).order("start_at", { ascending: false }),
+    context.supabase.from("talent_medical").select("*").eq("talent_id", id).maybeSingle(),
   ]);
-  const failed = [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult].find((result) => result.error);
+  const failed = [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult, legalResult, bankingResult, agenciesResult, documentsResult, itemsResult, usagesResult, appointmentsResult, medicalResult].find((result) => result.error);
   if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
   if (!talentResult.data) return NextResponse.json({ error: "Talent not found" }, { status: 404 });
   return NextResponse.json({
@@ -67,6 +75,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     skills: skillsResult.data ?? [],
     socialAccounts: socialsResult.data ?? [],
     media: mediaResult.data ?? [],
+    legal: legalResult.data,
+    banking: bankingResult.data,
+    agencies: agenciesResult.data ?? [],
+    documents: documentsResult.data ?? [],
+    items: itemsResult.data ?? [],
+    usages: usagesResult.data ?? [],
+    appointments: appointmentsResult.data ?? [],
+    medical: medicalResult.data,
   });
 }
 

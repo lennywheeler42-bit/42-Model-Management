@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Grid2X2, LayoutDashboard, LogOut, Menu, Plus, Search, UsersRound, X } from "lucide-react";
+import { CalendarDays, ClipboardList, FileText, Globe2, Grid2X2, ImageIcon, LayoutDashboard, LogOut, Menu, Plus, Search, Settings2, UsersRound, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Talent } from "@/lib/data";
@@ -18,6 +18,22 @@ const nav = [
   { label: "Boards", icon: Grid2X2 },
   { label: "Calendar", icon: CalendarDays },
 ];
+
+const manageNav = [
+  { label: "Media library", icon: ImageIcon },
+  { label: "Applications", icon: ClipboardList },
+  { label: "Documents", icon: FileText },
+  { label: "Website CMS", icon: Globe2 },
+  { label: "Settings", icon: Settings2 },
+];
+
+const managePanels: Record<string, { title: string; detail: string }> = {
+  "Media library": { title: "Media library", detail: "Media is currently managed from each talent record. A standalone library will appear here when media records exist." },
+  Applications: { title: "Applications", detail: "No application records or application workflow have been configured yet." },
+  Documents: { title: "Documents", detail: "Document records are available inside each talent record. No standalone document records exist yet." },
+  "Website CMS": { title: "Website CMS", detail: "No CMS pages or publishing configurations have been created yet." },
+  Settings: { title: "Settings", detail: "Workspace settings are not configured yet. Access control remains enforced through Supabase roles." },
+};
 
 export function DashboardShell() {
   const [active, setActive] = useState("Overview");
@@ -61,7 +77,7 @@ export function DashboardShell() {
       <div className="flex items-center justify-between px-2"><Link href="/" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/40 text-[11px] font-800 tracking-[-.08em]">42</span><span className="text-[10px] font-800 uppercase tracking-[.16em]">Agency OS</span></Link><button className="lg:hidden" onClick={() => setMobileOpen(false)}><X size={18} /></button></div>
       <div className="mt-12 px-2 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">Workspace</div>
       <nav className="mt-3 space-y-1">{nav.map((item) => { const Icon = item.icon; return <button key={item.label} onClick={() => { setActive(item.label); setMobileOpen(false); }} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 transition-colors ${active === item.label ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><Icon size={16} strokeWidth={1.8} />{item.label}</button>; })}</nav>
-      {me?.role === "owner" && <><div className="mt-10 px-2 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">Manage</div><button onClick={() => setActive("Team")} className={`mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 ${active === "Team" ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><UsersRound size={16} strokeWidth={1.8} />Team access</button></>}
+      {me?.role === "owner" && <><div className="mt-10 px-2 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">Manage</div><nav className="mt-3 space-y-1">{manageNav.map((item) => { const Icon = item.icon; return <button key={item.label} onClick={() => { setActive(item.label); setMobileOpen(false); }} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 ${active === item.label ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><Icon size={16} strokeWidth={1.8} />{item.label}</button>; })}<button onClick={() => { setActive("Team"); setMobileOpen(false); }} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 ${active === "Team" ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><UsersRound size={16} strokeWidth={1.8} />Team access</button></nav></>}
       <div className="mt-auto border-t border-white/10 pt-5"><button onClick={signOut} className="flex w-full items-center gap-3 px-3 py-3 text-[12px] text-white/55 hover:text-white"><LogOut size={16} />Sign out</button></div>
     </aside>
     <section className="min-w-0 flex-1"><header className="flex h-[76px] items-center justify-between border-b border-[#e7e7e3] bg-white px-5 sm:px-8"><div className="flex items-center gap-4"><button className="lg:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div><p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#a2a39d]">Agency workspace</p><h1 className="mt-1 text-lg font-700">Good morning, {me?.name ?? "there"}</h1></div></div><div className="text-right"><p className="text-[11px] font-700">{me?.name ?? "Agency user"}</p><p className="text-[9px] uppercase tracking-[.13em] text-[#a2a39d]">{me?.role?.replaceAll("_", " ") ?? "Agency"}</p></div></header>
@@ -70,6 +86,7 @@ export function DashboardShell() {
         {active === "Talent" && <TalentPage talents={filtered} search={search} setSearch={setSearch} onAdd={() => setShowNewTalent(true)} onOpen={setSelectedTalent} onToggle={togglePublish} />}
         {active === "Boards" && <BoardsPanel boards={boards} />}
         {active === "Calendar" && <EmptyPanel title="Calendar" detail="No appointments or bookings have been created yet." />}
+        {managePanels[active] && <EmptyPanel title={managePanels[active].title} detail={managePanels[active].detail} />}
         {active === "Team" && <TeamPanel />}
       </div>
     </section>
