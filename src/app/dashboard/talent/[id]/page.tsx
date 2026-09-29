@@ -53,7 +53,7 @@ export default async function TalentDetailPage({ params, searchParams }: { param
     <Link href="/dashboard/talent" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">← Roster</Link>
     <TalentHeader talent={talent} age={ageFromDob(privateDetails?.date_of_birth)} thumbnail={coverUrl} boardCount={boardCount}
       canPublish={permissions.has("talent.publish")} canArchive={permissions.has("talent.archive")} />
-    <nav aria-label="Talent record sections" className="-mx-1 flex gap-1 overflow-x-auto border-b border-[#e7e7e3] px-1">
+    <nav aria-label="Talent record sections" className="-mx-1 flex gap-x-1 overflow-x-auto border-b border-[#e7e7e3] px-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => <Link key={tab.key} href={`/dashboard/talent/${id}?tab=${tab.key}`} aria-current={tab.key === active ? "page" : undefined}
         className={`whitespace-nowrap border-b-2 px-3 py-3 text-[10px] font-800 uppercase tracking-[.12em] ${tab.key === active ? "border-[#c26a48] text-[#c26a48]" : "border-transparent text-[#8d8f88] hover:text-[#20211f]"}`}>{tab.label}</Link>)}
     </nav>

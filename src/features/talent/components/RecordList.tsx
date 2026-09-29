@@ -42,7 +42,7 @@ export function RecordList({ talentId, module, rows, canEdit, datalists = {}, de
       {canEdit && <Button size="sm" variant="secondary" icon={<Plus size={13} />} onClick={() => setEditing("new")}>Add {ui.singular}</Button>}
     </div>
 
-    {rows.length ? <div className="overflow-x-auto rounded-lg border border-[#e7e7e3]">
+    {rows.length ? <div className="relative overflow-x-auto rounded-lg border border-[#e7e7e3]">
       <table className="w-full min-w-[560px] text-left text-xs">
         <thead><tr className="border-b border-[#efefeb] bg-[#fafaf8] text-[9px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">
           {ui.columns.map((column) => <th key={column.key} scope="col" className="px-3 py-2.5">{column.label}</th>)}

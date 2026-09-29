@@ -1,0 +1,38 @@
+// Readable wording for audit_logs actions shown in the dashboard.
+const phrases: Record<string, string> = {
+  "talent.created": "created a talent record",
+  "talent.edited": "edited talent details",
+  "talent.published": "published a talent to the website",
+  "talent.unpublished": "removed a talent from the website",
+  "talent.archived": "archived a talent",
+  "talent.publication_changed": "changed a talent's publication status",
+  "board.assigned": "added a talent to a board",
+  "board.removed": "removed a talent from a board",
+  "board.created": "created a board",
+  "board.updated": "updated a board",
+  "board.deleted": "deleted a board",
+  "media.uploaded": "uploaded an image",
+  "media.published": "made an image public",
+  "media.unpublished": "made an image private",
+  "media.archived": "archived an image",
+  "media.edited": "edited image details",
+  "media.primary_set": "set a primary image",
+  "video.added": "added a video",
+  "video.published": "made a video public",
+  "video.unpublished": "made a video private",
+  "video.archived": "archived a video",
+  "sensitive.viewed": "viewed restricted records",
+  "banking.revealed": "revealed banking details",
+  "document.accessed": "downloaded a private document",
+  "agency_member.insert": "approved a team member",
+  "agency_member.update": "changed team access",
+  "agency_member.delete": "removed a team member",
+};
+
+export function describeAction(action: string) {
+  if (phrases[action]) return phrases[action];
+  const [subject, verb] = action.split(".");
+  const noun = (subject ?? action).replaceAll("_", " ").replaceAll("-", " ");
+  const past = { added: "added", updated: "updated", removed: "removed", saved: "saved", insert: "added", update: "updated", created: "created", deleted: "deleted" }[verb ?? ""];
+  return past ? `${past} ${noun}` : action.replaceAll("_", " ").replace(".", " — ");
+}

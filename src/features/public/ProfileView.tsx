@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { TalentCard } from "@/components/TalentCard";
 import { embedUrl } from "@/features/media/video";
+import { CONTACT_EMAIL } from "@/lib/site";
 import type { PublicProfile, TalentCardData } from "./types";
 
 // Public talent profile. Rendered for live profiles and for staff previews, so a
@@ -31,7 +32,7 @@ export function ProfileView({ talent, related = [], backHref = "/models" }: { ta
                 <dd className="mt-1 text-[13px] font-700">{stat.value}</dd>
               </div>)}
             </dl>}
-            <a href={`mailto:bookings@42modelmanagement.com?subject=${encodeURIComponent(`Booking enquiry: ${talent.name}`)}`} className="mt-8 flex w-fit items-center gap-3 text-[10px] font-800 uppercase tracking-[.16em]">
+            <a href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Booking enquiry: ${talent.name}`)}`} className="mt-8 flex w-fit items-center gap-3 text-[10px] font-800 uppercase tracking-[.16em]">
               Enquire about {talent.firstName}<span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ink)]"><ArrowUpRight size={14} aria-hidden /></span>
             </a>
           </div>

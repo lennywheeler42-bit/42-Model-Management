@@ -3,7 +3,7 @@
 import { useId, type ReactNode } from "react";
 
 const labelClass = "block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]";
-const inputClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm normal-case tracking-normal text-[#20211f] outline-none transition-colors focus:border-[#c26a48] focus-visible:ring-2 focus-visible:ring-[#c26a48]/20 disabled:bg-[#f3f3f0]";
+const inputClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal text-[#20211f] outline-none transition-colors focus:border-[#c26a48] focus-visible:ring-2 focus-visible:ring-[#c26a48]/20 disabled:bg-[#f3f3f0]";
 
 type Base = { label: string; name: string; hint?: string; required?: boolean; disabled?: boolean; className?: string };
 

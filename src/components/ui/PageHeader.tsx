@@ -12,7 +12,7 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
 }
 
 export function Card({ title, description, actions, children, className = "" }: { title?: string; description?: string; actions?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={`rounded-xl border border-[#e7e7e3] bg-white ${className}`}>
+  return <section className={`min-w-0 rounded-xl border border-[#e7e7e3] bg-white ${className}`}>
     {(title || actions) && <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#efefeb] px-5 py-4">
       <div>{title && <h2 className="text-sm font-800">{title}</h2>}{description && <p className="mt-1 text-xs leading-5 text-[#8d8f88]">{description}</p>}</div>
       {actions}

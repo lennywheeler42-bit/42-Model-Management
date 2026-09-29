@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/PageHeader";
 import type { PermissionSet } from "@/lib/permissions";
 import { heightLabel, lengthLabel, formatDate } from "@/lib/format";
 import { BoardAssignments } from "@/features/boards/BoardAssignments";
+import { toBoardChoice } from "@/features/boards/tree";
 import { CollectionManager } from "@/features/media/CollectionManager";
 import { PhotoManager } from "@/features/media/PhotoManager";
 import { VideoManager } from "@/features/media/VideoManager";
@@ -41,7 +42,7 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       return <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <Card><GeneralTab talent={talent} privateDetails={privateDetails} canEdit={can("talent.edit")} canViewPrivate={can("talent.private.view")} canEditPrivate={can("talent.private.edit")} guardians={guardians} /></Card>
         <Card><BoardAssignments talentId={id} assigned={assigned} canAssign={can("boards.assign")}
-          boards={boards.flat.map((board) => ({ id: board.id, label: board.label, depth: board.depth, isPublic: board.isPublic, isActive: board.is_active }))} /></Card>
+          boards={boards.flat.map(toBoardChoice)} /></Card>
       </div>;
     }
     case "other": {

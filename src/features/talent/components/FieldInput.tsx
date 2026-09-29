@@ -36,7 +36,7 @@ function ListAwareText({ field, value, common }: { field: FieldDef; value: Value
   if (field.list) {
     return <label className={`block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b] ${common.className}`}>{field.label}{field.required && <span className="text-[#c26a48]"> *</span>}
       <input name={field.name} list={field.list} required={field.required} disabled={common.disabled} defaultValue={value === null || value === undefined ? "" : String(value)}
-        className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm normal-case tracking-normal outline-none focus:border-[#c26a48]" />
+        className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#c26a48]" />
       {field.hint && <span className="mt-1.5 block text-[11px] font-400 normal-case tracking-normal text-[#8d8f88]">{field.hint}</span>}
     </label>;
   }

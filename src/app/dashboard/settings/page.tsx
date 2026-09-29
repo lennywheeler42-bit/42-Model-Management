@@ -6,6 +6,7 @@ import { requirePage } from "@/lib/agency-auth";
 import { formatDateTime } from "@/lib/format";
 import type { Permission } from "@/lib/permissions";
 import { TeamPanel, type Member } from "@/features/settings/TeamPanel";
+import { describeAction } from "@/features/dashboard/activity";
 
 export const metadata = { title: "Settings" };
 
@@ -57,7 +58,7 @@ async function RolesSection({ supabase }: { supabase: Client }) {
   const roles = ROLE_ORDER.filter((role) => role === "talent" || (grants.data ?? []).some((grant) => grant.role_key === role));
 
   return <Card title="Permission matrix" description="Enforced by row-level security in the database; the dashboard reads the same matrix. Talent logins see only their own record.">
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[820px] text-left text-xs">
         <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.1em] text-[#8d8f88]"><th className="py-2 pr-4">Permission</th>{roles.map((role) => <th key={role} className="px-2 py-2 text-center">{role.replace("_", " ")}</th>)}</tr></thead>
         <tbody>{(permissions.data ?? []).map((permission) => <tr key={permission.key} className="border-b border-[#f3f3f0]">
@@ -79,7 +80,7 @@ async function ActivitySection({ supabase, page }: { supabase: Client; page: num
   const pages = Math.max(1, Math.ceil((count ?? 0) / size));
 
   return <div className="space-y-4">
-    <div className="overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
+    <div className="relative overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
       <table className="w-full min-w-[720px] text-left text-xs">
         <caption className="sr-only">Audit log</caption>
         <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#8d8f88]"><th className="px-4 py-3">When</th><th className="px-4 py-3">Who</th><th className="px-4 py-3">Action</th><th className="px-4 py-3">Record</th></tr></thead>
@@ -88,7 +89,7 @@ async function ActivitySection({ supabase, page }: { supabase: Client; page: num
           return <tr key={event.id} className="border-b border-[#f3f3f0] last:border-0">
             <td className="whitespace-nowrap px-4 py-2.5 text-[#8d8f88]">{formatDateTime(event.created_at)}</td>
             <td className="px-4 py-2.5">{actor?.full_name || actor?.email || "System"}</td>
-            <td className="px-4 py-2.5 font-700">{event.action}</td>
+            <td className="px-4 py-2.5"><span className="font-700">{describeAction(event.action)}</span><span className="block text-[11px] text-[#a2a39d]">{event.action}</span></td>
             <td className="px-4 py-2.5">{event.entity_type === "talent" && event.entity_id ? <Link href={`/dashboard/talent/${event.entity_id}`} className="hover:text-[#c26a48]">Talent record</Link> : event.entity_type}</td>
           </tr>;
         })}</tbody>

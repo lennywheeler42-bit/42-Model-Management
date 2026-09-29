@@ -4,6 +4,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
 import { getRoster } from "@/features/public/queries";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 const heroImage = "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1800&q=90";
 
@@ -76,7 +77,7 @@ export default async function Home() {
         <div className="container">
           <div className="grid gap-16 md:grid-cols-[1.4fr_1fr] md:items-end">
             <div><p className="eyebrow mb-7 text-[#d69172]">Start a conversation</p><h2 className="display max-w-3xl text-[clamp(56px,9vw,124px)] leading-[.8] tracking-[-.05em]">Let&apos;s make<br /><em>something real.</em></h2></div>
-            <div className="text-sm leading-7 text-white/60"><p>For bookings, castings, and general inquiries:</p><a href="mailto:hello@42modelmanagement.com" className="mt-2 inline-block border-b border-white/35 pb-1 text-white">hello@42modelmanagement.com</a><p className="mt-8">Dallas–Fort Worth · USA – UK</p></div>
+            <div className="text-sm leading-7 text-white/60"><p>For bookings, castings, and general inquiries:</p><a href={`mailto:${CONTACT_EMAIL}`} className="mt-2 inline-block border-b border-white/35 pb-1 text-white">{CONTACT_EMAIL}</a><p className="mt-8">Dallas–Fort Worth · USA – UK</p></div>
           </div>
           <footer className="mt-24 flex flex-col justify-between gap-8 border-t border-white/20 pt-5 text-[10px] font-700 uppercase tracking-[.15em] text-white/45 sm:flex-row"><span>© 42 Model Management</span><div className="flex gap-6"><a href="#">Privacy</a><a href="#">Instagram ↗</a></div></footer>
         </div>

@@ -44,8 +44,8 @@ export function TeamPanel({ members }: { members: Member[] }) {
     if (await run("/api/dashboard/team", { body: { email: editing.email, fullName: values.fullName, role: values.role, status: values.status }, success: "Access updated" })) setEditing(null);
   }
 
-  return <div className="grid gap-6 xl:grid-cols-[340px_1fr]">
-    <form onSubmit={approve} className="space-y-4 rounded-xl border border-[#e7e7e3] bg-white p-5">
+  return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
+    <form onSubmit={approve} className="min-w-0 space-y-4 rounded-xl border border-[#e7e7e3] bg-white p-5">
       <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3da] text-[#c26a48]"><UserPlus size={17} /></span>
         <div><h2 className="text-sm font-800">Approve an email</h2><p className="text-[11px] text-[#8d8f88]">They can sign in once their email is confirmed.</p></div></div>
       <TextField label="Work email" name="email" type="email" required autoComplete="off" />
@@ -54,7 +54,7 @@ export function TeamPanel({ members }: { members: Member[] }) {
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Approve access"}</Button>
     </form>
 
-    <div className="overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
+    <div className="relative min-w-0 overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
       <table className="w-full min-w-[560px] text-left text-sm">
         <caption className="sr-only">Approved accounts</caption>
         <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#8d8f88]"><th className="px-4 py-3">Member</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Signed in</th><th className="px-4 py-3"><span className="sr-only">Edit</span></th></tr></thead>

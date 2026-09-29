@@ -20,7 +20,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return <ToastContext.Provider value={api}>
     {children}
-    <div aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,calc(100%-32px))] flex-col gap-2">
+    <div aria-live="polite" className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,calc(100%_-_32px))] flex-col gap-2">
       {toasts.map((toast) => <div key={toast.id} role={toast.tone === "error" ? "alert" : "status"}
         className={`pointer-events-auto flex items-start gap-3 rounded-lg border px-4 py-3 text-xs shadow-lg ${toast.tone === "error" ? "border-[#e6c3b4] bg-[#fdf6f3] text-[#a9593d]" : "border-[#b7cdb9] bg-[#f3f8f3] text-[#4f7a54]"}`}>
         {toast.tone === "error" ? <CircleAlert size={15} className="mt-0.5 shrink-0" /> : <Check size={15} className="mt-0.5 shrink-0" />}

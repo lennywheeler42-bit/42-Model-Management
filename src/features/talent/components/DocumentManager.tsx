@@ -56,7 +56,7 @@ export function DocumentManager({ talentId, documents, canManage }: { talentId: 
     </div>
 
     {canManage && <form ref={form} onSubmit={upload} className="grid gap-4 rounded-lg border border-[#e7e7e3] p-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end">
-      <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b] sm:col-span-2 lg:col-span-1">File<input name="file" type="file" required accept={Object.keys(ACCEPTED).join(",")} className="mt-2 block w-full text-xs normal-case tracking-normal" /></label>
+      <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b] sm:col-span-2 lg:col-span-1">File<input name="file" type="file" required accept={Object.keys(ACCEPTED).join(",")} className="mt-2 block w-full text-xs font-400 normal-case tracking-normal" /></label>
       <SelectField label="Category" name="category" options={CATEGORIES} placeholder="—" />
       <SelectField label="Visibility" name="visibility" defaultValue="private" options={[{ value: "private", label: "Private (restricted roles)" }, { value: "staff", label: "Staff" }]} />
       <TextField label="Description" name="description" />
