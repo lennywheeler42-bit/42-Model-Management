@@ -2,6 +2,7 @@ export type TalentStatus = "published" | "review" | "draft" | "archived";
 
 export type Talent = {
   id: string;
+  talentId?: string;
   slug: string;
   name: string;
   firstName: string;
@@ -228,4 +229,3 @@ export const boards = [
 export const publicTalents = talents.filter(
   (talent) => talent.status === "published" && talent.showOnWebsite,
 );
-

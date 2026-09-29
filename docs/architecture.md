@@ -11,13 +11,12 @@ flowchart LR
   F --> G
 ```
 
-The current UI uses a fictional local data adapter so it is useful before a Supabase project is configured. `src/lib/supabase.ts` and the SQL migrations define the production boundary for replacing that adapter with live reads and writes.
+The private dashboard reads and writes live Supabase data through server-side API routes. Browser clients never receive the server-only key. `src/lib/supabase.ts` is limited to browser-safe Auth actions, while `src/lib/supabase/server.ts`, the dashboard API routes, RLS policies, and migrations define the production boundary.
 
 ## Publication flow
 
-Talent is created as a draft, enriched with media and measurements, assigned to one or more boards, then explicitly published with `show_on_website = true`. Public reads are limited to `public_talent_directory`; private/legal/financial fields remain outside that projection.
+Talent is created as a draft, enriched through the dashboard editor, assigned to a board, and explicitly published with `show_on_website = true`. Measurement snapshots are append-only history records. Public reads are limited to `public_talent_directory` and `public_talent_profiles`; private/legal/financial fields remain outside those projections.
 
 ## Implementation phases
 
 The build follows the supplied order: foundation → dashboard shell → talent/boards → measurements/media → sensitive modules → public integration → search/applications/CMS → operations/exports/portal → security and QA.
-

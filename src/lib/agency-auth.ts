@@ -23,6 +23,8 @@ export const ownerManagedRoles = [
 
 export type AgencyRole = (typeof agencyRoles)[number];
 
+export const talentManagerRoles: AgencyRole[] = ["owner", "administrator", "talent_manager"];
+
 type AgencyProfile = {
   id: string;
   email: string;
@@ -72,4 +74,8 @@ export function displayNameForUser(user: { email?: string | null; user_metadata?
     (typeof user.user_metadata?.name === "string" ? user.user_metadata.name : "") ||
     user.email?.split("@")[0] ||
     "Agency user";
+}
+
+export function canManageTalent(role: AgencyRole | string | null | undefined) {
+  return Boolean(role && talentManagerRoles.includes(role as AgencyRole));
 }

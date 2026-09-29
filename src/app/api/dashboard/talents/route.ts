@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAgencyContext } from "@/lib/agency-auth";
+import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
 
 const createTalentSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
@@ -8,6 +8,21 @@ const createTalentSchema = z.object({
   location: z.string().trim().max(120).optional().default(""),
   gender: z.string().trim().max(40).optional().default(""),
   boardSlug: z.string().trim().min(1).max(120),
+  displayName: z.string().trim().max(160).optional().default(""),
+  dateOfBirth: z.string().trim().max(20).optional().default(""),
+  dateJoined: z.string().trim().max(20).optional().default(""),
+  birthPlace: z.string().trim().max(120).optional().default(""),
+  nationality: z.string().trim().max(120).optional().default(""),
+  mobile: z.string().trim().max(80).optional().default(""),
+  phone: z.string().trim().max(80).optional().default(""),
+  email: z.string().trim().email().optional().or(z.literal("")),
+  website: z.string().trim().max(240).optional().default(""),
+  isMinor: z.boolean().optional().default(false),
+  allowSms: z.boolean().optional().default(false),
+  publicBio: z.string().trim().max(5000).optional().default(""),
+  minimumTariff: z.coerce.number().nonnegative().optional().nullable(),
+  minimumHourlyRate: z.coerce.number().nonnegative().optional().nullable(),
+  minimumDayRate: z.coerce.number().nonnegative().optional().nullable(),
 });
 
 function slugify(value: string) {
@@ -18,6 +33,7 @@ export async function GET() {
   const context = await getAgencyContext();
   if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+  if (!canManageTalent(context.membership?.role)) return NextResponse.json({ error: "Talent management access required" }, { status: 403 });
   const { supabase } = context;
 
   const { data, error } = await supabase
@@ -70,9 +86,10 @@ export async function POST(request: Request) {
   const parsed = createTalentSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Please provide valid talent details" }, { status: 400 });
 
-  const { firstName, lastName, location, gender, boardSlug } = parsed.data;
-  const slug = `${slugify(firstName)}-${slugify(lastName)}`;
-  const talentId = `T-${Date.now().toString().slice(-6)}`;
+  const { firstName, lastName, location, gender, boardSlug, displayName, dateOfBirth, dateJoined, birthPlace, nationality, mobile, phone, email, website, isMinor, allowSms, publicBio, minimumTariff, minimumHourlyRate, minimumDayRate } = parsed.data;
+  const baseSlug = slugify(displayName || `${firstName}-${lastName}`);
+  const slug = `${baseSlug || "talent"}-${Date.now().toString(36).slice(-6)}`;
+  const talentId = `T-${Date.now().toString(36).toUpperCase().slice(-7)}`;
   const { data: board, error: boardError } = await supabase.from("boards").select("id").eq("slug", boardSlug).maybeSingle();
   if (boardError || !board) return NextResponse.json({ error: "Selected board was not found" }, { status: 400 });
 
@@ -81,14 +98,28 @@ export async function POST(request: Request) {
     talent_id: talentId,
     first_name: firstName,
     last_name: lastName,
-    display_name: `${firstName} ${lastName}`,
+    display_name: displayName || `${firstName} ${lastName}`,
     location,
     gender,
+    date_of_birth: dateOfBirth || null,
+    date_joined: dateJoined || null,
+    birth_place: birthPlace,
+    nationality,
+    mobile,
+    phone,
+    email: email || null,
+    website,
+    is_minor: isMinor,
+    allow_sms: allowSms,
+    public_bio: publicBio,
+    minimum_tariff: minimumTariff ?? null,
+    minimum_hourly_rate: minimumHourlyRate ?? null,
+    minimum_day_rate: minimumDayRate ?? null,
     publication_status: "draft",
     show_on_website: false,
     created_by: user.id,
     updated_by: user.id,
-  }).select("id,talent_id,slug,first_name,last_name,display_name,location,publication_status,show_on_website,featured").single();
+  }).select("id,talent_id,slug,first_name,last_name,display_name,location,gender,date_of_birth,date_joined,birth_place,nationality,mobile,phone,email,website,is_minor,allow_sms,public_bio,minimum_tariff,minimum_hourly_rate,minimum_day_rate,publication_status,show_on_website,featured").single();
   if (error || !talent) return NextResponse.json({ error: error?.message ?? "Unable to create talent" }, { status: 500 });
 
   const assignment = await supabase.from("talent_board_assignments").insert({ talent_id: talent.id, board_id: board.id, created_at: new Date().toISOString() });

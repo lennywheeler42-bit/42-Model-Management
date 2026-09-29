@@ -1,23 +1,97 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAgencyContext } from "@/lib/agency-auth";
+import { canManageTalent, getAgencyContext } from "@/lib/agency-auth";
+
+const nullableText = z.string().trim().max(240).optional().nullable();
 
 const updateSchema = z.object({
+  first_name: z.string().trim().min(1).max(80).optional(),
+  last_name: z.string().trim().min(1).max(80).optional(),
+  display_name: z.string().trim().min(1).max(160).optional(),
+  location: nullableText,
+  gender: nullableText,
+  date_of_birth: z.string().trim().max(20).optional().nullable(),
+  date_joined: z.string().trim().max(20).optional().nullable(),
+  birth_place: nullableText,
+  nationality: nullableText,
+  mobile: nullableText,
+  phone: nullableText,
+  email: z.string().trim().email().optional().nullable().or(z.literal("")),
+  website: nullableText,
+  is_minor: z.boolean().optional(),
+  allow_sms: z.boolean().optional(),
+  email_icalendar: nullableText,
+  username: nullableText,
+  talent_login_enabled: z.boolean().optional(),
+  talent_app_enabled: z.boolean().optional(),
+  minimum_tariff: z.coerce.number().nonnegative().optional().nullable(),
+  minimum_hourly_rate: z.coerce.number().nonnegative().optional().nullable(),
+  minimum_day_rate: z.coerce.number().nonnegative().optional().nullable(),
+  public_bio: z.string().trim().max(5000).optional().nullable(),
   publication_status: z.enum(["draft", "review", "published", "archived"]).optional(),
   show_on_website: z.boolean().optional(),
+  show_in_search: z.boolean().optional(),
+  featured: z.boolean().optional(),
+  board_id: z.string().uuid().optional().nullable(),
 }).refine((value) => Object.keys(value).length > 0);
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const context = await getAgencyContext();
+  if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+
+  const [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult] = await Promise.all([
+    context.supabase.from("talent").select("*").eq("id", id).maybeSingle(),
+    context.supabase.from("talent_board_assignments").select("board_id,boards(id,name,slug)").eq("talent_id", id),
+    context.supabase.from("talent_measurements").select("*").eq("talent_id", id).order("measured_on", { ascending: false }),
+    context.supabase.from("talent_private_details").select("notes").eq("talent_id", id).maybeSingle(),
+    context.supabase.from("talent_notes").select("id,note_type,body,created_at").eq("talent_id", id).order("created_at", { ascending: false }),
+    context.supabase.from("talent_contacts").select("*").eq("talent_id", id).order("created_at"),
+    context.supabase.from("talent_addresses").select("*").eq("talent_id", id).order("created_at"),
+    context.supabase.from("talent_skills").select("*").eq("talent_id", id).order("category,skill"),
+    context.supabase.from("talent_social_accounts").select("*").eq("talent_id", id).order("platform"),
+    context.supabase.from("talent_photos").select("id,storage_path,title,alt_text,photographer,image_type,display_order,featured,public,publish_to_website").eq("talent_id", id).is("archived_at", null).order("display_order"),
+  ]);
+  const failed = [talentResult, assignmentsResult, measurementsResult, detailsResult, notesResult, contactsResult, addressesResult, skillsResult, socialsResult, mediaResult].find((result) => result.error);
+  if (failed?.error) return NextResponse.json({ error: failed.error.message }, { status: 500 });
+  if (!talentResult.data) return NextResponse.json({ error: "Talent not found" }, { status: 404 });
+  return NextResponse.json({
+    talent: talentResult.data,
+    boards: (assignmentsResult.data ?? []).map((assignment) => ({ boardId: assignment.board_id, board: Array.isArray(assignment.boards) ? assignment.boards[0] : assignment.boards })),
+    measurements: measurementsResult.data ?? [],
+    details: detailsResult.data ?? { notes: "" },
+    notes: notesResult.data ?? [],
+    contacts: contactsResult.data ?? [],
+    addresses: addressesResult.data ?? [],
+    skills: skillsResult.data ?? [],
+    socialAccounts: socialsResult.data ?? [],
+    media: mediaResult.data ?? [],
+  });
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const context = await getAgencyContext();
   if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
-  const { supabase, user } = context;
-  const parsed = updateSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
+  if (!canManageTalent(context.membership?.role)) return NextResponse.json({ error: "Talent management access required" }, { status: 403 });
 
-  const { data, error } = await supabase.from("talent").update({ ...parsed.data, updated_by: user.id, updated_at: new Date().toISOString() }).eq("id", id).select("id,publication_status,show_on_website").single();
+  const parsed = updateSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: "Invalid talent update" }, { status: 400 });
+  const { board_id, ...talentFields } = parsed.data;
+  const update = { ...talentFields, updated_by: context.user.id, updated_at: new Date().toISOString() };
+  const { data, error } = await context.supabase.from("talent").update(update).eq("id", id).select("*").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  await supabase.from("audit_log").insert({ table_name: "talent", record_id: id, action: "update_publication", changed_by: user.id, new_data: parsed.data });
+
+  if (board_id !== undefined) {
+    await context.supabase.from("talent_board_assignments").delete().eq("talent_id", id);
+    if (board_id) {
+      const assignment = await context.supabase.from("talent_board_assignments").insert({ talent_id: id, board_id });
+      if (assignment.error) return NextResponse.json({ error: assignment.error.message }, { status: 500 });
+    }
+  }
+
+  await context.supabase.from("audit_log").insert({ table_name: "talent", record_id: id, action: "update", changed_by: context.user.id, new_data: parsed.data });
   return NextResponse.json(data);
 }
