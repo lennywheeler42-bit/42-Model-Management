@@ -79,9 +79,25 @@ http://localhost:3000/auth/callback
 https://<your-vercel-domain>/auth/callback
 ```
 
-Google sign-in authenticates a user but does not grant an agency role. After the intended owner signs in once, run this query in Supabase SQL Editor, replacing the email:
+Google sign-in authenticates a user but does not grant agency access. The owner must explicitly allowlist each email. Run this query in Supabase SQL Editor with the intended owner email:
 
 ```sql
+insert into public.agency_members (email, full_name, role, status)
+select lower('owner@youragency.com'),
+       coalesce(raw_user_meta_data->>'full_name', raw_user_meta_data->>'name', ''),
+       'owner',
+       'active'
+from auth.users
+where lower(email) = lower('owner@youragency.com')
+  and not exists (
+    select 1 from public.agency_members
+    where lower(email) = lower('owner@youragency.com')
+  );
+
+update public.agency_members
+set role = 'owner', status = 'active', updated_at = now()
+where lower(email) = lower('owner@youragency.com');
+
 update public.profiles
 set role = 'owner', status = 'active'
 where lower(email) = lower('owner@youragency.com');
@@ -94,7 +110,18 @@ where lower(p.email) = lower('owner@youragency.com')
 on conflict do nothing;
 ```
 
-Do not grant `owner` to every Google account. Use least-privilege staff roles such as `administrator`, `talent_manager`, `booker`, `creative`, `accounting`, or `read_only`.
+If the owner has not signed in yet, run this pre-approval instead:
+
+```sql
+insert into public.agency_members (email, full_name, role, status)
+select lower('owner@youragency.com'), 'Owner Name', 'owner', 'active'
+where not exists (
+  select 1 from public.agency_members
+  where lower(email) = lower('owner@youragency.com')
+);
+```
+
+The Auth trigger will apply the owner role when that email first signs in. Do not grant `owner` to every Google account. After entering the dashboard, use **Team access** to approve staff and assign least-privilege roles such as `administrator`, `staff`, `talent_manager`, `booker`, `creative`, `accounting`, or `read_only`.
 
 ## Media and publishing flow
 

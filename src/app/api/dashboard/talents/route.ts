@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAgencyContext } from "@/lib/agency-auth";
 
 const createTalentSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
@@ -15,9 +15,10 @@ function slugify(value: string) {
 }
 
 export async function GET() {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  const context = await getAgencyContext();
+  if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+  const { supabase } = context;
 
   const { data, error } = await supabase
     .from("talent")
@@ -61,9 +62,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  const context = await getAgencyContext();
+  if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+  const { supabase, user } = context;
 
   const parsed = createTalentSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Please provide valid talent details" }, { status: 400 });

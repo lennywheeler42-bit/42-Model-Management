@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 
-export function LoginForm({ nextPath }: { nextPath: string }) {
+export function LoginForm({ nextPath, initialError = "" }: { nextPath: string; initialError?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [loading, setLoading] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {

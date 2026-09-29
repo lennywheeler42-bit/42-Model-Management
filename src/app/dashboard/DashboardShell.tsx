@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Bell, CalendarDays, ChevronDown, Grid2X2, Image as ImageIcon, LayoutDashboard, LogOut, Menu, Plus, Search, Settings, UserRound, UsersRound, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Talent } from "@/lib/data";
+import { createClient } from "@/lib/supabase";
+import { TeamPanel } from "./TeamPanel";
 
 const nav = [
   { label: "Overview", icon: LayoutDashboard },
@@ -22,13 +25,18 @@ export function DashboardShell() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [showNewTalent, setShowNewTalent] = useState(false);
+  const [me, setMe] = useState<{ name: string; email: string; role: string } | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/dashboard/talents")
-      .then(async (response) => {
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error ?? "Unable to load talent");
-        setTalents(payload);
+    Promise.all([fetch("/api/dashboard/me"), fetch("/api/dashboard/talents")])
+      .then(async ([meResponse, talentResponse]) => {
+        const mePayload = await meResponse.json();
+        if (!meResponse.ok) throw new Error(mePayload.error ?? "Unable to load your account");
+        const talentPayload = await talentResponse.json();
+        if (!talentResponse.ok) throw new Error(talentPayload.error ?? "Unable to load talent");
+        setMe(mePayload);
+        setTalents(talentPayload);
       })
       .catch((error: Error) => setLoadError(error.message))
       .finally(() => setLoading(false));
@@ -47,6 +55,11 @@ export function DashboardShell() {
     setTalents((current) => current.map((item) => item.id === id ? { ...item, status: nextPublished ? "published" : "review", showOnWebsite: nextPublished } : item));
   }
 
+  async function signOut() {
+    await createClient().auth.signOut();
+    router.push("/login");
+  }
+
   return (
     <main className="min-h-screen bg-[#f7f7f5] text-[#20211f]">
       <div className="flex min-h-screen">
@@ -55,12 +68,12 @@ export function DashboardShell() {
           <div className="mt-12 px-2 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">Workspace</div>
           <nav className="mt-3 space-y-1">{nav.map((item) => { const Icon = item.icon; return <button key={item.label} onClick={() => { setActive(item.label); setMobileOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-3 py-3 text-left text-[12px] font-600 transition-colors ${active === item.label ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><span className="flex items-center gap-3"><Icon size={16} strokeWidth={1.8} />{item.label}</span>{item.badge && <span className={`rounded-full px-2 py-0.5 text-[9px] ${active === item.label ? "bg-[#dcb5a4]" : "bg-white/10"}`}>{item.badge}</span>}</button>; })}</nav>
           <div className="mt-10 px-2 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">Manage</div>
-          <nav className="mt-3 space-y-1"><button onClick={() => setActive("Media library")} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 text-white/60 hover:bg-white/10 hover:text-white"><ImageIcon size={16} strokeWidth={1.8} />Media library</button><button onClick={() => setActive("Website CMS")} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 text-white/60 hover:bg-white/10 hover:text-white"><Grid2X2 size={16} strokeWidth={1.8} />Website CMS</button></nav>
-          <div className="mt-auto border-t border-white/10 pt-5"><button className="flex w-full items-center gap-3 px-3 py-3 text-[12px] text-white/55 hover:text-white"><Settings size={16} />Settings</button><button className="flex w-full items-center gap-3 px-3 py-3 text-[12px] text-white/55 hover:text-white"><LogOut size={16} />Sign out</button></div>
+          <nav className="mt-3 space-y-1"><button onClick={() => setActive("Media library")} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 text-white/60 hover:bg-white/10 hover:text-white"><ImageIcon size={16} strokeWidth={1.8} />Media library</button><button onClick={() => setActive("Website CMS")} className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 text-white/60 hover:bg-white/10 hover:text-white"><Grid2X2 size={16} strokeWidth={1.8} />Website CMS</button>{me?.role === "owner" && <button onClick={() => setActive("Team")} className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[12px] font-600 ${active === "Team" ? "bg-white text-[#20211f]" : "text-white/60 hover:bg-white/10 hover:text-white"}`}><UsersRound size={16} strokeWidth={1.8} />Team access</button>}</nav>
+          <div className="mt-auto border-t border-white/10 pt-5"><button className="flex w-full items-center gap-3 px-3 py-3 text-[12px] text-white/55 hover:text-white"><Settings size={16} />Settings</button><button onClick={signOut} className="flex w-full items-center gap-3 px-3 py-3 text-[12px] text-white/55 hover:text-white"><LogOut size={16} />Sign out</button></div>
         </aside>
 
         <section className="min-w-0 flex-1">
-          <header className="flex h-[76px] items-center justify-between border-b border-[#e7e7e3] bg-white px-5 sm:px-8"><div className="flex items-center gap-4"><button className="lg:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div><p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#a2a39d]">Tuesday, September 29, 2026</p><h1 className="mt-1 text-lg font-700">Good morning, Jordan</h1></div></div><div className="flex items-center gap-5"><button className="relative text-[#74766f]"><Bell size={19} /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#c26a48]" /></button><div className="flex items-center gap-3 border-l border-[#e7e7e3] pl-5"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d7b9a9] text-[11px] font-800">JD</div><div className="hidden sm:block"><p className="text-[11px] font-700">Jordan Davis</p><p className="text-[9px] uppercase tracking-[.13em] text-[#a2a39d]">Administrator</p></div><ChevronDown size={14} className="text-[#a2a39d]" /></div></div></header>
+          <header className="flex h-[76px] items-center justify-between border-b border-[#e7e7e3] bg-white px-5 sm:px-8"><div className="flex items-center gap-4"><button className="lg:hidden" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><div><p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#a2a39d]">Agency workspace</p><h1 className="mt-1 text-lg font-700">Good morning, {me?.name ?? "there"}</h1></div></div><div className="flex items-center gap-5"><button className="relative text-[#74766f]"><Bell size={19} /><span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[#c26a48]" /></button><div className="flex items-center gap-3 border-l border-[#e7e7e3] pl-5"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d7b9a9] text-[11px] font-800">{(me?.name ?? "AU").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</div><div className="hidden sm:block"><p className="text-[11px] font-700">{me?.name ?? "Agency user"}</p><p className="text-[9px] uppercase tracking-[.13em] text-[#a2a39d]">{me?.role?.replaceAll("_", " ") ?? "Agency"}</p></div><ChevronDown size={14} className="text-[#a2a39d]" /></div></div></header>
           <div className="p-5 sm:p-8 lg:p-10">
             {loading && <p className="mb-5 rounded-md bg-white px-4 py-3 text-xs text-[#8d8f88]">Loading live talent data…</p>}
             {loadError && <p className="mb-5 rounded-md bg-[#f8e8df] px-4 py-3 text-xs text-[#a9593d]">{loadError}</p>}
@@ -74,7 +87,8 @@ export function DashboardShell() {
               <div className="mt-6 rounded-xl border border-[#e7e7e3] bg-white p-5"><div className="flex items-center justify-between"><div><h3 className="text-sm font-700">Board performance</h3><p className="mt-1 text-[10px] text-[#a2a39d]">Published roster by active board</p></div><button className="text-[#a2a39d]"><ChevronDown size={16} /></button></div><div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{[{name:"Women / Development", count:22, color:"bg-[#d0c8b9]"},{name:"Men / Mainboard", count:14, color:"bg-[#b8c4ce]"},{name:"Women / Mainboard", count:18, color:"bg-[#d7b9b2]"}].map((board) => <div key={board.name}><div className="mb-2 flex justify-between text-[11px] font-700"><span>{board.name}</span><span className="text-[#a2a39d]">{board.count}</span></div><div className="h-2 rounded-full bg-[#f0f0ed]"><div className={`h-2 rounded-full ${board.color}`} style={{ width: `${Math.min(board.count * 3.4, 100)}%` }} /></div></div>)}</div></div>
             </>}
             {active === "Talent" && <TalentPage talents={filtered} search={search} setSearch={setSearch} onAdd={() => setShowNewTalent(true)} onToggle={togglePublish} />}
-            {active !== "Overview" && active !== "Talent" && <div className="grid min-h-[60vh] place-items-center rounded-xl border border-dashed border-[#d9dad5] bg-white"><div className="text-center"><p className="text-[10px] font-800 uppercase tracking-[.2em] text-[#c26a48]">{active}</p><h2 className="mt-3 text-2xl font-700">Module ready for connection</h2><p className="mt-3 max-w-sm text-sm leading-6 text-[#8d8f88]">This production shell is ready to connect to the corresponding Supabase tables and RLS policies.</p></div></div>}
+            {active === "Team" && <TeamPanel />}
+            {active !== "Overview" && active !== "Talent" && active !== "Team" && <div className="grid min-h-[60vh] place-items-center rounded-xl border border-dashed border-[#d9dad5] bg-white"><div className="text-center"><p className="text-[10px] font-800 uppercase tracking-[.2em] text-[#c26a48]">{active}</p><h2 className="mt-3 text-2xl font-700">Module ready for connection</h2><p className="mt-3 max-w-sm text-sm leading-6 text-[#8d8f88]">This production shell is ready to connect to the corresponding Supabase tables and RLS policies.</p></div></div>}
           </div>
         </section>
       </div>

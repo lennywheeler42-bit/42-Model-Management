@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAgencyContext } from "@/lib/agency-auth";
 
 const updateSchema = z.object({
   publication_status: z.enum(["draft", "review", "published", "archived"]).optional(),
@@ -9,9 +9,10 @@ const updateSchema = z.object({
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  const context = await getAgencyContext();
+  if (!context.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (!context.authorized) return NextResponse.json({ error: "Your account is not approved for the agency dashboard" }, { status: 403 });
+  const { supabase, user } = context;
   const parsed = updateSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid update" }, { status: 400 });
 
