@@ -1,4 +1,100 @@
 -- Extend the existing agency tables without replacing them.
+create table if not exists public.boards (
+  id uuid primary key default gen_random_uuid(),
+  category text not null default 'general',
+  section text not null default 'main',
+  name text not null,
+  slug text unique not null,
+  is_minor_board boolean not null default false,
+  display_order integer not null default 0,
+  is_active boolean not null default true,
+  publish_to_website boolean not null default true,
+  internal_only boolean not null default false,
+  show_in_navigation boolean not null default true,
+  sort_order integer not null default 0,
+  description text,
+  parent_board_id uuid references public.boards(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.talent (
+  id uuid primary key default gen_random_uuid(),
+  talent_id text unique,
+  slug text unique not null,
+  first_name text not null,
+  last_name text not null,
+  display_name text not null,
+  location text,
+  gender text,
+  date_of_birth date,
+  date_joined date,
+  status text not null default 'active',
+  publication_status text not null default 'draft',
+  publish_to_website boolean not null default false,
+  show_on_website boolean not null default false,
+  show_in_search boolean not null default false,
+  featured boolean not null default false,
+  archived_at timestamptz,
+  created_by uuid references auth.users(id) on delete set null,
+  updated_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.talent_board_assignments (
+  id uuid primary key default gen_random_uuid(),
+  talent_id uuid not null references public.talent(id) on delete cascade,
+  board_id uuid not null references public.boards(id) on delete cascade,
+  board_order integer not null default 0,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  unique (talent_id, board_id)
+);
+
+create table if not exists public.talent_measurements (
+  id uuid primary key default gen_random_uuid(),
+  talent_id uuid not null references public.talent(id) on delete cascade,
+  measured_on date not null default current_date,
+  height_cm numeric,
+  bust_chest_cm numeric,
+  waist_cm numeric,
+  hips_cm numeric,
+  shoe_size_us text,
+  hair_color text,
+  eye_color text,
+  is_official boolean not null default false,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.talent_photos (
+  id uuid primary key default gen_random_uuid(),
+  talent_id uuid not null references public.talent(id) on delete cascade,
+  storage_path text not null,
+  title text,
+  alt_text text,
+  photographer text,
+  image_type text not null default 'portfolio',
+  is_cover boolean not null default false,
+  portfolio_order integer not null default 0,
+  display_order integer not null default 0,
+  featured boolean not null default false,
+  "public" boolean not null default false,
+  publish_to_website boolean not null default false,
+  focal_point jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.talent_private_details (
+  id uuid primary key default gen_random_uuid(),
+  talent_id uuid not null unique references public.talent(id) on delete cascade,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.boards add column if not exists parent_board_id uuid references public.boards(id) on delete set null;
 alter table public.boards add column if not exists description text;
 alter table public.boards add column if not exists internal_only boolean not null default false;
@@ -38,6 +134,16 @@ update public.talent_photos set display_order = portfolio_order where display_or
 
 alter table public.talent_measurements add column if not exists is_official boolean not null default false;
 alter table public.talent_measurements add column if not exists notes text;
+
+insert into public.boards (category, section, name, slug, is_minor_board, display_order, is_active, publish_to_website, internal_only, show_in_navigation, sort_order)
+values
+  ('women', 'fashion', 'Women / Fashion', 'fashion-women', false, 1, true, true, false, true, 1),
+  ('men', 'development', 'Men / Development', 'development-men', false, 2, true, true, false, true, 2),
+  ('women', 'development', 'Women / Development', 'development-women', false, 3, true, true, false, true, 3),
+  ('women', 'curve', 'Women / Curve', 'curve-women', false, 4, true, true, false, true, 4),
+  ('men', 'fashion', 'Men / Fashion', 'fashion-men', false, 5, true, true, false, true, 5),
+  ('teens', 'boys', 'Teens / Boys', 'teens-boys', true, 6, true, true, false, true, 6)
+on conflict (slug) do nothing;
 
 create index if not exists talent_public_idx on public.talent (publication_status, show_on_website, show_in_search) where archived_at is null;
 create index if not exists talent_board_assignments_board_idx on public.talent_board_assignments (board_id, sort_order);

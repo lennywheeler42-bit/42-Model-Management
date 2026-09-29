@@ -39,7 +39,7 @@ Open [http://localhost:3000](http://localhost:3000).
 Set these values in `.env.local`:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://khhdavquqtqsaghyjccw.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://dvpockrupiovuxcenuiy.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
 SUPABASE_SECRET_KEY=<server-only-secret-or-service-role-key>
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -49,13 +49,13 @@ The publishable/anon key is intended for browser use and is protected by Supabas
 
 ## Supabase setup
 
-The production Supabase project is `khhdavquqtqsaghyjccw` (`Model Luxe Media Dashboard`). Use API keys from this project only; a key from another Supabase project causes an `Invalid API key` error.
+The production Supabase project is `dvpockrupiovuxcenuiy`. Use API keys from this project only; a key from another Supabase project causes an `Invalid API key` error.
 
 Link the project and apply the tracked migrations:
 
 ```bash
 npx supabase@latest login
-npx supabase@latest link --project-ref khhdavquqtqsaghyjccw
+npx supabase@latest link --project-ref dvpockrupiovuxcenuiy
 npx supabase@latest db push
 npx supabase@latest migration list
 ```
@@ -69,7 +69,7 @@ Enable **Authentication → Providers → Google** in Supabase and enter the Goo
 In Google Cloud, create a **Web application** OAuth client and add this exact authorized redirect URI:
 
 ```text
-https://khhdavquqtqsaghyjccw.supabase.co/auth/v1/callback
+https://dvpockrupiovuxcenuiy.supabase.co/auth/v1/callback
 ```
 
 In **Supabase → Authentication → URL Configuration**, set the Site URL to the real Vercel production domain and add these redirect URLs:
@@ -111,7 +111,7 @@ Records remain private until they are explicitly published. An empty roster is e
 Connect the GitHub repository `lennywheeler42-bit/42-Model-Management` with the `main` branch. Configure these Vercel environment variables for Production and Preview:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://khhdavquqtqsaghyjccw.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://dvpockrupiovuxcenuiy.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<matching-publishable-key>
 SUPABASE_SECRET_KEY=<matching-server-only-secret>
 NEXT_PUBLIC_SITE_URL=https://<your-vercel-domain>

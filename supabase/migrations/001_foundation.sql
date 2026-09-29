@@ -1,6 +1,16 @@
 -- 42 Agency OS foundation, compatible with the existing agency schema.
 create extension if not exists "pgcrypto";
 
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null default '',
+  full_name text not null default '',
+  role text not null default 'read_only',
+  status text not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.roles (
   id uuid primary key default gen_random_uuid(),
   key text unique not null,
@@ -23,6 +33,17 @@ create table if not exists public.audit_logs (
   entity_id uuid,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
+);
+
+create table if not exists public.audit_log (
+  id uuid primary key default gen_random_uuid(),
+  table_name text not null,
+  record_id uuid,
+  action text not null,
+  changed_by uuid references auth.users(id) on delete set null,
+  changed_at timestamptz not null default now(),
+  old_data jsonb,
+  new_data jsonb
 );
 
 create or replace function public.has_role(required_role text)
@@ -68,4 +89,3 @@ insert into public.roles (key, name) values
   ('owner', 'Owner'), ('administrator', 'Administrator'), ('booker', 'Booker'), ('talent_manager', 'Talent Manager'),
   ('creative', 'Creative / Photographer'), ('accounting', 'Accounting'), ('talent', 'Talent'), ('read_only', 'Read Only')
 on conflict (key) do nothing;
-
