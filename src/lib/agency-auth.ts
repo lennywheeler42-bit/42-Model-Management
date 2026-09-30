@@ -2,6 +2,7 @@ import { cache } from "react";
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { hasAll, toPermissionSet, type Permission, type PermissionSet } from "@/lib/permissions";
+import { recentGoogleSignIn } from "@/lib/mfa-policy";
 
 export const ownerManagedRoles = [
   "administrator",
@@ -44,8 +45,11 @@ export const getAgencyContext = cache(async () => {
 
   const permissionSet = toPermissionSet(permissions);
   const typedMembership = membership as AgencyMembership | null;
-  // Owner/administrator sessions count only after the second factor (aal2).
-  const needsMfa = Boolean(typedMembership && mfaRequiredRoles().has(typedMembership.role) && assurance?.currentLevel !== "aal2");
+  // Owner/administrator sessions count only after a second step: an authenticator
+  // code (aal2), or a Google sign-in from the last 30 days (mfa-policy.ts).
+  const providers = (user.app_metadata?.providers as string[] | undefined) ?? [user.app_metadata?.provider as string];
+  const verified = assurance?.currentLevel === "aal2" || recentGoogleSignIn(assurance?.currentAuthenticationMethods, providers);
+  const needsMfa = Boolean(typedMembership && mfaRequiredRoles().has(typedMembership.role) && !verified);
   const authorized = typedMembership?.status === "active" && permissionSet.has("dashboard.access") && !needsMfa;
 
   return { supabase, user, profile: profile as AgencyProfile | null, membership: typedMembership, permissions: permissionSet, authorized, needsMfa } as const;

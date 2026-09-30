@@ -66,7 +66,7 @@ After that, the remaining unverified items are listed in `qa-report.md` → "Not
 - **Service role** is used only by the GHL webhook (`src/lib/supabase/admin.ts`), enforced by `tests/unit/boundaries.test.mts`.
 - **Minors:** no public DOB, address or contacts; no structured data about talent; guardian required.
 - **CSP without nonces,** so static pages keep working. CMS HTML is sanitised.
-- **MFA required** for owner and administrator (`MFA_REQUIRED_ROLES`).
+- **Two-step sign-in** for owner and administrator (`MFA_REQUIRED_ROLES`). A Google sign-in from the last 30 days counts as the second step (owner decision, `src/lib/mfa-policy.ts`). Password sign-ins, or a Google sign-in older than 30 days, need "Continue with Google" again or an authenticator code. Keep 2-Step Verification on for the Google accounts.
 - **Brand accent:** burgundy `#9e1923` and gold `#d5a561` (public); dashboard accent `#a4502f`.
 
 ## 5. Open owner decisions

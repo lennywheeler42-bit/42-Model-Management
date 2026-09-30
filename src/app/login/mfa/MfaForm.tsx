@@ -7,9 +7,10 @@ import { authButton, authError, authInput, authLabel } from "../AuthShell";
 
 type Setup = { factorId: string; qr: string; secret: string };
 
-export function MfaForm({ next, email }: { next: string; email: string }) {
+export function MfaForm({ next, email, google }: { next: string; email: string; google: boolean }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"loading" | "verify" | "enroll" | "error">("loading");
+  // Google accounts choose first; the authenticator set-up starts only if they ask for it.
+  const [mode, setMode] = useState<"choose" | "loading" | "verify" | "enroll" | "error">(google ? "choose" : "loading");
   const [factorId, setFactorId] = useState<string | null>(null);
   const [setup, setSetup] = useState<Setup | null>(null);
   const [code, setCode] = useState("");
@@ -17,6 +18,7 @@ export function MfaForm({ next, email }: { next: string; email: string }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (mode !== "loading") return;
     let cancelled = false;
     (async () => {
       const client = createClient();
@@ -35,7 +37,26 @@ export function MfaForm({ next, email }: { next: string; email: string }) {
       setMode("enroll");
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [mode]);
+
+  // A fresh Google sign-in counts as the second step (src/lib/mfa-policy.ts).
+  async function continueWithGoogle() {
+    setBusy(true); setError("");
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    const { error: oauthError } = await createClient().auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    if (oauthError) { setError("Google sign-in did not start. Try again."); setBusy(false); }
+  }
+
+  const googleButton = <button type="button" onClick={continueWithGoogle} disabled={busy} className="flex w-full items-center justify-center gap-3 rounded-md border border-[#d9d5ce] bg-white px-4 py-3 text-[11px] font-800 uppercase tracking-[.14em] text-[#20211f] transition-colors hover:border-[#a4502f] disabled:opacity-50">
+    <span className="text-base font-700 normal-case">G</span>
+    {busy ? "Connecting…" : "Continue with Google"}
+  </button>;
+
+  if (mode === "choose") return <div className="mt-8 space-y-4">
+    {googleButton}
+    {error && <p className={authError} role="alert">{error}</p>}
+    <button type="button" onClick={() => setMode("loading")} className="w-full text-center text-xs font-700 text-[#6b6d66] underline underline-offset-4 hover:text-[#20211f]">Use an authenticator app instead</button>
+  </div>;
 
   async function verify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
