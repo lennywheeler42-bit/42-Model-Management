@@ -1,4 +1,4 @@
-// Permission keys granted to roles in public.role_permissions (migration 011).
+// Permission keys granted to roles in public.role_permissions (migration 011 onwards).
 // The database is the authority; these keys mirror it for typing and UI decisions.
 export const PERMISSIONS = [
   "dashboard.access",
@@ -30,6 +30,8 @@ export const PERMISSIONS = [
   "documents.manage",
   "operations.view",
   "operations.manage",
+  "applications.view",
+  "applications.manage",
   "website.manage",
   "audit.view",
   "settings.manage",

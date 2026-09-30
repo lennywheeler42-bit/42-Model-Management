@@ -20,7 +20,7 @@ flowchart LR
 - **Server code.** Every Supabase call runs under the caller's session, so RLS applies.
   - `src/lib/agency-auth.ts` resolves the user, their membership and their permissions once per request.
   - `requireApi()` guards API routes and `requirePage()` guards pages.
-  - There is no service-role client.
+  - **The only service-role client** is `src/lib/supabase/admin.ts` (server-only). It is used only by the GHL webhook (`/api/integrations/ghl`), which has no user session and authenticates with a shared secret. `tests/unit/boundaries.test.mts` fails if anything else imports it.
 - **Dashboard (`src/app/dashboard`, `src/features/*`).** Server-rendered pages load data per request. Client components post to `/api/dashboard/*` and call `router.refresh()` through `useMutation()`.
   - Shared UI lives in `src/components/ui`.
   - Talent sub-modules are driven by one registry: `features/talent/modules.ts` (API) and `features/talent/fields.ts` (forms and tables).
@@ -41,6 +41,16 @@ flowchart LR
 5. The public views show the talent when it is published, visible, and not archived.
    - Board pages add one more condition: an assignment to a board that is itself public, meaning it and all its parents are active, published and not internal.
 6. **Preview profile** (`/preview/talent/[id]`) renders the same public view for any status, with warnings about what will not be shown.
+
+## Applications flow (GoHighLevel)
+
+The Join Us form stays on GHL (`/join` redirects there). A GHL workflow posts each submission to `/api/integrations/ghl`.
+- `features/applications/ghl.ts` maps the payload by field label.
+- `ingest.ts` upserts one application per GHL contact, then downloads photos in `after()`. Photos are re-encoded as JPEG to strip EXIF/GPS and stored in the private `applications` bucket.
+- Staff review in `/dashboard/applications` and convert with `convert_application()`, which also copies photos into `talent-private`.
+- `scripts/import-ghl.mjs` back-fills past submissions through the same endpoint.
+
+See `ghl-integration.md`.
 
 ## Board flow
 

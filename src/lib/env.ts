@@ -1,5 +1,5 @@
-// Browser-safe Supabase settings. The server-only secret key is intentionally not
-// read here: nothing in the app needs it yet, and it must never reach client code.
+// Browser-safe Supabase settings. The secret key is read only by
+// src/lib/supabase/admin.ts (server-only) and must never reach client code.
 export function getSupabasePublicEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

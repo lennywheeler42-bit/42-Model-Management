@@ -27,6 +27,12 @@ const phrases: Record<string, string> = {
   "agency_member.insert": "approved a team member",
   "agency_member.update": "changed team access",
   "agency_member.delete": "removed a team member",
+  "auth.login": "signed in",
+  "auth.login_unapproved": "was refused sign-in (not on the team list)",
+  "application.received": "received a Join Us application",
+  "application.status_changed": "changed an application's status",
+  "application.converted": "converted an application into talent",
+  "application.purged": "purged old applications",
 };
 
 export function describeAction(action: string) {

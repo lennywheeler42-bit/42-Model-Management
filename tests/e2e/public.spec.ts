@@ -97,3 +97,16 @@ test.describe("roster search", () => {
     await expect(page.getByText(/no talent matches/i)).toBeVisible();
   });
 });
+
+test.describe("GHL integration", () => {
+  test("the webhook refuses unauthenticated calls", async ({ request }) => {
+    const response = await request.post("/api/integrations/ghl", { data: { contact_id: "e2e", email: "e2e@example.test" } });
+    expect([401, 503]).toContain(response.status());
+  });
+
+  test("/join sends visitors to the GHL registration form", async ({ request }) => {
+    const response = await request.get("/join", { maxRedirects: 0 });
+    expect(response.status()).toBe(307);
+    expect(response.headers().location).toBe("https://funnel.modelluxemedia.com/registration-form");
+  });
+});

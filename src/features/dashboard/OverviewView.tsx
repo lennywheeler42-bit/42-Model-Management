@@ -46,6 +46,15 @@ export function OverviewView({ name, permissions, data }: { name: string; permis
     </section>}
 
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      {data.applications && <Card title={`New applications${data.applications.total ? ` (${data.applications.total})` : ""}`} description="Join Us submissions from GoHighLevel awaiting review."
+        actions={<Link href="/dashboard/applications" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">View all</Link>}>
+        {data.applications.latest.length ? <ul className="divide-y divide-[#f3f3f0] text-sm">{data.applications.latest.map((item) => <Row key={item.id}>
+          <span><Link href={`/dashboard/applications/${item.id}`} className="font-700 hover:text-[#c26a48]">{[item.first_name, item.last_name].filter(Boolean).join(" ") || item.email || "Applicant"}</Link>
+            <span className="block text-xs text-[#8d8f88]">{[item.city, item.is_minor ? "Minor" : null].filter(Boolean).join(" · ") || "—"}</span></span>
+          <span className={meta}>{formatDate(item.submitted_at)}</span>
+        </Row>)}</ul> : <Empty>No new applications.</Empty>}
+      </Card>}
+
       {permissions.has("talent.view") && <Card title="Pending review" description="Talent waiting for a publishing decision.">
         {data.review.length ? <ul className="divide-y divide-[#f3f3f0] text-sm">{data.review.map((talent) => <Row key={talent.id}><TalentLink talent={talent} /><span className={meta}>{formatDate(talent.updated_at)}</span></Row>)}</ul> : <Empty>Nothing is waiting for review.</Empty>}
       </Card>}
@@ -75,7 +84,8 @@ export function OverviewView({ name, permissions, data }: { name: string; permis
           const actor = (Array.isArray(event.actor) ? event.actor[0] : event.actor) as { full_name: string; email: string } | null;
           return <Row key={event.id}>
             <span><span className="font-700">{actor?.full_name || actor?.email || "System"}</span> <span className="text-[#5f615b]">{describeAction(event.action)}</span>
-              {event.entity_type === "talent" && event.entity_id && <> · <Link href={`/dashboard/talent/${event.entity_id}`} className="text-[#8d8f88] underline-offset-2 hover:text-[#c26a48] hover:underline">view record</Link></>}</span>
+              {event.entity_type === "talent" && event.entity_id && <> · <Link href={`/dashboard/talent/${event.entity_id}`} className="text-[#8d8f88] underline-offset-2 hover:text-[#c26a48] hover:underline">view record</Link></>}
+              {event.entity_type === "application" && event.entity_id && permissions.has("applications.view") && <> · <Link href={`/dashboard/applications/${event.entity_id}`} className="text-[#8d8f88] underline-offset-2 hover:text-[#c26a48] hover:underline">view application</Link></>}</span>
             <span className={meta}>{formatDateTime(event.created_at)}</span>
           </Row>;
         })}</ul> : <Empty>No activity recorded yet.</Empty>}

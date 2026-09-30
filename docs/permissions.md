@@ -39,6 +39,8 @@ Roles resolve **only** from `agency_members`, bound to the signed-in Auth user i
 | documents.view / documents.manage | ✓ | | | ✓ | | | |
 | operations.view | ✓ | ✓ | | ✓ | ✓ | ✓ | own appointments |
 | operations.manage | ✓ | ✓ | | | | | |
+| applications.view | ✓ | ✓ | | | | | |
+| applications.manage | ✓ | | | | | | |
 | website.manage, audit.view, settings.manage | | | | | | | |
 | team.manage | owner only | | | | | | |
 

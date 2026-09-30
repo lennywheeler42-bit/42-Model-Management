@@ -12,7 +12,7 @@ export async function loadOverview(supabase: SupabaseClient, permissions: Permis
   const count = (query: PromiseLike<{ count: number | null }>) => Promise.resolve(query).then((result) => result.count ?? 0);
   const talentCount = () => supabase.from("talent").select("id", { count: "exact", head: true });
 
-  const [metrics, review, recent, uploads, appointments, birthdays, expiring, activity] = await Promise.all([
+  const [metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications] = await Promise.all([
     permissions.has("talent.view") ? Promise.all([
       count(talentCount().neq("publication_status", "archived")),
       count(talentCount().eq("publication_status", "published").eq("show_on_website", true)),
@@ -50,9 +50,16 @@ export async function loadOverview(supabase: SupabaseClient, permissions: Permis
     permissions.has("audit.view")
       ? supabase.from("audit_logs").select("id,action,entity_type,entity_id,created_at,actor:actor_id(full_name,email)").order("created_at", { ascending: false }).limit(10).then((r) => r.data ?? [])
       : [],
+
+    permissions.has("applications.view")
+      ? Promise.all([
+        count(supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "new")),
+        supabase.from("applications").select("id,first_name,last_name,email,city,is_minor,submitted_at").eq("status", "new").order("submitted_at", { ascending: false }).limit(6).then((r) => r.data ?? []),
+      ]).then(([total, latest]) => ({ total, latest: latest as { id: string; first_name: string | null; last_name: string | null; email: string | null; city: string | null; is_minor: boolean; submitted_at: string }[] }))
+      : null,
   ]);
 
-  return { metrics, review, recent, uploads, appointments, birthdays, expiring, activity };
+  return { metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications };
 }
 
 type TalentRef = { id: string; display_name: string; publication_status?: string } | null;

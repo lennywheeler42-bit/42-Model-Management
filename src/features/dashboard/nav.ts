@@ -1,6 +1,6 @@
 import type { Permission, PermissionSet } from "@/lib/permissions";
 
-export type NavIcon = "dashboard" | "talent" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings";
+export type NavIcon = "dashboard" | "talent" | "applications" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings";
 
 export type NavItem = { href: string; label: string; icon: NavIcon; anyOf: Permission[]; phase?: string };
 export type NavSection = { title: string; items: NavItem[] };
@@ -13,6 +13,7 @@ export const dashboardNav: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: "dashboard", anyOf: ["dashboard.access"] },
       { href: "/dashboard/talent", label: "Talent", icon: "talent", anyOf: ["talent.view"] },
+      { href: "/dashboard/applications", label: "Applications", icon: "applications", anyOf: ["applications.view"] },
       { href: "/dashboard/boards", label: "Boards", icon: "boards", anyOf: ["boards.view"] },
       { href: "/dashboard/search", label: "Search", icon: "search", anyOf: ["talent.view"] },
       { href: "/dashboard/calendar", label: "Calendar", icon: "calendar", anyOf: ["operations.view"], phase: "Phase 12" },

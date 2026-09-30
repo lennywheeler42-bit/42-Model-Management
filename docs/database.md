@@ -28,6 +28,15 @@ Migration order:
     - Adds an `auth.login` / `auth.login_unapproved` audit trigger on `auth.users.last_sign_in_at`.
     - Revokes API execute rights on Supabase's `rls_auto_enable()` event-trigger function. The function itself is kept; it enables RLS on new tables automatically.
 
+20. `020_applications.sql` — **Join Us applications from GoHighLevel.**
+    - Tables: `applications` (one per GHL contact), `application_photos` and `application_notes`.
+    - New permissions `applications.view` and `applications.manage`.
+    - Staff can update only `status`. The raw GHL payload is not selectable through the API. Rows are written only by the server integration (secret key).
+    - The `applications` bucket is readable with `applications.view`.
+    - `convert_application()` creates the draft talent, private details, measurement, address, social account, guardian contact and note in one transaction.
+    - `purge_stale_applications()` is owner-only retention.
+    - Receipt, status changes and conversion are audited by trigger. See `ghl-integration.md`.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:
