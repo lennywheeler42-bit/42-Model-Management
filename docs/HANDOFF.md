@@ -1,6 +1,6 @@
 # Project handoff — 42 Model Management
 
-_Last verified: 2026-09-30._
+_Last verified: 2026-10-01._
 
 This is the single place to pick the project up. Detail lives in:
 - `ROADMAP.md`: phases and production-readiness criteria
@@ -20,11 +20,10 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 
 | Item | State |
 |---|---|
-| Roadmap phases | **0–17 built.** 9–10 are live on `main`; 11–17 are on `release/phases-11-17` (tag `v1.0.0-rc.1`) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–018 applied; 019–025 written and tested but NOT yet applied** |
-| Why 019–025 are not applied | The automated agent was not allowed to run `supabase db push` against production. The owner runs it (`launch-checklist.md` §1) |
-| GitHub | `lennywheeler42-bit/42-Model-Management`. `main` is Phases 0–10; `release/phases-11-17` holds the rest |
-| Hosting | Vercel builds `main`. Merge the release branch only **after** the migrations are applied |
+| Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–025 applied** |
+| GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
+| Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |
 | Join Us | Stays on GoHighLevel (`https://funnel.modelluxemedia.com/registration-form`). Submissions flow in via webhook and import script |
 | Email sender | `ghl@modelluxemedia.com`, configured as custom SMTP in Supabase (owner action) |
@@ -46,15 +45,14 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 
 ## 3. What to do next (owner)
 
-Follow **`launch-checklist.md` §1**, in order:
-1. Back up.
-2. `npx supabase db push` (019–025).
-3. Merge `release/phases-11-17` into `main`.
-4. Set Vercel env vars.
-5. Configure Supabase Auth (SMTP, templates, leaked-password protection).
-6. Set up MFA for owner and admins.
-7. Create the GHL workflow.
-8. Run the smoke test.
+Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
+
+Remaining from **`launch-checklist.md` §1**:
+1. Import past GHL applications (`ghl-integration.md` §3). Choose only the forms that are real applications.
+2. Configure Supabase Auth (SMTP, templates, leaked-password protection).
+3. Set up MFA for owner and admins.
+4. Create the GHL workflow for new submissions.
+5. Run the smoke test.
 
 Then work through §2 (content and legal pages) and §3 (domain cutover).
 

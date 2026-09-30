@@ -1,6 +1,6 @@
 # QA report — release candidate v1.0.0-rc.1
 
-_Date: 2026-09-30. Scope: roadmap Phases 9–17 on branch `release/phases-11-17`, plus Phases 9–10 already on `main`._
+_Date: 2026-09-30. Scope: roadmap Phases 9–17 (all on `main` and deployed since 2026-10-01)._
 
 ## Automated results
 
@@ -47,7 +47,7 @@ Earlier phases also found and fixed the following during their own tests:
 
 ## Not yet verified (needs the migrations applied and real accounts)
 
-These can only be checked after `supabase db push` applies migrations 019–025 to production. See the launch checklist.
+Migrations 019–025 are now applied and the release is deployed, so these can be checked with real accounts. See the launch checklist.
 
 1. Every dashboard module with real data:
    - applications from a real GHL submission

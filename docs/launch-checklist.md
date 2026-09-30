@@ -2,9 +2,11 @@
 
 Production-readiness criteria: [ROADMAP.md → Part 4](ROADMAP.md#part-4--production-readiness). QA evidence: [qa-report.md](qa-report.md).
 
-## 1. Release v1.0.0 (code is ready on `release/phases-11-17`, tag `v1.0.0-rc.1`)
+## 1. Release v1.0.0
 
-Everything below was built and tested. It goes live in this order: **database first, then code.**
+> **Status (2026-10-01):** steps 1–4 are done. Migrations 019–025 are applied, Phases 11–17 are on `main` and deployed, and the Vercel env vars are set. Steps 5–8 remain.
+
+It went live in this order: **database first, then code.**
 
 1. **Back up the database.** Supabase → Database → Backups (paid plans). Or run `npx supabase db dump --linked -f backups/pre-v1-schema.sql`, plus `--data-only` to a second file, and keep both outside the repo.
 2. **Apply the migrations** from the repo folder:

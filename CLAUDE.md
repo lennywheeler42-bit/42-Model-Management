@@ -11,7 +11,7 @@ This repo is a talent-agency system for 42 Model Management. It has two halves:
 
 Both run on Next.js 16 (App Router), React 19, Tailwind v4 and Supabase (Postgres + RLS, Auth, Storage).
 
-Before starting work, read `docs/HANDOFF.md` (current state, what is live vs on `release/phases-11-17`) and `docs/launch-checklist.md`. The product spec lives outside the repo: `../42_Agency_OS_Claude_Master_Prompt.md`.
+Before starting work, read `docs/HANDOFF.md` (current state; everything is on `main`) and `docs/launch-checklist.md`. The product spec lives outside the repo: `../42_Agency_OS_Claude_Master_Prompt.md`.
 
 ## Commands
 
@@ -63,7 +63,7 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 **The database is the security boundary.**
 
 - Every query in the app runs under the caller's own session. The only exception is the public site, which uses the anonymous client.
-- **There is no service-role client.**
+- **The only service-role client** is `src/lib/supabase/admin.ts`, used solely by the GHL webhook (see "Service role" below).
 - Every table has RLS, with policies that call `has_permission('<key>')`.
 - Checks are repeated in three layers, all reading the same matrix:
   1. RLS in the database.
@@ -151,6 +151,6 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 - **Layout overflow.**
   - An `sr-only` element inside an `overflow-x-auto` container needs a `relative` ancestor, or it widens the page on mobile.
   - Grid children need `min-w-0`.
-- **Secrets.** `src/lib/env.ts` refuses a secret key in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. `SUPABASE_SECRET_KEY` is currently unused. `.env*` files are gitignored, except `.env.example`.
+- **Secrets.** `src/lib/env.ts` refuses a secret key in `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. `SUPABASE_SECRET_KEY` is read only by `src/lib/supabase/admin.ts`. `NEXT_PUBLIC_SITE_URL` is always read through `siteOrigin()` (`src/lib/site.ts`); a raw `new URL()` on it broke Vercel builds once. `.env*` files are gitignored, except `.env.example`.
 - **Contact email and branding.** The contact email is `CONTACT_EMAIL` in `src/lib/site.ts`. The brand name is "42 Model Management" (not "Agency OS").
 - **Git.** The owner has authorised pushing directly to `main` (Vercel deploys from it) and running `supabase db push`.
