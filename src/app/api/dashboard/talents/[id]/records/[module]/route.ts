@@ -4,6 +4,7 @@ import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue } from "@/lib/validation";
 import { getModule } from "@/features/talent/modules";
 import { prepareRow, RecordInputError } from "@/features/talent/record-service";
+import { refreshPublicSite } from "@/features/public/cache";
 
 type Params = { params: Promise<{ id: string; module: string }> };
 
@@ -15,6 +16,7 @@ async function write(request: Request, { params }: Params, mode: "create" | "ups
 
   const auth = await requireApi(config.edit);
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const { supabase } = auth.context;
 
   const parsed = config.schema.safeParse(await request.json().catch(() => null));

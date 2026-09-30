@@ -3,6 +3,7 @@ import { z } from "zod";
 import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue, optionalNumber, optionalText } from "@/lib/validation";
+import { refreshPublicSite } from "@/features/public/cache";
 
 // New media is always private: the original stays in talent-private and reaches the
 // website only through an explicit promotion (PATCH /media/[photoId]).
@@ -21,6 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   if (!parsed.data.storage_path.startsWith(`talent/${id}/`)) return NextResponse.json({ error: "Invalid media path" }, { status: 400 });

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue } from "@/lib/validation";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const schema = z.object({ board_id: z.string().uuid() });
 
@@ -11,6 +12,7 @@ async function change(request: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const auth = await requireApi("boards.assign");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   const { supabase } = auth.context;

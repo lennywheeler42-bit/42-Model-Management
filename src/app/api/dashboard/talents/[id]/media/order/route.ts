@@ -3,6 +3,7 @@ import { z } from "zod";
 import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue } from "@/lib/validation";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const schema = z.object({ photo_ids: z.array(z.string().uuid()).max(500) });
 
@@ -11,6 +12,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
 

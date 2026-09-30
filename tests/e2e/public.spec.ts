@@ -68,3 +68,32 @@ test.describe("signed-out access", () => {
     await expect(page).toHaveURL(/\/login\?error=/);
   });
 });
+
+test.describe("roster search", () => {
+  test("filters live in the URL and survive a reload", async ({ page }) => {
+    await page.goto("/models?heightMin=160&sort=name");
+    await expect(page.getByLabel("Sort")).toHaveValue("name");
+    await page.reload();
+    await expect(page.getByLabel("Min height")).toHaveValue("160");
+    const robots = await page.locator('meta[name="robots"]').getAttribute("content");
+    expect(robots).toContain("noindex");
+  });
+
+  test("invalid parameters are ignored rather than erroring", async ({ page }) => {
+    const response = await page.goto("/models?heightMin=abc&board=../../etc&page=-4");
+    expect(response?.status()).toBe(200);
+  });
+
+  test("a page past the end shows the empty state", async ({ page }) => {
+    await page.goto("/models?page=400");
+    await expect(page.getByText(/no talent matches/i)).toBeVisible();
+  });
+
+  test("the name search submits to a shareable URL", async ({ page }) => {
+    await page.goto("/models");
+    await page.getByPlaceholder("Name or city").fill("zzzz-no-match");
+    await page.getByPlaceholder("Name or city").press("Enter");
+    await expect(page).toHaveURL(/q=zzzz-no-match/);
+    await expect(page.getByText(/no talent matches/i)).toBeVisible();
+  });
+});

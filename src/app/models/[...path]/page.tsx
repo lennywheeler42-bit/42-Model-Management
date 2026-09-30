@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
 import { ProfileView } from "@/features/public/ProfileView";
 import { getPublicBoards, getPublicProfile, getRoster } from "@/features/public/queries";
-
-// Rendered per request so publishing, ordering, and board changes show immediately.
-export const dynamic = "force-dynamic";
 
 type Params = { params: Promise<{ path: string[] }> };
 
@@ -44,6 +42,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function ModelsPathPage({ params }: Params) {
+  // Rendered per request from cached data; staff changes clear the cache (features/public/cache.ts).
+  await connection();
   const found = await resolve((await params).path);
   if (!found) notFound();
 
@@ -53,7 +53,6 @@ export default async function ModelsPathPage({ params }: Params) {
     return <main className="bg-[var(--paper)]">
       <SiteHeader />
       <ProfileView talent={found.talent} related={related} backHref={board ? `/models/${board.path}` : "/models"} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "Person", name: found.talent.name, image: found.talent.image.startsWith("http") ? found.talent.image : undefined, affiliation: { "@type": "Organization", name: "42 Model Management" } }).replace(/</g, "\\u003c") }} />
     </main>;
   }
 

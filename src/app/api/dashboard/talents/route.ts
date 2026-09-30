@@ -3,10 +3,12 @@ import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue, slugify } from "@/lib/validation";
 import { createTalentSchema } from "@/features/talent/schemas";
+import { refreshPublicSite } from "@/features/public/cache";
 
 export async function POST(request: Request) {
   const auth = await requireApi("talent.create");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const { supabase, permissions } = auth.context;
 
   const parsed = createTalentSchema.safeParse(await request.json().catch(() => null));

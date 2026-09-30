@@ -8,9 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "test:rls": "node --test \"tests/rls/*.test.mjs\"",
-    "test": "node --test \"tests/rls/*.test.mjs\" \"tests/acceptance/*.test.mjs\"",
+    "test": "node --test \"tests/rls/*.test.mjs\" \"tests/acceptance/*.test.mjs\" \"tests/unit/*.test.mts\"",
     "test:acceptance": "node --test \"tests/acceptance/*.test.mjs\"",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "node --test \"tests/unit/*.test.mts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

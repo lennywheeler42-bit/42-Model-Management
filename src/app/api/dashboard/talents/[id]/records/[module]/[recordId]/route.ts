@@ -4,6 +4,7 @@ import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue } from "@/lib/validation";
 import { getModule } from "@/features/talent/modules";
 import { prepareRow, RecordInputError } from "@/features/talent/record-service";
+import { refreshPublicSite } from "@/features/public/cache";
 
 type Params = { params: Promise<{ id: string; module: string; recordId: string }> };
 
@@ -15,6 +16,7 @@ export async function PATCH(request: Request, { params }: Params) {
 
   const auth = await requireApi(config.edit);
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const { supabase } = auth.context;
 
   const parsed = config.schema.safeParse(await request.json().catch(() => null));
@@ -43,6 +45,7 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const auth = await requireApi(config.edit);
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const { supabase } = auth.context;
 
   const { data, error } = await supabase.from(config.table).delete().eq("id", recordId).eq("talent_id", id).select("id").maybeSingle();

@@ -3,6 +3,7 @@ import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue } from "@/lib/validation";
 import { boardSchema } from "@/features/boards/schemas";
+import { refreshPublicSite } from "@/features/public/cache";
 
 // Edits a board. Deactivating or unpublishing hides it from the website; talent and
 // their assignments are never deleted by board changes.
@@ -10,6 +11,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const auth = await requireApi("boards.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = boardSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   if (parsed.data.parent_board_id === id) return NextResponse.json({ error: "A board cannot be nested inside itself" }, { status: 400 });

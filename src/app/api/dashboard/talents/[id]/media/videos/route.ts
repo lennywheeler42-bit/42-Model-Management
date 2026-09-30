@@ -4,6 +4,7 @@ import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue, optionalText } from "@/lib/validation";
 import { parseVideoUrl } from "@/features/media/video";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const schema = z.union([
   z.object({ url: z.string().trim().min(1).max(500), title: optionalText(160) }),
@@ -16,6 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
 

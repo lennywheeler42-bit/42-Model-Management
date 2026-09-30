@@ -3,6 +3,7 @@ import { z } from "zod";
 import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue, optionalText } from "@/lib/validation";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const schema = z.object({
   kind: z.enum(["portfolio", "book"]),
@@ -20,6 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id, collectionId } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   const { supabase } = auth.context;
@@ -45,6 +47,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { id, collectionId } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const kind = new URL(request.url).searchParams.get("kind") === "book" ? "book" : "portfolio";
   const { supabase } = auth.context;
   // Removes the collection only; its photos stay in the talent's library.

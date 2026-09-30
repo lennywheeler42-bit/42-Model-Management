@@ -4,10 +4,11 @@ import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { feetInches, heightLabel, lengthLabel } from "@/lib/format";
 import { PLACEHOLDER_IMAGE, type PublicBoard, type PublicProfile, type TalentCardData } from "./types";
 import { log } from "@/lib/log";
+import { publicCache } from "./cache";
 
 // Public website reads. Always the anonymous role through the public-safe views, so
 // drafts, archived, internal-only, and private fields can never be returned.
-type TalentRow = {
+export type TalentRow = {
   id: string; slug: string; display_name: string; location: string | null; gender: string | null; age: number | null;
   featured: boolean; public_bio: string | null; primary_image_path: string | null; primary_image_alt: string | null;
   height_cm: number | null; bust_cm: number | null; waist_cm: number | null; hips_cm: number | null; shoe_size: string | null;
@@ -16,13 +17,13 @@ type TalentRow = {
   boards: { id: string; name: string; path: string; sort_order: number | null }[] | null; board_paths: string[] | null;
 };
 
-const CARD_COLUMNS = "id,slug,display_name,location,featured,primary_image_path,primary_image_alt,height_cm,boards,board_paths";
+export const CARD_COLUMNS = "id,slug,display_name,location,featured,primary_image_path,primary_image_alt,height_cm,boards,board_paths";
 
 export function publicImageUrl(supabase: SupabaseClient, path: string | null) {
   return path ? supabase.storage.from("talent-public").getPublicUrl(path).data.publicUrl : PLACEHOLDER_IMAGE;
 }
 
-function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "display_name" | "location" | "featured" | "primary_image_path" | "primary_image_alt" | "height_cm" | "boards" | "board_paths">, boardPath?: string): TalentCardData {
+export function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "display_name" | "location" | "featured" | "primary_image_path" | "primary_image_alt" | "height_cm" | "boards" | "board_paths">, boardPath?: string): TalentCardData {
   const boards = row.boards ?? [];
   const board = (boardPath && boards.find((item) => item.path === boardPath)) || boards[0];
   return {
@@ -39,17 +40,24 @@ function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "
   };
 }
 
-export const getPublicBoards = cache(async (): Promise<PublicBoard[]> => {
+const cachedBoards = publicCache(async (): Promise<PublicBoard[]> => {
   const { data, error } = await createPublicSupabaseClient().from("public_boards_view").select("*").order("depth").order("sort_order").order("name");
-  if (error) {
+  if (error) throw error;
+  return (data ?? []) as PublicBoard[];
+}, "boards");
+
+export const getPublicBoards = cache(async (): Promise<PublicBoard[]> => {
+  try {
+    return await cachedBoards();
+  } catch (error) {
     log.error("public", "boards query failed", error);
     return [];
   }
-  return (data ?? []) as PublicBoard[];
 });
 
-// Talent on at least one public board, optionally a specific board.
-export async function getRoster({ boardPath, featuredOnly = false, limit }: { boardPath?: string; featuredOnly?: boolean; limit?: number } = {}) {
+type RosterOptions = { boardPath?: string; featuredOnly?: boolean; limit?: number };
+
+const cachedRoster = publicCache(async ({ boardPath, featuredOnly = false, limit }: RosterOptions) => {
   const supabase = createPublicSupabaseClient();
   let query = supabase.from("public_talents_view").select(CARD_COLUMNS).neq("board_paths", "{}");
   if (boardPath) query = query.contains("board_paths", [boardPath]);
@@ -57,10 +65,7 @@ export async function getRoster({ boardPath, featuredOnly = false, limit }: { bo
   query = query.order("featured", { ascending: false }).order("display_name");
   if (limit) query = query.limit(limit);
   const { data, error } = await query;
-  if (error) {
-    log.error("public", "roster query failed", error);
-    return [];
-  }
+  if (error) throw error;
   const rows = (data ?? []) as unknown as TalentRow[];
   // Board pages follow the order staff set on the assignment, then name.
   if (boardPath) {
@@ -68,6 +73,17 @@ export async function getRoster({ boardPath, featuredOnly = false, limit }: { bo
     rows.sort((a, b) => position(a) - position(b) || a.display_name.localeCompare(b.display_name));
   }
   return rows.map((row) => toCard(supabase, row, boardPath));
+}, "roster");
+
+// Talent on at least one public board, optionally a specific board. The full
+// /models search (filters and pages) lives in ./search.ts.
+export async function getRoster(options: RosterOptions = {}) {
+  try {
+    return await cachedRoster(options);
+  } catch (error) {
+    log.error("public", "roster query failed", error);
+    return [];
+  }
 }
 
 export function statsFor(row: Pick<TalentRow, "height_cm" | "bust_cm" | "waist_cm" | "hips_cm" | "shoe_size" | "suit_size" | "inseam_cm" | "eye_color" | "hair_color">, gender: string | null) {
@@ -85,13 +101,11 @@ export function statsFor(row: Pick<TalentRow, "height_cm" | "bust_cm" | "waist_c
   ] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => ({ label, value: value as string }));
 }
 
-export const getPublicProfile = cache(async (slug: string): Promise<PublicProfile | null> => {
+const cachedProfile = publicCache(async (slug: string): Promise<PublicProfile | null> => {
   const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase.from("public_talents_view").select("*").eq("slug", slug).maybeSingle();
-  if (error || !data) {
-    if (error) log.error("public", "profile query failed", error);
-    return null;
-  }
+  if (error) throw error;
+  if (!data) return null;
   const row = data as TalentRow;
   const [media, portfolios, skills] = await Promise.all([
     supabase.from("public_talent_media_view").select("id,media_type,image_path,title,alt_text,provider,external_id,video_path,display_order").eq("talent_id", row.id).order("display_order"),
@@ -127,6 +141,15 @@ export const getPublicProfile = cache(async (slug: string): Promise<PublicProfil
     })),
     skills: (skills.data ?? []) as PublicProfile["skills"],
   };
+}, "profile");
+
+export const getPublicProfile = cache(async (slug: string): Promise<PublicProfile | null> => {
+  try {
+    return await cachedProfile(slug);
+  } catch (error) {
+    log.error("public", "profile query failed", error);
+    return null;
+  }
 });
 
 export async function getSitemapEntries() {

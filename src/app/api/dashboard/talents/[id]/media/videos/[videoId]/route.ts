@@ -3,6 +3,7 @@ import { z } from "zod";
 import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue, optionalText } from "@/lib/validation";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const schema = z.object({
   public: z.boolean().optional(),
@@ -18,6 +19,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id, videoId } = await params;
   const auth = await requireApi("media.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
 

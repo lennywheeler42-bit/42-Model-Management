@@ -3,6 +3,7 @@ import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue } from "@/lib/validation";
 import { updateTalentSchema } from "@/features/talent/schemas";
+import { refreshPublicSite } from "@/features/public/cache";
 
 // Updates core fields (talent.edit) and/or private details (talent.private.edit).
 // Publication changes go through ./publication so their permission is explicit.
@@ -10,6 +11,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const auth = await requireApi("talent.view");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const { supabase, permissions } = auth.context;
 
   const parsed = updateTalentSchema.safeParse(await request.json().catch(() => null));

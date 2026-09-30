@@ -4,6 +4,7 @@ import { requireApi } from "@/lib/agency-auth";
 import type { Permission } from "@/lib/permissions";
 import { firstIssue } from "@/lib/validation";
 import { publicationSchema } from "@/features/talent/schemas";
+import { refreshPublicSite } from "@/features/public/cache";
 
 const actions = {
   publish: { fields: { publication_status: "published", show_on_website: true }, permission: "talent.publish" },
@@ -24,6 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const change = "action" in parsed.data ? actions[parsed.data.action] : { fields: parsed.data, permission: "talent.publish" as const };
   const auth = await requireApi(change.permission);
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
 
   const { error } = await auth.context.supabase.from("talent").update(change.fields).eq("id", id).select("id").single();
   if (error?.code === "42501") return NextResponse.json({ error: error.message }, { status: 403 });

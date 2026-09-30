@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { connection } from "next/server";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
@@ -8,9 +9,9 @@ import { CONTACT_EMAIL } from "@/lib/site";
 
 const heroImage = "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1800&q=90";
 
-export const dynamic = "force-dynamic";
-
 export default async function Home() {
+  // Rendered per request from cached data (see features/public/cache.ts).
+  await connection();
   const publicTalents = await getRoster({ limit: 8 });
   return (
     <main className="overflow-hidden">

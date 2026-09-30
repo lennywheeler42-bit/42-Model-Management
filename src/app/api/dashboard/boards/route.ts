@@ -3,11 +3,13 @@ import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue, slugify } from "@/lib/validation";
 import { boardSchema } from "@/features/boards/schemas";
+import { refreshPublicSite } from "@/features/public/cache";
 
 // Creates a board. The database validates slugs, prevents cycles, and audits the change.
 export async function POST(request: Request) {
   const auth = await requireApi("boards.manage");
   if ("response" in auth) return auth.response;
+  refreshPublicSite();
   const parsed = boardSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   if (!parsed.data.name) return NextResponse.json({ error: "A board name is required" }, { status: 400 });

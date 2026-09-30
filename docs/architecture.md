@@ -26,7 +26,11 @@ flowchart LR
   - Talent sub-modules are driven by one registry: `features/talent/modules.ts` (API) and `features/talent/fields.ts` (forms and tables).
 - **Public site (`src/app/models`, `src/features/public`).** Reads only the public views, through `createPublicSupabaseClient()`: the anonymous role, never the visitor's session.
   - `/models/[...path]` resolves board paths (`/models/teens/boys`) or talent slugs (`/models/<slug>`).
-  - Pages render per request, so changes show immediately.
+  - `/models` is a server-side search (`features/public/search.ts`, pure helpers in `filters.ts`). Filters live in the URL, so results are shareable. They run only on public-view columns, which are NULL when a talent hides them, so filtering cannot reveal hidden values. Results are paged 24 at a time. Filtered URLs are `noindex`.
+- **Caching.**
+  - Public reads are wrapped in `publicCache()` (`features/public/cache.ts`): `unstable_cache` with the `public-site` tag, refreshed every 5 minutes.
+  - Every dashboard mutation route calls `refreshPublicSite()`, which invalidates the tag after the response. Publishing therefore still shows on the next page view.
+  - Pages call `connection()` to render per request from cached data. Don't use `dynamic = "force-dynamic"` on public pages: it bypasses `unstable_cache`.
 
 ## Talent publication flow
 
