@@ -31,6 +31,7 @@ The secret key is used **only** by this integration (`src/lib/supabase/admin.ts`
 
 1. In GoHighLevel open **Automation → Workflows → Create workflow → Start from scratch**.
 2. **Trigger:** choose **Form Submitted**, filtered to the registration form. If the funnel uses a survey, choose **Survey Submitted** instead.
+   - **Several forms:** add one filter per form ("Form is …"), or add a separate trigger for each form in the same workflow. All of them can share the one webhook action below.
 3. **Action:** choose **Custom Webhook**. It is the better option, because it sends a header.
    - **Method:** `POST`
    - **URL:** `https://<your-domain>/api/integrations/ghl`
@@ -81,13 +82,18 @@ Use this once to bring existing GHL data in. It is safe to run again, because ap
 1. **Create a token:** in GHL go to **Settings → Private Integrations → Create new integration**. Grant read-only scopes: contacts, forms, surveys, and custom fields. Copy the token.
 2. **Find the IDs:**
    - Location ID: shown in **Settings → Business Profile**, or in the URL of the sub-account.
-   - Form (or survey) ID: open the form in the builder; the ID is in the URL.
-3. **Set the variables** in `.env.local`. Never commit this file.
+   - Form (or survey) IDs: once the token and location ID are in `.env.local`, list every form and survey with its ID:
+
+     ```bash
+     node --env-file=.env.local scripts/import-ghl.mjs --list-forms
+     ```
+3. **Set the variables** in `.env.local`. Never commit this file. For several forms, separate the IDs with commas.
 
    ```env
    GHL_API_TOKEN=...
    GHL_LOCATION_ID=...
-   GHL_FORM_ID=...
+   GHL_FORM_ID=formId1,formId2,formId3
+   GHL_SURVEY_ID=...                 # only if some are surveys
    GHL_WEBHOOK_SECRET=...            # same value as in Vercel
    IMPORT_TARGET_URL=https://<your-domain>/api/integrations/ghl
    ```
@@ -103,9 +109,12 @@ Use this once to bring existing GHL data in. It is safe to run again, because ap
    ```
 
    Options:
-   - `--source=surveys` if the registration form is a GHL survey.
+   - `--form=id1,id2` to import only these forms this time (ignores `GHL_FORM_ID` and `GHL_SURVEY_ID`; add `--survey=id` for surveys).
+   - `--source=surveys` if the IDs in `GHL_FORM_ID` are actually surveys (or use `GHL_SURVEY_ID`).
    - `--source=contacts --tag=<tag>` to import contacts carrying a tag, for example everyone tagged by the Join Us funnel.
    - `--limit=10` to try a few records first.
+
+   **Several forms, same person:** someone who filled in more than one form becomes **one** application. Their answers are combined, and later answers fill in or update earlier ones (blank answers never erase). Each submission's form name appears under **Other answers** as "submitted via".
 
 ## 4. Reviewing applications
 
