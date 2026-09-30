@@ -25,13 +25,20 @@ function pageHref(search: TalentSearch, page: number) {
   return `/dashboard/talent?${params}`;
 }
 
-export function TalentListView({ result, boards, search, canCreate }: {
-  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; search: TalentSearch; canCreate: boolean;
+export function TalentListView({ result, boards, search, canCreate, canExportPrivate = false }: {
+  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean;
 }) {
   const fieldClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#c26a48]";
   return <div className="space-y-6">
     <PageHeader eyebrow="Talent" title="Roster" description={`${result.total} talent record${result.total === 1 ? "" : "s"} match these filters.`}
-      actions={canCreate ? <ButtonLink href="/dashboard/talent/new" icon={<Plus size={14} />}>New talent</ButtonLink> : null} />
+      actions={<div className="flex flex-wrap gap-2">
+        {/* File downloads from route handlers, not page navigations. */}
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a href="/api/dashboard/talents/export" className={buttonClass("secondary")}>Export CSV</a>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        {canExportPrivate && <a href="/api/dashboard/talents/export?private=1" className={buttonClass("ghost")} title="Includes date of birth, email and mobile. The export is logged.">Export with private details</a>}
+        {canCreate && <ButtonLink href="/dashboard/talent/new" icon={<Plus size={14} />}>New talent</ButtonLink>}
+      </div>} />
 
     <form className="grid gap-3 rounded-xl border border-[#e7e7e3] bg-white p-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end" role="search">
       <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Search<input name="q" defaultValue={search.q ?? ""} placeholder="Name, talent ID, or location" className={fieldClass} /></label>

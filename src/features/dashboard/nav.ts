@@ -26,7 +26,7 @@ export const dashboardNav: NavSection[] = [
     items: [
       { href: "/dashboard/companies", label: "Companies", icon: "companies", anyOf: ["operations.view"] },
       { href: "/dashboard/contacts", label: "Contacts", icon: "contacts", anyOf: ["operations.view"] },
-      { href: "/dashboard/packages", label: "Packages", icon: "packages", anyOf: ["talent.view"], phase: "Phase 13" },
+      { href: "/dashboard/packages", label: "Packages", icon: "packages", anyOf: ["packages.manage"] },
     ],
   },
   {

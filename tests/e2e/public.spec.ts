@@ -138,3 +138,19 @@ test.describe("operations exports", () => {
     }
   });
 });
+
+test.describe("client packages", () => {
+  test("unknown or malformed package links return 404 and are never indexed", async ({ page }) => {
+    for (const token of ["nope", "A".repeat(43)]) {
+      const response = await page.goto(`/p/${token}`);
+      expect(response?.status()).toBe(404);
+      expect(response?.headers()["x-robots-tag"]).toContain("noindex");
+    }
+  });
+
+  test("comp cards and roster exports require sign-in", async ({ request }) => {
+    for (const path of ["/api/dashboard/talents/00000000-0000-0000-0000-000000000000/comp-card", "/api/dashboard/talents/export"]) {
+      expect([401, 403], path).toContain((await request.get(path)).status());
+    }
+  });
+});

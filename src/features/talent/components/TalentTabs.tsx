@@ -124,6 +124,10 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       const media = await loadMedia(supabase, id);
       const canManage = can("media.manage");
       return <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e7e7e3] bg-white px-5 py-4">
+          <p className="text-sm text-[#5f615b]">Print-ready comp card from photos approved for public use.</p>
+          <ButtonLink href={`/dashboard/talent/${id}/comp-card`} size="sm" variant="secondary">Comp card</ButtonLink>
+        </div>
         <Card><PhotoManager talentId={id} photos={media.photos} canManage={canManage} /></Card>
         <Card><CollectionManager talentId={id} kind="portfolio" collections={media.portfolios} photos={media.photos} canManage={canManage} /></Card>
         <Card><CollectionManager talentId={id} kind="book" collections={media.books} photos={media.photos} canManage={canManage} /></Card>

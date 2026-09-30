@@ -73,6 +73,17 @@ See `ghl-integration.md`.
 - **Calendar files:** a single booking or a talent's next 12 months download as `.ics`. This is read-only, with no calendar sync.
 - **Booking form:** renders in the browser only, so date/time inputs use the viewer's time zone without server/client mismatches.
 
+## Comp cards, packages and exports
+
+- **Comp cards** (`features/compcard`):
+  - A two-sided 5.5 × 8.5 in PDF rendered on the server with `@react-pdf/renderer`.
+  - Uses only photos approved for public use and public measurements. Photos are re-encoded to JPEG with sharp.
+  - Contact details are the agency's, from Site settings.
+- **Packages** (`features/packages`):
+  - Staff curate talent for a client and share `/p/<token>`.
+  - The page calls `get_shared_package()` through the anonymous client. It is marked noindex, no-store and no-referrer.
+- **Roster CSV:** private columns only with `talent.private.view`. The export is audited and formula-safe.
+
 ## Board flow
 
 Boards form a tree. Each board's `path_segment` is unique among its siblings, and its URL is the chain of segments. Assigning or removing a board changes only `talent_board_assignments`, and those changes are audited. Deactivating or unpublishing a board hides it from the website without touching talent.

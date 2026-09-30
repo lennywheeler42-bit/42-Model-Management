@@ -15,6 +15,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Rendered in Node route handlers (PDF comp cards); not bundled.
+  serverExternalPackages: ["@react-pdf/renderer"],
   images: {
     remotePatterns: [
       ...(supabaseHost ? [{ protocol: "https" as const, hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }] : []),
@@ -25,6 +27,8 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Signed-in pages must never be stored by shared caches.
       { source: "/(dashboard|portal|preview|login)/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      // Client package links: private, never indexed or cached.
+      { source: "/p/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
     ];
   },
 };

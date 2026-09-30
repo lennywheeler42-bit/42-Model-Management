@@ -54,6 +54,12 @@ Migration order:
     - Talent logins read only their own confirmed bookings (no money, no companies).
     - Tasks: members see and complete their own; operations managers assign and see all.
 
+23. `023_packages.sql` — **Client packages.**
+    - Tables: `packages` and `package_items`, with the `packages.manage` permission.
+    - Share links store only the SHA-256 hash of a 256-bit token. Links expire and can be revoked or rotated.
+    - `get_shared_package(hash)` is the only anonymous entry point. It returns public-safe fields and photos approved for public use, respects `show_measurements`, and counts views.
+    - Created, shared and revoked events are audited.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

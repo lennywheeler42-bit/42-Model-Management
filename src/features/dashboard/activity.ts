@@ -38,6 +38,18 @@ const phrases: Record<string, string> = {
   "cms.page_archived": "archived a website page",
   "cms.revision_restored": "restored an earlier version of a website page",
   "cms.settings_updated": "updated website settings",
+  "booking.created": "created a booking",
+  "booking.status_changed": "changed a booking's status",
+  "booking.rescheduled": "rescheduled a booking",
+  "booking.deleted": "deleted a booking",
+  "booking.financials_changed": "updated booking fees",
+  "finance.exported": "exported finance data",
+  "package.created": "created a client package",
+  "package.shared": "shared a client package link",
+  "package.revoked": "revoked a client package link",
+  "compcard.generated": "generated a comp card",
+  "talent.exported": "exported the roster",
+  "talent.exported_private": "exported the roster with private details",
 };
 
 export function describeAction(action: string) {
