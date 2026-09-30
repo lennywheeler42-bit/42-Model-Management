@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:rls": "node --test \"tests/rls/*.test.mjs\"",
     "test": "node --test \"tests/rls/*.test.mjs\" \"tests/acceptance/*.test.mjs\"",
-    "test:acceptance": "node --test \"tests/acceptance/*.test.mjs\""
+    "test:acceptance": "node --test \"tests/acceptance/*.test.mjs\"",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

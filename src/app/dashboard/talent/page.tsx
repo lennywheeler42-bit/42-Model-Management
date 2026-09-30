@@ -2,6 +2,7 @@ import { ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { listTalent, loadBoards } from "@/features/talent/queries";
 import { TalentListView, type TalentSearch } from "@/features/talent/components/TalentListView";
+import { log } from "@/lib/log";
 
 export const metadata = { title: "Talent" };
 
@@ -17,7 +18,7 @@ export default async function TalentListPage({ searchParams }: { searchParams: P
       loadBoards(context.supabase),
     ]);
   } catch (error) {
-    console.error("[talent] list failed", error);
+    log.error("talent", "list failed", error);
     return <ErrorState title="Talent could not be loaded" />;
   }
   return <TalentListView result={data[0]} boards={data[1].flat} search={search} canCreate={context.permissions.has("talent.create")} />;

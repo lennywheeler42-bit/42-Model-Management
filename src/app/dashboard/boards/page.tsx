@@ -3,6 +3,7 @@ import { ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { BoardManager } from "@/features/boards/BoardManager";
 import { loadBoards } from "@/features/talent/queries";
+import { log } from "@/lib/log";
 
 export const metadata = { title: "Boards" };
 
@@ -13,7 +14,7 @@ async function loadBoardPage(supabase: NonNullable<Awaited<ReturnType<typeof req
     for (const row of assignments.data ?? []) counts[row.board_id] = (counts[row.board_id] ?? 0) + 1;
     return { ...tree, counts };
   } catch (error) {
-    console.error("[boards] load failed", error);
+    log.error("boards", "load failed", error);
     return null;
   }
 }

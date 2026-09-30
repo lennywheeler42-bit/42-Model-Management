@@ -23,6 +23,11 @@ Migration order:
 
 18. `018_function_privileges.sql` — Removes API execute rights from trigger functions; Postgres fires triggers without checking them. Removes anonymous access to the role helpers and `board_path()`, and fixes the search path of `digital_book_published_at()`. This clears advisor lints 0011, 0028 and 0029, except the deliberate ones listed in `security-review.md`.
 
+19. `019_release_foundation.sql` — **Contract step.**
+    - Merges any leftover private values into `talent_private_details`, verifies them (and aborts if anything would be lost), backs the old columns up into `archive.talent_private_columns_019`, then drops them from `talent`.
+    - Adds an `auth.login` / `auth.login_unapproved` audit trigger on `auth.users.last_sign_in_at`.
+    - Revokes API execute rights on Supabase's `rls_auto_enable()` event-trigger function. The function itself is kept; it enables RLS on new tables automatically.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:
@@ -39,7 +44,7 @@ These existing tables are kept rather than duplicated:
 ## Column grants
 
 - **`talent`** is readable and writable only through explicitly granted columns (012 for signed-in users, 017 for anon). A new column must be added to those grants deliberately.
-- **Contract step:** the private columns still present on `talent` (`date_of_birth`, `mobile`, `email` and others) are unreachable through the API. Drop them in a later migration once staging has confirmed the copy into `talent_private_details`.
+- **Contract step (done in 019):** the old private columns on `talent` were dropped after verification. The `archive` schema holds the backup and is not exposed to the API.
 
 ## Tests
 

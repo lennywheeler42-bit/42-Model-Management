@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { log } from "@/lib/log";
 
 // Logs the database error server-side and returns a generic message, so table
 // names, constraint names, and policy details never reach the browser.
 export function databaseError(error: { message?: string; code?: string } | null | undefined, action: string) {
-  console.error(`[api] ${action} failed`, error?.code ?? "", error?.message ?? "");
+  log.error("api", `${action} failed`, error);
   return NextResponse.json({ error: `Unable to ${action}. Please try again.` }, { status: 500 });
 }
 
@@ -28,5 +29,5 @@ export async function writeAudit(supabase: SupabaseClient, event: AuditEvent) {
     p_before: event.before ?? null,
     p_after: event.after ?? null,
   });
-  if (error) console.error("[audit] write failed", event.action, error.code ?? "", error.message);
+  if (error) log.error("audit", "write failed", error, { action: event.action });
 }

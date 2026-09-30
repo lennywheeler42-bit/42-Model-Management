@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { feetInches, heightLabel, lengthLabel } from "@/lib/format";
 import { PLACEHOLDER_IMAGE, type PublicBoard, type PublicProfile, type TalentCardData } from "./types";
+import { log } from "@/lib/log";
 
 // Public website reads. Always the anonymous role through the public-safe views, so
 // drafts, archived, internal-only, and private fields can never be returned.
@@ -41,7 +42,7 @@ function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "
 export const getPublicBoards = cache(async (): Promise<PublicBoard[]> => {
   const { data, error } = await createPublicSupabaseClient().from("public_boards_view").select("*").order("depth").order("sort_order").order("name");
   if (error) {
-    console.error("[public] boards query failed", error.code, error.message);
+    log.error("public", "boards query failed", error);
     return [];
   }
   return (data ?? []) as PublicBoard[];
@@ -57,7 +58,7 @@ export async function getRoster({ boardPath, featuredOnly = false, limit }: { bo
   if (limit) query = query.limit(limit);
   const { data, error } = await query;
   if (error) {
-    console.error("[public] roster query failed", error.code, error.message);
+    log.error("public", "roster query failed", error);
     return [];
   }
   const rows = (data ?? []) as unknown as TalentRow[];
@@ -88,7 +89,7 @@ export const getPublicProfile = cache(async (slug: string): Promise<PublicProfil
   const supabase = createPublicSupabaseClient();
   const { data, error } = await supabase.from("public_talents_view").select("*").eq("slug", slug).maybeSingle();
   if (error || !data) {
-    if (error) console.error("[public] profile query failed", error.code, error.message);
+    if (error) log.error("public", "profile query failed", error);
     return null;
   }
   const row = data as TalentRow;

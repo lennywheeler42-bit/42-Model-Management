@@ -8,6 +8,7 @@ import { TalentHeader } from "@/features/talent/components/TalentHeader";
 import { TalentTabBody } from "@/features/talent/components/TalentTabs";
 import { getPrivateDetails, getTalent } from "@/features/talent/queries";
 import { TALENT_TABS, visibleTabs, type TalentTabKey } from "@/features/talent/tabs";
+import { log } from "@/lib/log";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const context = await requirePage("talent.view");
@@ -23,7 +24,7 @@ export default async function TalentDetailPage({ params, searchParams }: { param
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const { supabase, permissions } = context;
-  const talent = await getTalent(supabase, id).catch((error) => { console.error("[talent] load failed", error); return undefined; });
+  const talent = await getTalent(supabase, id).catch((error) => { log.error("talent", "load failed", error); return undefined; });
   if (talent === undefined) return <ErrorState title="This talent record could not be loaded" />;
   if (!talent) notFound();
 
@@ -45,7 +46,7 @@ export default async function TalentDetailPage({ params, searchParams }: { param
   try {
     body = await TalentTabBody({ tab: active, talent, supabase, permissions });
   } catch (error) {
-    console.error(`[talent] ${active} tab failed`, error);
+    log.error("talent", "tab failed", error, { tab: active });
     body = <ErrorState title="This section could not be loaded" />;
   }
 

@@ -31,7 +31,7 @@ _Last updated: 2026-09-29 (Phase 1b, migration `009_security_hardening.sql`)._
     - `talent_public_age()` is callable by anon, because the public views call it.
     - `has_permission()`, `current_permissions()`, `current_agency_role()`, `current_talent_id()`, `write_audit()`, `has_role()`, `has_any_role()`, `is_active_agency_member()` and `board_path()` are callable by signed-in users, because RLS policies and the app use them.
     - Each has a fixed `search_path` and returns only booleans, permission keys, a path, or an opt-in age.
-  - **Unknown origin:** `rls_auto_enable()` predates the tracked migrations. Review it in the Supabase dashboard.
+  - **`rls_auto_enable()`:** Supabase's event trigger (`ensure_rls`) that enables RLS on every new table in `public`. It is kept deliberately; 019 removed its API execute rights.
   - **Dashboard setting to enable:** Auth leaked-password protection (Authentication → Settings).
 
 ## Findings from discovery and their status
@@ -67,8 +67,8 @@ _Last updated: 2026-09-29 (Phase 1b, migration `009_security_hardening.sql`)._
 
 ## Open items
 
-1. **Legacy media.** Photos uploaded before 009 are still stored in the `talent-public` bucket, even if they are marked private. They can no longer be listed, but anyone holding the exact URL can open them. Move them to `talent-private` with a one-off script.
+1. **Legacy media: closed.** `scripts/migrate-legacy-media.mjs` (a dry run by default) found 0 photos still in `talent-public` on 2026-09-30. Keep the script for any future re-check.
 2. **Auth settings.** Keep email confirmation enabled, and turn on leaked-password protection in Supabase Auth. Membership binding trusts confirmed emails.
-3. **Contract step.** Drop the withdrawn private columns on `talent` once the copy into `talent_private_details` is confirmed (see `database.md`).
+3. **Contract step: done in 019**, with a backup in `archive.talent_private_columns_019`.
 4. **Rate limiting and upload abuse controls.** Needed for public forms in Phase 10.
-5. **Staging.** There is no staging project yet. 009 was validated locally with the test suite and applied directly to production at the owner's request.
+5. **Single project.** By the owner's decision there is no staging project. `staging.md` describes the safeguards that replace it.
