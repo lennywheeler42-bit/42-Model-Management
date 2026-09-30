@@ -23,7 +23,7 @@ test("only allow-listed server integrations import the admin (service-role) clie
 
 test("no client component imports server-only modules", () => {
   const offenders = sources.filter((file) => /^\s*["']use client["']/m.test(file.text)
-    && /from\s+["'](@\/lib\/supabase\/(admin|server)|@\/lib\/agency-auth|@\/features\/applications\/ingest|next\/headers)["']/.test(file.text));
+    && /from\s+["'](@\/lib\/supabase\/(admin|server)|@\/lib\/agency-auth|@\/features\/applications\/ingest|@\/features\/portal\/context|@\/features\/compcard\/build|@\/features\/packages\/share|next\/headers)["']/.test(file.text));
   assert.deepEqual(offenders.map((file) => file.path), []);
 });
 

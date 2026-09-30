@@ -50,5 +50,9 @@ Roles resolve **only** from `agency_members`, bound to the signed-in Auth user i
 
 - **Publishing:** a trigger enforces `talent.publish` and `talent.archive` on the columns involved, so a role that may edit details cannot publish, and the reverse.
 - **Medical:** records are limited to owner and administrator. Grant `medical.view` to other roles only if the business needs it.
-- **Talent logins** (`role = 'talent'`, linked through `agency_members.talent_id`) can read only their own talent record and its approved sub-records. They cannot open the staff dashboard. The talent portal itself is Phase 14.
+- **Talent logins** (`role = 'talent'`, linked through `agency_members.talent_id`) use `/portal`. The proxy keeps them out of `/dashboard`, and keeps staff out of `/portal`.
+  - They see their own allow-listed profile (`portal_profile()`), confirmed bookings, appointments, shared documents and their own uploads.
+  - Every change is a request that staff approve (contact and address need `talent.private.edit`, measurements need `measurements.edit`, social needs `talent.edit`).
+  - Uploaded digitals need `media.manage` approval before they can be made public.
+  - Staff with `talent.private.edit` invite and revoke portal access.
 - **Anonymous visitors** have no permissions. They read the public views through anon-only RLS policies over published rows, with column grants limited to public-safe fields (migrations 010 and 017).

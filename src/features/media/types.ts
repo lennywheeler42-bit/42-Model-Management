@@ -13,6 +13,8 @@ export type MediaPhoto = {
   public: boolean;
   archived_at: string | null;
   focal_point: { x: number; y: number } | null;
+  review_status?: "approved" | "pending" | "rejected";
+  uploaded_by_talent?: boolean;
 };
 
 export type MediaVideo = {
@@ -36,7 +38,7 @@ export type MediaCollection = {
   photo_ids: string[];
 };
 
-export const PHOTO_COLUMNS = "id,storage_bucket,storage_path,public_storage_path,title,alt_text,photographer,type_of_work,support_name,country_of_publication,image_type,display_order,featured,public,archived_at,focal_point,created_at";
+export const PHOTO_COLUMNS = "id,storage_bucket,storage_path,public_storage_path,title,alt_text,photographer,type_of_work,support_name,country_of_publication,image_type,display_order,featured,public,archived_at,focal_point,created_at,review_status,uploaded_by_talent";
 
 export const IMAGE_TYPES = ["portfolio", "digital", "polaroid", "editorial", "campaign", "headshot", "comp"].map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }));
 

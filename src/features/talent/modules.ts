@@ -100,6 +100,7 @@ export const recordModules = {
     schema: z.object({
       file_name: requiredText(240).optional(), storage_path: requiredText(500).optional(), description: optionalText(1000), category: optionalText(80),
       visibility: z.enum(["private", "staff"]).optional(), mime_type: optionalText(120), file_size: optionalNumber, archived: optionalBoolean,
+      shared_with_talent: optionalBoolean,
     }),
   },
   legal: {

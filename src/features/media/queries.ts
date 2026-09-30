@@ -20,7 +20,7 @@ export async function loadMedia(supabase: SupabaseClient, talentId: string) {
       id: photo.id, url: urls.get(photo.id) ?? null, title: photo.title, alt_text: photo.alt_text, photographer: photo.photographer,
       type_of_work: photo.type_of_work, support_name: photo.support_name, country_of_publication: photo.country_of_publication,
       image_type: photo.image_type, display_order: photo.display_order, featured: photo.featured, public: photo.public,
-      archived_at: photo.archived_at, focal_point: photo.focal_point,
+      archived_at: photo.archived_at, focal_point: photo.focal_point, review_status: photo.review_status, uploaded_by_talent: photo.uploaded_by_talent,
     })),
     videos: (videos.data ?? []) as MediaVideo[],
     portfolios: (portfolios.data ?? []).map((row): MediaCollection => ({

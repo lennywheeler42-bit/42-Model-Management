@@ -50,6 +50,14 @@ const phrases: Record<string, string> = {
   "compcard.generated": "generated a comp card",
   "talent.exported": "exported the roster",
   "talent.exported_private": "exported the roster with private details",
+  "portal.invited": "invited a talent to the portal",
+  "portal.revoked": "revoked a talent's portal access",
+  "portal.change_approved": "approved a talent's change request",
+  "portal.change_rejected": "rejected a talent's change request",
+  "portal.digital_uploaded": "uploaded digitals from the portal",
+  "portal.document_downloaded": "downloaded a shared document from the portal",
+  "media.review_approved": "approved a talent's digital",
+  "media.review_rejected": "rejected a talent's digital",
 };
 
 export function describeAction(action: string) {

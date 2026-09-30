@@ -154,3 +154,16 @@ test.describe("client packages", () => {
     }
   });
 });
+
+test.describe("talent portal", () => {
+  test("the portal requires sign-in and offers a magic link", async ({ page }) => {
+    await page.goto("/portal/profile");
+    await expect(page).toHaveURL(/\/portal\/login/);
+    await expect(page.getByRole("button", { name: /email me a sign-in link/i })).toBeVisible();
+  });
+
+  test("portal APIs reject anonymous callers", async ({ request }) => {
+    const response = await request.post("/api/portal/requests", { data: { field_group: "contact", changes: { mobile: "1" } } });
+    expect(response.status()).toBe(401);
+  });
+});

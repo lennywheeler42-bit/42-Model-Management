@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/format";
 import { useMutation } from "@/lib/use-mutation";
 
-export type TalentDocument = { id: string; file_name: string; description: string | null; category: string | null; visibility: string; mime_type: string | null; file_size: number | null; created_at: string; archived_at: string | null };
+export type TalentDocument = { id: string; file_name: string; description: string | null; category: string | null; visibility: string; mime_type: string | null; file_size: number | null; created_at: string; archived_at: string | null; shared_with_talent?: boolean };
 
 const ACCEPTED = {
   "application/pdf": "PDF", "image/jpeg": "JPG", "image/png": "PNG", "text/plain": "TXT",
@@ -72,6 +72,11 @@ export function DocumentManager({ talentId, documents, canManage }: { talentId: 
       </div>
       {document.archived_at && <Badge tone="archived">Archived</Badge>}
       <Badge tone={document.visibility === "private" ? "internal" : "neutral"}>{document.visibility}</Badge>
+      {document.shared_with_talent && <Badge tone="public">Shared with talent</Badge>}
+      {canManage && !document.archived_at && <Button size="sm" variant="ghost" disabled={pending}
+        onClick={() => run(`${base}/${document.id}`, { method: "PATCH", body: { shared_with_talent: !document.shared_with_talent }, success: document.shared_with_talent ? "No longer shared with the talent" : "Shared in the talent portal" })}>
+        {document.shared_with_talent ? "Unshare" : "Share with talent"}
+      </Button>}
       <a href={`/api/dashboard/talents/${talentId}/documents/${document.id}/download`} className="inline-flex items-center gap-1.5 rounded-md border border-[#e7e7e3] px-3 py-2 text-[10px] font-800 uppercase tracking-[.12em] hover:border-[#20211f]"><Download size={12} />Download</a>
       {canManage && <Button size="sm" variant="ghost" icon={document.archived_at ? <ArchiveRestore size={12} /> : <Archive size={12} />} disabled={pending}
         onClick={() => run(`${base}/${document.id}`, { method: "PATCH", body: { archived: !document.archived_at }, success: document.archived_at ? "Document restored" : "Document archived" })}>

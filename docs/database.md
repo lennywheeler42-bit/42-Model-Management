@@ -60,6 +60,14 @@ Migration order:
     - `get_shared_package(hash)` is the only anonymous entry point. It returns public-safe fields and photos approved for public use, respects `show_measurements`, and counts views.
     - Created, shared and revoked events are audited.
 
+24. `024_portal.sql` — **Talent portal.**
+    - Talent no longer read `talent_private_details` or `talent_contacts` directly. `portal_profile()` returns an allow-listed view, with no notes, rates or login flags.
+    - `talent_change_requests`: status is forced to pending on insert, fields are allow-listed per group, and `apply_change_request()` is staff-only and audited.
+    - `talent_availability`.
+    - `talent_photos.review_status`: talent may add pending photos only to `talent/<id>/portal/`, and a trigger blocks making an unapproved photo public.
+    - `talent_documents.shared_with_talent`, with matching storage policies.
+    - `invite_talent_to_portal()`, `revoke_talent_portal()` and `portal_access()`.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

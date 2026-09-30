@@ -18,6 +18,7 @@ export const TALENT_TABS = [
   { key: "medical", label: "Medical", permission: "medical.view" },
   { key: "notes", label: "Notes", permission: "notes.view" },
   { key: "media", label: "Media", permission: "media.view" },
+  { key: "portal", label: "Portal", permission: "talent.private.view" },
 ] as const satisfies readonly { key: string; label: string; permission: Permission }[];
 
 export type TalentTabKey = (typeof TALENT_TABS)[number]["key"];

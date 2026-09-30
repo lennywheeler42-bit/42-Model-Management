@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicEnv } from "@/lib/env";
 
+// Refreshes the Supabase session and routes people to the right area:
+// staff → /dashboard, talent logins → /portal. RLS remains the real boundary;
+// this only keeps each group out of the other's screens.
 export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const { url, key } = getSupabasePublicEnv();
@@ -20,23 +23,26 @@ export async function updateSupabaseSession(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (request.nextUrl.pathname.startsWith("/dashboard")) {
-    if (!user) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("next", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  const path = request.nextUrl.pathname;
+  const redirect = (pathname: string, params: Record<string, string> = {}) => {
+    const target = request.nextUrl.clone();
+    target.pathname = pathname;
+    target.search = "";
+    for (const [name, value] of Object.entries(params)) target.searchParams.set(name, value);
+    return NextResponse.redirect(target);
+  };
 
-    const { data: membership } = await supabase.from("agency_members").select("status").eq("user_id", user.id).maybeSingle();
+  const inDashboard = path.startsWith("/dashboard");
+  const inPortal = path.startsWith("/portal") && !path.startsWith("/portal/login");
+  if (!inDashboard && !inPortal) return response;
 
-    if (membership?.status !== "active") {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("error", "not_authorized");
-      return NextResponse.redirect(loginUrl);
-    }
+  if (!user) return inPortal ? redirect("/portal/login") : redirect("/login", { next: path });
+
+  const { data: membership } = await supabase.from("agency_members").select("status,role").eq("user_id", user.id).maybeSingle();
+  if (membership?.status !== "active") {
+    return inPortal ? redirect("/portal/login", { error: "not_invited" }) : redirect("/login", { error: "not_authorized" });
   }
-
+  if (inDashboard && membership.role === "talent") return redirect("/portal");
+  if (inPortal && membership.role !== "talent") return redirect("/dashboard");
   return response;
 }

@@ -9,6 +9,7 @@ const percent = z.union([z.number(), z.string()]).transform((value) => Math.min(
 
 const schema = z.object({
   public: z.boolean().optional(),
+  review_status: z.enum(["approved", "rejected"]).optional(),
   archived: z.boolean().optional(),
   title: optionalText(160),
   alt_text: optionalText(240),
@@ -66,7 +67,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { error: updateError } = await supabase.from("talent_photos").update({ ...update, updated_at: new Date().toISOString() }).eq("id", photo.id);
   if (updateError) return databaseError(updateError, "update the image");
 
-  const action = archived ? "media.archived" : makePublic === true ? "media.published" : makePublic === false ? "media.unpublished" : "media.edited";
+  const action = parsed.data.review_status ? `media.review_${parsed.data.review_status}` : archived ? "media.archived" : makePublic === true ? "media.published" : makePublic === false ? "media.unpublished" : "media.edited";
   await writeAudit(supabase, { action, entityType: "talent", entityId: id, metadata: { photo_id: photo.id, fields: Object.keys(update) } });
   return NextResponse.json({ ok: true });
 }

@@ -90,7 +90,9 @@ describe("phase 3: talent core", () => {
   test("talent users see only their own record", async () => {
     const own = await rowsAs(db, people.talentUserA, "select id from public.talent");
     assert.deepEqual(own.map((r) => r.id), [talentA]);
-    assert.deepEqual((await rowsAs(db, people.talentUserA, "select talent_id from public.talent_private_details")).map((r) => r.talent_id), [talentA]);
+    // Since 024 the portal reads private details only through portal_profile() (allow-listed fields).
+    assert.deepEqual(await rowsAs(db, people.talentUserA, "select talent_id from public.talent_private_details"), []);
+    assert.equal((await rowsAs(db, people.talentUserA, "select public.portal_profile() as p"))[0].p.contact.mobile, "555-0101");
     assert.deepEqual(await rowsAs(db, people.talentUserA, "select * from public.talent_private_details where talent_id = $1", [talentB]), []);
     assert.deepEqual(await rowsAs(db, people.talentUserA, "select * from public.talent_banking"), []);
     assert.deepEqual(await rowsAs(db, people.talentUserA, "select * from public.talent_notes"), []);

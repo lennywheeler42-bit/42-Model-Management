@@ -109,17 +109,23 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-800">#{index + 1}</span>
           {photo.featured && <Badge tone="review">Primary</Badge>}
           {photo.public ? <Badge tone="public">Public</Badge> : <Badge tone="private">Private</Badge>}
+          {photo.review_status === "pending" && <Badge tone="review">From talent · review</Badge>}
+          {photo.review_status === "rejected" && <Badge tone="inactive">Not used</Badge>}
         </div>
         {canManage && <span className="absolute right-2 top-2 hidden cursor-grab rounded bg-white/90 p-1 text-[#6f716b] group-hover:block" aria-hidden><GripVertical size={14} /></span>}
       </div>
       <div className="space-y-2 p-3">
         <p className="truncate text-xs font-700" title={photo.title ?? undefined}>{photo.title || "Untitled"}</p>
         {photo.photographer && <p className="truncate text-[11px] text-[#8d8f88]">© {photo.photographer}</p>}
+        {canManage && photo.review_status === "pending" && <div className="flex gap-1.5">
+          <Button size="sm" variant="success" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "approved" }, success: "Digital approved" })}>Approve</Button>
+          <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "rejected" }, success: "Marked as not used" })}>Reject</Button>
+        </div>}
         {canManage && <div className="flex flex-wrap gap-1">
           <IconButton label="Move earlier" onClick={() => move(index, -1)} disabled={pending || index === 0}><ArrowUp size={13} /></IconButton>
           <IconButton label="Move later" onClick={() => move(index, 1)} disabled={pending || index === order.length - 1}><ArrowDown size={13} /></IconButton>
           <IconButton label={photo.featured ? "Primary image" : "Make primary image"} disabled={pending || photo.featured} onClick={() => run(`${base}/featured`, { body: { photo_id: photo.id }, success: "Primary image set" })}><Star size={13} /></IconButton>
-          <IconButton label={photo.public ? "Make private" : "Make public"} disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { public: !photo.public }, success: photo.public ? "Image made private" : "Image published to the website" })}>{photo.public ? <Lock size={13} /> : <Globe2 size={13} />}</IconButton>
+          <IconButton label={photo.public ? "Make private" : photo.review_status && photo.review_status !== "approved" ? "Approve before making public" : "Make public"} disabled={pending || (!photo.public && Boolean(photo.review_status) && photo.review_status !== "approved")} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { public: !photo.public }, success: photo.public ? "Image made private" : "Image published to the website" })}>{photo.public ? <Lock size={13} /> : <Globe2 size={13} />}</IconButton>
           <IconButton label="Edit details" onClick={() => setEditing(photo)}><Pencil size={13} /></IconButton>
           <IconButton label="Archive image" disabled={pending} onClick={() => window.confirm("Archive this image? It is removed from the website and hidden here; the original file is kept.") && run(`${base}/${photo.id}`, { method: "PATCH", body: { archived: true }, success: "Image archived" })}><Archive size={13} /></IconButton>
         </div>}

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/PageHeader";
 import { ButtonLink } from "@/components/ui/Button";
 import { BookingList } from "@/features/operations/components/BookingList";
 import { listBookings } from "@/features/operations/queries";
+import { AvailabilityList, ChangeRequestList, PortalAccessCard, type ChangeRequest } from "@/features/portal/components/StaffPortalPanels";
 import type { PermissionSet } from "@/lib/permissions";
 import { heightLabel, lengthLabel, formatDate } from "@/lib/format";
 import { BoardAssignments } from "@/features/boards/BoardAssignments";
@@ -120,6 +121,19 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       return <Card><RecordList talentId={id} module="appointments" rows={await getRecords<Row>(supabase, "talent_appointments", id, { column: "start_at", ascending: false })} canEdit={can("operations.manage")} /></Card>;
     case "notes":
       return <Card><RecordList talentId={id} module="notes" rows={await getRecords<Row>(supabase, "talent_notes", id, { column: "created_at", ascending: false })} canEdit={can("notes.edit")} defaults={{ note_type: "internal" }} /></Card>;
+    case "portal": {
+      const today = new Date().toISOString().slice(0, 10);
+      const [access, requests, availability] = await Promise.all([
+        supabase.rpc("portal_access", { p_talent_id: id }).then((r) => r.data as { email: string; status: string; signed_up: boolean } | null),
+        supabase.from("talent_change_requests").select("id,talent_id,field_group,changes,message,created_at").eq("talent_id", id).eq("status", "pending").order("created_at"),
+        supabase.from("talent_availability").select("id,kind,start_on,end_on,note").eq("talent_id", id).gte("end_on", today).order("start_on"),
+      ]);
+      return <div className="grid gap-6 xl:grid-cols-2">
+        <div className="xl:col-span-2"><PortalAccessCard talentId={id} access={access} canEdit={can("talent.private.edit")} /></div>
+        <Card title="Change requests" description="Nothing changes until you approve it."><ChangeRequestList requests={(requests.data ?? []) as ChangeRequest[]} /></Card>
+        <Card title="Availability" description="Dates the talent has told you about."><AvailabilityList items={availability.data ?? []} /></Card>
+      </div>;
+    }
     case "media": {
       const media = await loadMedia(supabase, id);
       const canManage = can("media.manage");

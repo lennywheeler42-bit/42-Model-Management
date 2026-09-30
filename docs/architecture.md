@@ -84,6 +84,13 @@ See `ghl-integration.md`.
   - The page calls `get_shared_package()` through the anonymous client. It is marked noindex, no-store and no-referrer.
 - **Roster CSV:** private columns only with `talent.private.view`. The export is audited and formula-safe.
 
+## Talent portal
+
+- **Sign-in:** `/portal/login` sends a magic link (`signInWithOtp`). `/auth/callback` or `/auth/confirm` then lands the talent on `/portal`. The membership binds on email confirmation, exactly like staff accounts.
+- **Pages:** portal pages live in the `app/portal/(app)` route group, guarded by `requirePortal()` (`features/portal/context.ts`), which calls `portal_profile()`.
+- **Isolation:** every portal query runs as the talent, so RLS limits it to their own rows (`current_talent_id()`).
+- **Staff tools:** each talent's Portal tab (invite, revoke, requests, availability) and the Talent requests queue.
+
 ## Board flow
 
 Boards form a tree. Each board's `path_segment` is unique among its siblings, and its URL is the chain of segments. Assigning or removing a board changes only `talent_board_assignments`, and those changes are audited. Deactivating or unpublishing a board hides it from the website without touching talent.
