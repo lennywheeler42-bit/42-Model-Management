@@ -1,15 +1,42 @@
 import type { NextConfig } from "next";
 
 // Published talent and CMS images are served from Supabase public storage buckets.
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
+const supabaseHost = supabaseUrl?.hostname ?? null;
+const supabaseOrigin = supabaseUrl?.origin ?? "";
+const isDev = process.env.NODE_ENV === "development";
 
-// Baseline security headers for every response.
+// Content-Security-Policy without nonces, so static pages keep working (Next.js
+// CSP guide, "Without Nonces"). Scripts only from this site; inline scripts are
+// allowed because Next.js needs them, and CMS HTML is sanitised so no content
+// can add script. Images, uploads and auth talk to Supabase only; frames only
+// for YouTube/Vimeo embeds; this site can never be framed by others.
+const csp = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
+  `media-src 'self' blob: ${supabaseOrigin}`.trim(),
+  "font-src 'self' data:",
+  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace(/^https:/, "wss:")}${isDev ? " ws:" : ""}`.replace(/\s+/g, " ").trim(),
+  "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+].join("; ");
+
+// Security headers for every response. The camera is allowed for this site only
+// (talent can take digitals straight from the portal).
 const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 

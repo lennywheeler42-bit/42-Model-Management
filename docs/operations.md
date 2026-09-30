@@ -37,7 +37,7 @@ Supabase's built-in mailer sends only a few emails per hour, which breaks passwo
 - **Authentication → URL Configuration:**
   - Site URL: the production domain.
   - Redirect URLs: `https://<domain>/auth/callback` and `https://<domain>/auth/confirm`, plus the `http://localhost:3000` equivalents.
-- **Authentication → Multi-Factor:** enable TOTP. It is required for owner and administrator (Phase 16).
+- **Authentication → Multi-Factor:** keep TOTP enabled (the default). Owner and administrator must set it up at `/login/mfa` the first time they sign in after this release.
 
 ### 3. Error alerts
 
@@ -74,6 +74,9 @@ Supabase's built-in mailer sends only a few emails per hour, which breaks passwo
    - Suspend affected members in Settings → Team.
    - Assess notification duties (UK GDPR: within 72 hours).
 4. **Owner locked out:** run the owner-recovery SQL in `README.md` in the Supabase SQL editor.
+5. **Lost authenticator phone** (owner or administrator can't get past two-step sign-in):
+   - Another owner or administrator removes the factor under Supabase → Authentication → Users → the user → MFA factors. The person sets MFA up again at next sign-in.
+   - If nobody can sign in, set `MFA_REQUIRED_ROLES=none` in Vercel, redeploy, recover, then remove the variable and redeploy again.
 
 ## Key rotation
 

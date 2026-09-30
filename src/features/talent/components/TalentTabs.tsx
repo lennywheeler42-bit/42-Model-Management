@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/PageHeader";
 import { ButtonLink } from "@/components/ui/Button";
 import { BookingList } from "@/features/operations/components/BookingList";
 import { listBookings } from "@/features/operations/queries";
+import { PrivacyPanel } from "@/features/privacy/PrivacyPanel";
 import { AvailabilityList, ChangeRequestList, PortalAccessCard, type ChangeRequest } from "@/features/portal/components/StaffPortalPanels";
 import type { PermissionSet } from "@/lib/permissions";
 import { heightLabel, lengthLabel, formatDate } from "@/lib/format";
@@ -121,6 +122,8 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       return <Card><RecordList talentId={id} module="appointments" rows={await getRecords<Row>(supabase, "talent_appointments", id, { column: "start_at", ascending: false })} canEdit={can("operations.manage")} /></Card>;
     case "notes":
       return <Card><RecordList talentId={id} module="notes" rows={await getRecords<Row>(supabase, "talent_notes", id, { column: "created_at", ascending: false })} canEdit={can("notes.edit")} defaults={{ note_type: "internal" }} /></Card>;
+    case "privacy":
+      return <PrivacyPanel talentId={id} name={talent.display_name} canErase={can("talent.delete")} />;
     case "portal": {
       const today = new Date().toISOString().slice(0, 10);
       const [access, requests, availability] = await Promise.all([

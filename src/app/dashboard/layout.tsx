@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const context = await getAgencyContext();
   if (!context.user) redirect("/login?next=/dashboard");
+  if (context.needsMfa) redirect("/login/mfa?next=/dashboard");
   if (!context.authorized || !context.membership) redirect("/login?error=not_authorized");
 
   const viewer = {

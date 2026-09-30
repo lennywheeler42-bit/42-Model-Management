@@ -51,7 +51,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
       description={`Submitted ${formatDateTime(app.submitted_at)}${app.last_received_at !== app.submitted_at ? ` · last update ${formatDateTime(app.last_received_at)}` : ""}`}
       actions={<div className="flex flex-wrap items-center gap-2"><ApplicationStatusBadge status={app.status} />{app.is_minor && <Badge tone="review">Minor — guardian required</Badge>}</div>} />
 
-    {(canManage || app.converted_talent_id) && <ApplicationActions id={app.id} status={app.status} email={app.email} convertedTalentId={app.converted_talent_id} canManage={canManage} canConvert={canConvert} />}
+    {(canManage || app.converted_talent_id) && <ApplicationActions id={app.id} status={app.status} email={app.email} convertedTalentId={app.converted_talent_id} canManage={canManage} canConvert={canConvert} canErase={context.permissions.has("team.manage")} />}
 
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-6">

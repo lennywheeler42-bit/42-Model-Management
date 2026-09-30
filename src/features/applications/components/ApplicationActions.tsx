@@ -6,8 +6,8 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { useMutation } from "@/lib/use-mutation";
 import type { ApplicationStatus } from "../queries";
 
-export function ApplicationActions({ id, status, email, convertedTalentId, canManage, canConvert }: {
-  id: string; status: ApplicationStatus; email: string | null; convertedTalentId: string | null; canManage: boolean; canConvert: boolean;
+export function ApplicationActions({ id, status, email, convertedTalentId, canManage, canConvert, canErase = false }: {
+  id: string; status: ApplicationStatus; email: string | null; convertedTalentId: string | null; canManage: boolean; canConvert: boolean; canErase?: boolean;
 }) {
   const router = useRouter();
   const { run, pending } = useMutation();
@@ -37,6 +37,10 @@ export function ApplicationActions({ id, status, email, convertedTalentId, canMa
       {status !== "rejected" && <Button size="sm" variant="danger" icon={<X size={13} />} disabled={pending} onClick={() => window.confirm("Reject this application?") && setStatus("rejected", "Rejected")}>Reject</Button>}
       {status !== "archived" && <Button size="sm" variant="ghost" icon={<Archive size={13} />} disabled={pending} onClick={() => setStatus("archived", "Archived")}>Archive</Button>}
       {(status === "rejected" || status === "archived") && <Button size="sm" variant="ghost" disabled={pending} onClick={() => setStatus("new", "Reopened")}>Reopen</Button>}
+      {canErase && <Button size="sm" variant="danger" disabled={pending} onClick={async () => {
+        if (!window.confirm("Erase this application and its photos permanently? Use this for deletion requests. It cannot be undone.")) return;
+        if (await run(`/api/dashboard/applications/${id}`, { method: "DELETE", success: "Application erased", refresh: false })) router.push("/dashboard/applications");
+      }}>Erase</Button>}
     </span>
   </div>;
 }

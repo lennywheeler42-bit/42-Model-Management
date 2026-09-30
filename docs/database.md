@@ -68,6 +68,11 @@ Migration order:
     - `talent_documents.shared_with_talent`, with matching storage policies.
     - `invite_talent_to_portal()`, `revoke_talent_portal()` and `portal_access()`.
 
+25. `025_security_hardening.sql` — **Security hardening.**
+    - Revokes anon write privileges everywhere, and anon SELECT except on the public-site relations. Future tables no longer grant anon anything by default.
+    - Guard rails on `role_permissions`: the owner keeps every permission, the talent role never holds staff permissions, and changes are audited.
+    - Owner deletion of applications and talent files, for data-subject requests.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

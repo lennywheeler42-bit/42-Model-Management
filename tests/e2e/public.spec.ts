@@ -167,3 +167,19 @@ test.describe("talent portal", () => {
     expect(response.status()).toBe(401);
   });
 });
+
+test.describe("content security policy", () => {
+  test("pages load and hydrate with no CSP violations", async ({ page }) => {
+    const violations: string[] = [];
+    page.on("console", (message) => { if (/Content Security Policy|Refused to/i.test(message.text())) violations.push(message.text()); });
+    for (const path of ["/", "/models", "/login", "/portal/login"]) {
+      const response = await page.goto(path);
+      expect(response?.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+    }
+    // Client-side interactivity still works under the policy.
+    await page.goto("/models");
+    await page.getByRole("button", { name: /filters/i }).click();
+    await expect(page.getByLabel("Gender")).toBeVisible();
+    expect(violations).toEqual([]);
+  });
+});

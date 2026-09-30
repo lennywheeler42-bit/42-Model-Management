@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState, ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { formatDateTime } from "@/lib/format";
 import type { Permission } from "@/lib/permissions";
 import { TeamPanel, type Member } from "@/features/settings/TeamPanel";
+import { PermissionMatrix } from "@/features/settings/PermissionMatrix";
 import { describeAction } from "@/features/dashboard/activity";
 
 export const metadata = { title: "Settings" };
@@ -35,7 +35,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         className={`border-b-2 px-3 py-3 text-[10px] font-800 uppercase tracking-[.12em] ${section.key === active.key ? "border-[#c26a48] text-[#c26a48]" : "border-transparent text-[#8d8f88] hover:text-[#20211f]"}`}>{section.label}</Link>)}
     </nav>
     {active.key === "team" && <TeamSection supabase={context.supabase} />}
-    {active.key === "roles" && <RolesSection supabase={context.supabase} />}
+    {active.key === "roles" && <RolesSection supabase={context.supabase} canEdit={context.permissions.has("team.manage")} />}
     {active.key === "activity" && <ActivitySection supabase={context.supabase} page={Math.max(1, Number(params.page) || 1)} />}
   </div>;
 }
@@ -48,25 +48,17 @@ async function TeamSection({ supabase }: { supabase: Client }) {
   return <TeamPanel members={(data ?? []) as Member[]} />;
 }
 
-async function RolesSection({ supabase }: { supabase: Client }) {
+async function RolesSection({ supabase, canEdit }: { supabase: Client; canEdit: boolean }) {
   const [permissions, grants] = await Promise.all([
     supabase.from("permissions").select("key,module,description").order("module").order("key"),
     supabase.from("role_permissions").select("role_key,permission_key"),
   ]);
   if (permissions.error || grants.error) return <ErrorState title="Permissions could not be loaded" />;
-  const granted = new Set((grants.data ?? []).map((grant) => `${grant.role_key}:${grant.permission_key}`));
   const roles = ROLE_ORDER.filter((role) => role === "talent" || (grants.data ?? []).some((grant) => grant.role_key === role));
 
-  return <Card title="Permission matrix" description="Enforced by row-level security in the database; the dashboard reads the same matrix. Talent logins see only their own record.">
-    <div className="relative overflow-x-auto">
-      <table className="w-full min-w-[820px] text-left text-xs">
-        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.1em] text-[#8d8f88]"><th className="py-2 pr-4">Permission</th>{roles.map((role) => <th key={role} className="px-2 py-2 text-center">{role.replace("_", " ")}</th>)}</tr></thead>
-        <tbody>{(permissions.data ?? []).map((permission) => <tr key={permission.key} className="border-b border-[#f3f3f0]">
-          <td className="py-2 pr-4"><p className="font-700">{permission.key}</p><p className="text-[11px] text-[#8d8f88]">{permission.description}</p></td>
-          {roles.map((role) => <td key={role} className="px-2 py-2 text-center">{granted.has(`${role}:${permission.key}`) ? <Check size={14} className="mx-auto text-[#4f7a54]" aria-label="Granted" /> : <span className="text-[#d4d4ce]" aria-label="Not granted">—</span>}</td>)}
-        </tr>)}</tbody>
-      </table>
-    </div>
+  return <Card title="Permission matrix" description={canEdit ? "Tick to grant a permission to everyone with that role. Changes apply immediately, are enforced by the database, and are logged. The owner always has everything; talent logins never hold staff permissions." : "Enforced by row-level security in the database; the dashboard reads the same matrix. Talent logins see only their own record."}>
+    <PermissionMatrix roles={roles} permissions={(permissions.data ?? []).map((permission) => ({ key: permission.key, description: permission.description }))}
+      granted={(grants.data ?? []).map((grant) => `${grant.role_key}:${grant.permission_key}`)} canEdit={canEdit} />
   </Card>;
 }
 

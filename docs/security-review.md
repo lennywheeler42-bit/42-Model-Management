@@ -1,74 +1,117 @@
 # Security review
 
-_Last updated: 2026-09-29 (Phase 1b, migration `009_security_hardening.sql`)._
+_Last updated 2026-09-30 (Phase 16, migrations 009–025). Every rule below is enforced in the database or the proxy and is covered by an automated test. The test file is named in brackets._
 
-## How roles are resolved
+## Summary
 
-- **`agency_members` is the only source of authority.** Each membership is bound to an Auth user id (`agency_members.user_id`), and `has_role()`, `has_any_role()` and `is_active_agency_member()` read only `agency_members.user_id = auth.uid() AND status = 'active'`.
-- **How binding happens:** database triggers derive `user_id`; callers can never set it.
-  - An owner adds a member whose Auth user already exists.
-  - A new Auth user signs up.
-  - An existing Auth user confirms their email.
-  - A new binding requires a **confirmed** email. Members who existed before 009 were bound by their current email match, so nobody lost access.
-- **`profiles.role`/`status` and `profile_roles`** are read-only mirrors maintained by triggers. Users can update only their own `profiles.full_name`.
-- **Last owner:** the last active owner cannot be demoted or deleted (enforced by a trigger).
-- **The app checks the same thing.** `getAgencyContext()` and the proxy (`src/proxy.ts`) look up membership by `user_id`.
+| Area | Status | Evidence |
+|---|---|---|
+| RLS on every table; views are `security_invoker` | ✅ | Generated check over the whole schema [`rls/hardening`] |
+| Anonymous access | ✅ | Reads only the allow-listed public relations and functions, writes nothing, and uploads to no bucket [`rls/hardening`, `rls/public-views`] |
+| Role resolution and privilege escalation | ✅ | Roles come only from `agency_members`, bound to a confirmed Auth user. The S1 exploit is fixed [`rls/security`] |
+| Permission matrix | ✅ | Data-driven; the owner edits it in Settings. The owner always keeps every permission; the talent role can never be granted staff permissions; every change is audited [`rls/hardening`] |
+| Talent isolation (portal) | ✅ | Talent A can never read or write talent B. Private details only through the allow-listed `portal_profile()`. Changes are requests that staff approve [`rls/portal`] |
+| Public site and search | ✅ | Hidden measurements and age are NULL in the views, so filters cannot reveal them [`rls/search`] |
+| Client package links | ✅ | 256-bit tokens with only the SHA-256 hash stored. Links expire and can be revoked. Public-safe fields only [`rls/packages`, `unit/packages`] |
+| GHL webhook | ✅ | Constant-time shared-secret check, 512 KB body limit, fixed photo hosts (no SSRF), photos re-encoded to strip EXIF/GPS [`unit/ghl`, e2e] |
+| Service-role key | ✅ | Used only by `src/lib/supabase/admin.ts` (`server-only`), imported only by the GHL webhook [`unit/boundaries`] |
+| CMS HTML/CSS | ✅ | Allowlist sanitiser on save and render; CSS scoped with PostCSS; OWASP XSS vectors tested [`unit/cms`, `rls/cms`] |
+| Open redirects | ✅ | `safePath()` for sign-in redirects; redirect and navigation targets cannot be protocol-relative (database constraints) [`rls/cms`, e2e] |
+| Content-Security-Policy and security headers | ✅ | Tested against the production build with no violations [e2e "content security policy"] |
+| MFA for owner and administrator | ✅ | Enforced in pages (`/login/mfa`) and API routes (`needsMfa` returns 403) |
+| Exports | ✅ | Finance and roster CSVs are formula-injection safe and audited. Private roster columns need `talent.private.view` [`unit/operations`] |
+| Data-subject requests | ✅ | Owner can export all data about a talent as JSON, and erase a talent (files, then record) or an application. Erasure is audited without personal data |
+| Dependencies | ✅ | `npm audit --omit=dev`: 0 vulnerabilities (2026-09-30); Dependabot runs weekly |
 
-## Supabase advisor: Security Definer View (2026-09-30)
+## Threat model and controls
 
-- **Finding:** the advisor flagged `public_talent_directory` and `public_talent_profiles` (lint 0010, critical). Migration 009 created them as ordinary views, which run with the owner's rights and bypass RLS.
-- **Fix (migration 010):** both views are now `security_invoker`. Anonymous visitors read published rows through anon-only policies:
-  - `talent`
-  - `talent_photos`
-  - `talent_measurements`
-  - `talent_board_assignments`
-  - `boards` (policy already existed)
-- **Column grants:** anon gets column grants only for public-safe fields. DOB, contact details, rates and notes are never granted, and `talent_public_age()` returns an age only when `show_age` is on.
-- **Later views:** migration 017 builds the new public views the same way. `tests/rls/public-views.test.mjs` asserts that no public view lacks `security_invoker`, both at the production-equivalent state (through 010) and with every migration.
-- **Advisor warnings after migration 018.**
-  - **Removed:** trigger functions no longer have API execute rights. The role helpers and `board_path()` are no longer callable by anonymous visitors.
-  - **Deliberate, remaining:**
-    - `talent_public_age()` is callable by anon, because the public views call it.
-    - `has_permission()`, `current_permissions()`, `current_agency_role()`, `current_talent_id()`, `write_audit()`, `has_role()`, `has_any_role()`, `is_active_agency_member()` and `board_path()` are callable by signed-in users, because RLS policies and the app use them.
-    - Each has a fixed `search_path` and returns only booleans, permission keys, a path, or an opt-in age.
-  - **`rls_auto_enable()`:** Supabase's event trigger (`ensure_rls`) that enables RLS on every new table in `public`. It is kept deliberately; 019 removed its API execute rights.
-  - **Dashboard setting to enable:** Auth leaked-password protection (Authentication → Settings).
+### Authentication
 
-## Findings from discovery and their status
+- **Sign-in methods:** Supabase Auth with email/password, Google OAuth, and magic links (talent portal).
+- **Email confirmation:** required before a membership binds (trigger in 009).
+- **Owner and administrator:** must pass TOTP two-step sign-in. `getAgencyContext()` treats an `aal1` session for these roles as unauthorised: pages redirect to `/login/mfa`, and APIs return `403 mfa_required`.
+  - The roles are configured with `MFA_REQUIRED_ROLES` (default `owner,administrator`).
+  - Emergency override: set `MFA_REQUIRED_ROLES=none` (see `operations.md`).
+- **Password reset:** `/login/forgot` → email → `/auth/confirm` (token hash) → `/login/reset`. It signs out every session afterwards.
+- **Sign-in audit:** every sign-in is audited by trigger (`auth.login`, or `auth.login_unapproved` without an email).
+
+### Authorisation
+
+- **Layers:** RLS is the boundary. `requireApi()`/`requirePage()` give early, clear errors, and navigation hiding is cosmetic only.
+- **Proxy routing:** `src/lib/supabase/proxy.ts` keeps talent logins out of `/dashboard` and staff out of `/portal`.
+- **Money:** `booking_financials` and `booking_talent_fees` sit behind `finance.view`/`finance.manage`, so staff who can see the schedule never see fees.
+- **Sensitive modules:** legal, banking and medical changes are audited without values. Banking numbers are masked, and revealing them is logged.
+
+### Anonymous surface
+
+The generated test pins the anonymous surface:
+- **Reads:** 8 public views and the tables behind them (row policies for published rows, plus column grants), CMS tables (live rows only), and `website_redirects`.
+- **Functions:** `talent_public_age`, `talent_is_public`, `get_shared_package` and `record_redirect_hit`.
+
+A new table, view or function that becomes reachable fails CI until it has been reviewed.
+
+Migration **025** removed leftover default grants: anon had INSERT/UPDATE/DELETE on the older talent-module tables. RLS already blocked every row. New tables no longer grant anon anything by default.
+
+### Files
+
+| Bucket | Contents | Access |
+|---|---|---|
+| `talent-private` | Originals, portal uploads | Staff with `media.view`; talent only their own folder; talent upload only to `talent/<id>/portal/` |
+| `talent-public` | Approved copies | Served by URL, not listable. A photo cannot become public until it is approved |
+| `talent-documents` | Documents | `documents.view`; talent only documents shared with them. Downloads use 60 s signed URLs and are audited |
+| `applications` | GHL application photos | Written only by the webhook (service role); staff read with `applications.view` |
+| `cms-media` | Website images | Public; editors write; SVG not accepted |
+
+- **Size and type limits:** every bucket has size and MIME limits.
+- **No listing:** anon cannot list or upload anywhere [`rls/hardening`].
+
+### Browser
+
+- **CSP:**
+  - `default-src 'self'`.
+  - Scripts only from this site. Inline scripts are allowed because Next.js needs them; there is no nonce because static pages must keep working.
+  - Images, media and connections only to this site and Supabase.
+  - Frames only for YouTube and Vimeo. `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`.
+- **Other headers:** HSTS with preload, `nosniff`, a strict referrer policy, `X-Frame-Options: DENY`, COOP, and a Permissions-Policy that allows the camera for this site only.
+- **Caching and indexing:** signed-in areas are sent with `Cache-Control: private, no-store`. `/p/*` package links are `noindex` with no referrer.
+- **Why `'unsafe-inline'` is acceptable:** the only user-authored HTML (CMS blocks) is sanitised to drop every script vector, so there is no injection path to exploit it.
+
+### Privacy (UK GDPR / CCPA)
+
+- **Minors:** no public DOB, address or contacts. Guardians are required for applicants under 18. No structured data about talent.
+- **Consent:** SMS consent is stored with its wording (GHL).
+- **Retention:** rejected and archived applications are purged after 12 months with `purge_stale_applications()`.
+- **Access and erasure requests:** Talent → Privacy (export JSON / erase) and Application → Erase. Both are owner only and audited.
+- **Logging:** logs and error alerts carry identifiers and error codes only, never personal values (`src/lib/log.ts`).
+
+## Findings history
 
 | ID | Finding | Status |
 |---|---|---|
-| S1 | Self-escalation via `profiles.role`/`email` and `profile_roles` | **Fixed** in 009. Existing self-edits are reset by the migration. |
-| S2 | `talent-public` bucket listable by anyone; all uploads public | **Fixed for new media.** Anonymous listing is removed. Uploads go to the private bucket, and "Make public" copies a photo to the public bucket (the original is kept). Every bucket now has size and MIME limits. See *Open items* for legacy files. |
-| S3 | `audit_log` without RLS | **Fixed.** RLS is enabled and the table is read-only (owner/administrator). New events go to `audit_logs`, written only through `write_audit()` (the actor is always the caller) and through database triggers. |
-| S4 | Public views exposed exact DOB and legal names | **Fixed.** The views return `age` only when `talent.show_age` is on, plus `display_name`. There are no DOB, first/last name or private media columns. |
-| S5 | Private contact fields on `talent` readable by all staff roles | **Fixed** in 012. Values were copied to `talent_private_details` (`talent.private.view`), and the old `talent` columns were withdrawn from the API with column grants. Dropping them is a pending contract step. |
-| S6 | Banking unmasked, sensitive access unlogged | **Partly fixed.** The API masks account, routing and SWIFT numbers to the last 4 digits, and logs `sensitive.viewed` whenever legal, banking or medical data is returned. Medical now has its own `medical.view`/`medical.edit` permissions (011), and legal/banking/medical changes are audited without values (016). |
-| S7 | Missing role check on talent creation; raw DB errors sent to clients | **Fixed.** `databaseError()` logs server-side and returns a generic message. |
+| S1 | Self-escalation through `profiles.role` and `profile_roles` | Fixed in 009 |
+| S2 | Public bucket listable; uploads public by default | Fixed in 009. The legacy-media check found 0 files to move |
+| S3 | `audit_log` without RLS | Fixed in 009 |
+| S4 | Public views exposed DOB and legal names | Fixed in 009, 010 and 017 |
+| S5 | Private contact fields readable by all staff | Fixed in 012 (moved to `talent_private_details`); old columns dropped in 019 |
+| S6 | Banking unmasked; no separate medical permissions | Fixed: masking and reveal audit, `medical.*` permissions (011), value-free audit (016) |
+| S7 | Raw database errors returned to clients | Fixed: `databaseError()` |
+| S8 | Anon kept default write grants on older tables | Fixed in 025; found by the generated test |
+| S9 | Talent could read staff notes and login flags on their own private-details row | Fixed in 024 (`portal_profile()` allow-list); found while building the portal |
+| S10 | CMS links and redirects accepted protocol-relative `//host` targets (open redirect) | Fixed before release in 021; found by the CMS tests |
 
-## What is audited
+## Owner actions still required (dashboard settings, not code)
 
-- **Database triggers (cannot be bypassed):**
-  - Talent `published`, `unpublished`, `archived` and `publication_changed`.
-  - Membership insert, update and delete, recorded with before and after role and status.
-- **App events via `write_audit()`:**
-  - `talent.created` and `talent.edited`. Only field names are logged, never values such as DOB or phone numbers.
-  - `measurements.added`, `note.added` and `<module>.saved`.
-  - `media.uploaded`, `media.published` and `media.unpublished`.
-  - `sensitive.viewed`.
+1. **Supabase Auth:**
+   - Turn on leaked-password protection.
+   - Set up custom SMTP with `ghl@modelluxemedia.com`.
+   - Keep TOTP MFA enabled (it is on by default).
+   - Set the minimum password length to 10.
+2. **Rotate keys before launch:** rotate the Supabase publishable and secret keys, then set `SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET` and `ERROR_ALERT_WEBHOOK_URL` in Vercel.
+3. **Backups:** the Supabase plan should include daily backups (Pro) before real talent data is loaded.
+4. **External testing:** consider an external penetration test before launch, given the minors', banking and medical data. The automated suite covers the application's own rules, not Supabase or Vercel infrastructure.
 
 ## Automated tests
 
-`npm run test:rls` runs every migration against an in-memory Postgres (PGlite) with stand-ins for Supabase's `auth` and `storage` schemas, API roles and default grants. It then attacks the database as each role: anon, outsider, read_only, creative, accounting, talent_manager and owner.
+`npm test` runs all 200+ tests: database rules for every role on PGlite, pure-logic unit tests, and architecture guard rails. `npm run test:e2e` runs the browser tests; CI runs them when enabled.
 
-- **Coverage:** 40 tests covering anonymous reads and writes, public-view columns, bucket listing, the S1 exploits, module access by role, membership binding and confirmation, suspension, last-owner protection, the README owner-recovery SQL, and audit integrity.
-- **`RLS_UPTO=8 npm run test:rls`** replays the suite against the pre-fix schema. 21 tests fail there, which demonstrates each vulnerability.
-- **Limitation:** the stubs approximate Supabase. They don't cover Storage API behaviour beyond `storage.objects` RLS, or PostgREST specifics.
-
-## Open items
-
-1. **Legacy media: closed.** `scripts/migrate-legacy-media.mjs` (a dry run by default) found 0 photos still in `talent-public` on 2026-09-30. Keep the script for any future re-check.
-2. **Auth settings.** Keep email confirmation enabled, and turn on leaked-password protection in Supabase Auth. Membership binding trusts confirmed emails.
-3. **Contract step: done in 019**, with a backup in `archive.talent_private_columns_019`.
-4. **Rate limiting and upload abuse controls.** Needed for public forms in Phase 10.
-5. **Single project.** By the owner's decision there is no staging project. `staging.md` describes the safeguards that replace it.
+The PGlite stand-ins approximate Supabase. Storage API behaviour beyond `storage.objects` RLS, and PostgREST specifics, are covered by the browser tests and manual QA (Phase 17).
