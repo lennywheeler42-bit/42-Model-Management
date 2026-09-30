@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
 import { activeFilterCount, parseRosterFilters, rosterQuery } from "@/features/public/filters";
@@ -54,6 +55,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Searc
           </nav>}
         </div>
       </section>
+      <SiteFooter />
     </main>
   );
 }

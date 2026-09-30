@@ -55,6 +55,14 @@ export function OverviewView({ name, permissions, data }: { name: string; permis
         </Row>)}</ul> : <Empty>No new applications.</Empty>}
       </Card>}
 
+      {data.websiteDrafts && data.websiteDrafts.length > 0 && <Card title="Website drafts" description="Pages with changes that are not live yet."
+        actions={<Link href="/dashboard/website" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">Website</Link>}>
+        <ul className="divide-y divide-[#f3f3f0] text-sm">{data.websiteDrafts.map((page) => <Row key={page.id}>
+          <span><Link href={`/dashboard/website/pages/${page.id}`} className="font-700 hover:text-[#c26a48]">{page.title}</Link><span className="block text-xs text-[#8d8f88]">/{page.slug} · {page.status === "published" ? "live, with unpublished changes" : "draft"}</span></span>
+          <span className={meta}>{formatDate(page.updated_at)}</span>
+        </Row>)}</ul>
+      </Card>}
+
       {permissions.has("talent.view") && <Card title="Pending review" description="Talent waiting for a publishing decision.">
         {data.review.length ? <ul className="divide-y divide-[#f3f3f0] text-sm">{data.review.map((talent) => <Row key={talent.id}><TalentLink talent={talent} /><span className={meta}>{formatDate(talent.updated_at)}</span></Row>)}</ul> : <Empty>Nothing is waiting for review.</Empty>}
       </Card>}

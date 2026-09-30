@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { connection } from "next/server";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
+import { after, connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
 import { ProfileView } from "@/features/public/ProfileView";
 import { getPublicBoards, getPublicProfile, getRoster } from "@/features/public/queries";
+import { findRedirect } from "@/features/cms/queries";
+import { SiteFooter } from "@/components/SiteFooter";
+import { createPublicSupabaseClient } from "@/lib/supabase/public";
 
 type Params = { params: Promise<{ path: string[] }> };
 
@@ -44,8 +47,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function ModelsPathPage({ params }: Params) {
   // Rendered per request from cached data; staff changes clear the cache (features/public/cache.ts).
   await connection();
-  const found = await resolve((await params).path);
-  if (!found) notFound();
+  const segments = (await params).path;
+  const found = await resolve(segments);
+  if (!found) {
+    const target = await findRedirect(`/models/${segments.map((segment) => decodeURIComponent(segment)).join("/")}`);
+    if (target) {
+      after(async () => { await createPublicSupabaseClient().rpc("record_redirect_hit", { p_from_path: target.from_path }); });
+      if (target.permanent) permanentRedirect(target.to_path);
+      redirect(target.to_path);
+    }
+    notFound();
+  }
 
   if (found.kind === "talent") {
     const board = found.talent.boards[0];
@@ -53,6 +65,7 @@ export default async function ModelsPathPage({ params }: Params) {
     return <main className="bg-[var(--paper)]">
       <SiteHeader />
       <ProfileView talent={found.talent} related={related} backHref={board ? `/models/${board.path}` : "/models"} />
+      <SiteFooter />
     </main>;
   }
 
@@ -76,5 +89,6 @@ export default async function ModelsPathPage({ params }: Params) {
         ? <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-x-6">{talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
         : <div className="flex min-h-72 items-center justify-center border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">No talent on this board yet.</div>}
     </section>
+    <SiteFooter />
   </main>;
 }

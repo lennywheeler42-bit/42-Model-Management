@@ -12,7 +12,7 @@ export async function loadOverview(supabase: SupabaseClient, permissions: Permis
   const count = (query: PromiseLike<{ count: number | null }>) => Promise.resolve(query).then((result) => result.count ?? 0);
   const talentCount = () => supabase.from("talent").select("id", { count: "exact", head: true });
 
-  const [metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications] = await Promise.all([
+  const [metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications, websiteDrafts] = await Promise.all([
     permissions.has("talent.view") ? Promise.all([
       count(talentCount().neq("publication_status", "archived")),
       count(talentCount().eq("publication_status", "published").eq("show_on_website", true)),
@@ -57,9 +57,14 @@ export async function loadOverview(supabase: SupabaseClient, permissions: Permis
         supabase.from("applications").select("id,first_name,last_name,email,city,is_minor,submitted_at").eq("status", "new").order("submitted_at", { ascending: false }).limit(6).then((r) => r.data ?? []),
       ]).then(([total, latest]) => ({ total, latest: latest as { id: string; first_name: string | null; last_name: string | null; email: string | null; city: string | null; is_minor: boolean; submitted_at: string }[] }))
       : null,
+
+    permissions.has("website.manage")
+      ? supabase.from("website_pages").select("id,title,slug,status,has_unpublished_changes,updated_at").neq("status", "archived").eq("has_unpublished_changes", true)
+        .order("updated_at", { ascending: false }).limit(6).then((r) => (r.data ?? []) as { id: string; title: string; slug: string; status: string; has_unpublished_changes: boolean; updated_at: string }[])
+      : null,
   ]);
 
-  return { metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications };
+  return { metrics, review, recent, uploads, appointments, birthdays, expiring, activity, applications, websiteDrafts };
 }
 
 type TalentRef = { id: string; display_name: string; publication_status?: string } | null;

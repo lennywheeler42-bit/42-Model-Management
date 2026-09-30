@@ -37,6 +37,15 @@ Migration order:
     - `purge_stale_applications()` is owner-only retention.
     - Receipt, status changes and conversion are audited by trigger. See `ghl-integration.md`.
 
+21. `021_cms.sql` — **Website CMS.**
+    - `website_pages` holds the working copy.
+    - `website_page_revisions` holds immutable published snapshots. `publish_website_page()`, `unpublish_website_page()` and `restore_website_revision()` are the only way to change what is live (a trigger blocks direct status edits).
+    - Also `website_navigation`, `website_settings` (only public keys are exposed) and `website_redirects`. Redirect targets can never be protocol-relative.
+    - Public `security_invoker` views: `public_pages_view`, `public_navigation_view` and `public_settings_view`.
+    - New permission `website.publish`.
+    - `cms-media` storage policies. The bucket no longer accepts SVG.
+    - Seeds draft About, Privacy and Terms pages (the legal pages are marked for legal review) and default settings.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

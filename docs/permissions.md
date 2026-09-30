@@ -41,7 +41,7 @@ Roles resolve **only** from `agency_members`, bound to the signed-in Auth user i
 | operations.manage | ✓ | ✓ | | | | | |
 | applications.view | ✓ | ✓ | | | | | |
 | applications.manage | ✓ | | | | | | |
-| website.manage, audit.view, settings.manage | | | | | | | |
+| website.manage, website.publish, audit.view, settings.manage | | | | | | | |
 | team.manage | owner only | | | | | | |
 
 ## Notes on the defaults

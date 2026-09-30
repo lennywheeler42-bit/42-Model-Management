@@ -33,6 +33,7 @@ export const PERMISSIONS = [
   "applications.view",
   "applications.manage",
   "website.manage",
+  "website.publish",
   "audit.view",
   "settings.manage",
   "team.manage",

@@ -32,7 +32,7 @@ export const dashboardNav: NavSection[] = [
     title: "Administration",
     items: [
       { href: "/dashboard/finance", label: "Finance", icon: "finance", anyOf: ["banking.view"], phase: "Phase 12" },
-      { href: "/dashboard/website", label: "Website", icon: "website", anyOf: ["website.manage"], phase: "Phase 11" },
+      { href: "/dashboard/website", label: "Website", icon: "website", anyOf: ["website.manage"] },
       { href: "/dashboard/settings", label: "Settings", icon: "settings", anyOf: ["team.manage", "settings.manage", "audit.view"] },
     ],
   },

@@ -110,3 +110,22 @@ test.describe("GHL integration", () => {
     expect(response.headers().location).toBe("https://funnel.modelluxemedia.com/registration-form");
   });
 });
+
+test.describe("CMS routes", () => {
+  test("unknown top-level pages return a real 404", async ({ page }) => {
+    const response = await page.goto("/this-page-does-not-exist-e2e");
+    expect(response?.status()).toBe(404);
+  });
+
+  test("app paths cannot be shadowed by CMS slugs", async ({ page }) => {
+    const response = await page.goto("/dashboard");
+    expect(page.url()).toMatch(/\/login/);
+    expect(response?.status()).toBeLessThan(400);
+  });
+
+  test("the home page uses no stock photography", async ({ page }) => {
+    await page.goto("/");
+    const sources = await page.locator("img").evaluateAll((images) => images.map((image) => (image as HTMLImageElement).currentSrc || (image as HTMLImageElement).src));
+    expect(sources.filter((src) => src.includes("unsplash"))).toEqual([]);
+  });
+});

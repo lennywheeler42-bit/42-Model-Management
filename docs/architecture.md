@@ -52,6 +52,15 @@ The Join Us form stays on GHL (`/join` redirects there). A GHL workflow posts ea
 
 See `ghl-integration.md`.
 
+## Website CMS
+
+- **Editing:** staff edit pages in `/dashboard/website` (`features/cms`). A page is a list of typed sections: hero, text (a safe Markdown subset), image, video, call to action, talent grid, board grid, contact, and custom HTML.
+- **Validation:** `blocks.ts` validates every section with Zod on save and again on read.
+- **Custom HTML and CSS:** HTML is sanitised with an allowlist when saved and again when rendered (`sanitize.ts`). CSS is parsed with PostCSS, scoped to `[data-cms-block="<id>"]`, and stripped of `@import`, external `url()`, `expression()` and `position: fixed`.
+- **Publishing:** publishing snapshots a revision. The public catch-all route `app/[...slug]` renders the live revision. For unknown paths it checks Website → Redirects before returning a 404.
+- **Previews:** `/preview/page/[id]` shows the working copy to editors.
+- **Home page:** hero, about and contact text and images come from `website_settings`. Until images are chosen, the first published talent photo is used, never stock photography.
+
 ## Board flow
 
 Boards form a tree. Each board's `path_segment` is unique among its siblings, and its URL is the chain of segments. Assigning or removing a board changes only `talent_board_assignments`, and those changes are audited. Deactivating or unpublishing a board hides it from the website without touching talent.

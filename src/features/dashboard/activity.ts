@@ -33,6 +33,11 @@ const phrases: Record<string, string> = {
   "application.status_changed": "changed an application's status",
   "application.converted": "converted an application into talent",
   "application.purged": "purged old applications",
+  "cms.page_published": "published a website page",
+  "cms.page_unpublished": "took a website page offline",
+  "cms.page_archived": "archived a website page",
+  "cms.revision_restored": "restored an earlier version of a website page",
+  "cms.settings_updated": "updated website settings",
 };
 
 export function describeAction(action: string) {

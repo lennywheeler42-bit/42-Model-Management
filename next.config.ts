@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Published talent images are served from the Supabase public storage bucket.
+// Published talent and CMS images are served from Supabase public storage buckets.
 const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : null;
 
 // Baseline security headers for every response.
@@ -17,7 +17,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
       ...(supabaseHost ? [{ protocol: "https" as const, hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }] : []),
     ],
   },
