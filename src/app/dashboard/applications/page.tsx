@@ -12,6 +12,7 @@ import { log } from "@/lib/log";
 import { JOIN_URL } from "@/lib/site";
 import { APPLICATION_STATUSES, STATUS_LABELS, applicantName, listApplications, type ApplicationListRow } from "@/features/applications/queries";
 import { ApplicationStatusBadge } from "@/features/applications/components/ApplicationStatusBadge";
+import { ConvertApprovedButton } from "@/features/applications/components/ConvertApprovedButton";
 
 export const metadata = { title: "Applications" };
 
@@ -22,9 +23,16 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
   if (!context) return <UnauthorizedState />;
   const search = await searchParams;
 
+  const canConvert = context.permissions.has("applications.manage") && context.permissions.has("talent.create") && context.permissions.has("talent.private.edit");
   let result: Awaited<ReturnType<typeof listApplications>>;
+  let approved = 0;
   try {
-    result = await listApplications(context.supabase, { status: search.status, q: search.q, page: Number(search.page) || 1 });
+    const [list, approvedCount] = await Promise.all([
+      listApplications(context.supabase, { status: search.status, q: search.q, page: Number(search.page) || 1 }),
+      canConvert ? context.supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "approved") : Promise.resolve({ count: 0 }),
+    ]);
+    result = list;
+    approved = approvedCount.count ?? 0;
   } catch (error) {
     log.error("applications", "list failed", error);
     return <ErrorState title="Applications could not be loaded" />;
@@ -40,7 +48,10 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Join Us" title="Applications" description="Submissions from the GoHighLevel registration form. Review them here and convert approved applicants into draft talent."
-      actions={<a href={JOIN_URL} target="_blank" rel="noreferrer" className={buttonClass("secondary")}><ExternalLink size={14} aria-hidden />Open the GHL form</a>} />
+      actions={<>
+        {canConvert && approved > 0 && <ConvertApprovedButton count={approved} />}
+        <a href={JOIN_URL} target="_blank" rel="noreferrer" className={buttonClass("secondary")}><ExternalLink size={14} aria-hidden />Open the GHL form</a>
+      </>} />
 
     <nav aria-label="Application status" className="flex flex-wrap gap-1.5">
       {tabs.map((tab) => {

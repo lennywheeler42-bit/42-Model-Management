@@ -48,6 +48,13 @@ export async function POST(request: Request) {
   // The secret is never stored with the submission.
   delete record.webhook_secret;
   if (record.customData) delete record.customData.webhook_secret;
+  // "intake: signed_talent" marks a model already signed in GHL (pipeline stage
+  // Active Talent): the application arrives approved, ready to convert.
+  const intake = [record.intake, record._intake, record.customData?.intake].find((value) => typeof value === "string");
+  const signedTalent = intake === "signed_talent";
+  delete record.intake;
+  delete record._intake;
+  if (record.customData) delete record.customData.intake;
 
   const fieldNames = (payload as { _fieldNames?: unknown })._fieldNames;
   const mapped = mapGhlPayload(payload, fieldNames && typeof fieldNames === "object" ? fieldNames as Record<string, string> : {});
@@ -57,7 +64,7 @@ export async function POST(request: Request) {
 
   try {
     const admin = createAdminSupabaseClient();
-    const result = await upsertApplication(admin, mapped, payload);
+    const result = await upsertApplication(admin, mapped, payload, { signedTalent });
     after(() => storeApplicationPhotos(admin, result.id, result.photos));
     log.info("ghl", `application ${result.status}`, { application: result.id, photos: result.photos.length });
     return NextResponse.json({ ok: true, id: result.id, status: result.status, photos: result.photos.length }, { status: result.status === "created" ? 201 : 200 });

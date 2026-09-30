@@ -22,7 +22,9 @@ function allowedHost(url: URL) {
 
 export type IngestResult = { id: string; status: "created" | "updated"; photos: { url: string; kind: PhotoKind }[] };
 
-export async function upsertApplication(admin: SupabaseClient, mapped: MappedApplication, raw: unknown): Promise<IngestResult> {
+const SIGNED_NOTE = "Imported from GHL as a signed model (Talent Recruitment Pipeline → Active Talent). Approved automatically; ready to convert to talent.";
+
+export async function upsertApplication(admin: SupabaseClient, mapped: MappedApplication, raw: unknown, options: { signedTalent?: boolean } = {}): Promise<IngestResult> {
   // Incoming blanks never erase what we already have.
   const incoming = Object.fromEntries(Object.entries(mapped.fields).filter(([, value]) => value !== null)) as Partial<MappedApplication["fields"]>;
   const now = new Date().toISOString();
@@ -42,12 +44,16 @@ export async function upsertApplication(admin: SupabaseClient, mapped: MappedApp
       submitted_at: incoming.submitted_at ?? now,
       extra_fields: mapped.extra,
       raw_payload: raw,
+      ...(options.signedTalent ? { status: "approved" } : {}),
     }).select("id").single();
     if (error) throw error;
+    if (options.signedTalent) await admin.from("application_notes").insert({ application_id: data.id, author_id: null, body: SIGNED_NOTE });
     return { id: data.id, status: "created", photos: mapped.photos };
   }
 
-  const reopen = REOPEN.has(existing.status);
+  // A signed model is approved unless it was already approved or converted.
+  const approve = options.signedTalent && existing.status !== "approved" && existing.status !== "converted";
+  const reopen = !approve && REOPEN.has(existing.status);
   const { submitted_at: _submitted, ...updates } = incoming;
   void _submitted;
   const { error } = await admin.from("applications").update({
@@ -56,9 +62,10 @@ export async function upsertApplication(admin: SupabaseClient, mapped: MappedApp
     raw_payload: raw,
     last_received_at: now,
     ...(reopen ? { status: "new" } : {}),
+    ...(approve ? { status: "approved" } : {}),
   }).eq("id", existing.id);
   if (error) throw error;
-  const note = existing.status === "converted"
+  const note = approve ? SIGNED_NOTE : existing.status === "converted"
     ? "Submitted again through GHL after conversion. Check the talent record for changes."
     : reopen ? `Resubmitted through GHL; reopened from "${existing.status}".` : "Updated by a new GHL submission.";
   await admin.from("application_notes").insert({ application_id: existing.id, author_id: null, body: note });

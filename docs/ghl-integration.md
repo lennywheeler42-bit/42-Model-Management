@@ -116,6 +116,26 @@ Use this once to bring existing GHL data in. It is safe to run again, because ap
 
    **Several forms, same person:** someone who filled in more than one form becomes **one** application. Their answers are combined, and later answers fill in or update earlier ones (blank answers never erase). Each submission's form name appears under **Other answers** as "submitted via".
 
+## 3b. Bring in signed models (Active Talent)
+
+Models already signed in GHL (Talent Recruitment Pipeline → **Active Talent**) become talent records in two steps. The token also needs the `opportunities.readonly` scope.
+
+1. **Import them.** They arrive in Applications already **Approved**, each with a note saying where they came from.
+
+   ```bash
+   node --env-file=.env scripts/import-ghl.mjs --stage="Active Talent" --signed
+   node --env-file=.env scripts/import-ghl.mjs --stage="Active Talent" --signed --apply
+   ```
+
+   The first command is a dry run. Use `--pipeline="<name>"` for a pipeline other than Talent Recruitment Pipeline.
+2. **Convert them.** In **Dashboard → Applications**, click **Convert all approved**. Each becomes a **private draft** talent record with contact details, measurements, Instagram and photos (in private media). Then review each record, assign boards and publish when ready.
+
+**Keep it in sync.** Create a second GHL workflow:
+- **Trigger:** Pipeline Stage Changed, with pipeline Talent Recruitment Pipeline and stage Active Talent.
+- **Action:** Custom Webhook, with the same URL and `X-Webhook-Secret` header as in §2, plus a Custom Data item: key `intake`, value `signed_talent`.
+
+Each newly signed model then appears in Applications as Approved, ready to convert.
+
 ## 4. Reviewing applications
 
 **Dashboard → Applications** lists open applications (New, Reviewing, Info requested, Approved).

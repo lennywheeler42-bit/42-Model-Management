@@ -84,12 +84,18 @@ function find(entries: Entry[], aliases: string[], { contains = false } = {}) {
 export function parseHeight(value: unknown): number | null {
   const raw = text(value, 40);
   if (!raw) return null;
-  const lower = raw.toLowerCase().replace(/’|′/g, "'").replace(/”|″|''/g, '"');
-  const feet = lower.match(/^(\d)\s*(?:'|ft|feet|foot|-|\s)\s*(\d{1,2}(?:\.\d+)?)?\s*(?:"|in|inches)?$/);
+  let lower = raw.toLowerCase().replace(/’|′|`|´/g, "'").replace(/”|″|''/g, '"');
+  // "5'7 cm": feet and inches with a wrong unit typed after them.
+  if (lower.includes("'")) lower = lower.replace(/\s*cm$/, "");
+  const feet = lower.match(/^(\d)\s*(?:'|ft|feet|foot|-|\s)\s*(\d{1,2}(?:\.\d+)?)?(?:\s+(\d)\/(\d))?\s*(?:"|in|inches)?$/);
   if (feet) {
-    const cm = (Number(feet[1]) * 12 + Number(feet[2] ?? 0)) * 2.54;
+    const fraction = feet[3] && Number(feet[4]) ? Number(feet[3]) / Number(feet[4]) : 0;
+    const cm = (Number(feet[1]) * 12 + Number(feet[2] ?? 0) + fraction) * 2.54;
     return cm >= 90 && cm <= 240 ? Math.round(cm) : null;
   }
+  // "510" = 5'10": feet then two-digit inches, no separator (impossible as cm).
+  const compact = lower.match(/^([4-6])(0\d|1[01])$/);
+  if (compact) return Math.round((Number(compact[1]) * 12 + Number(compact[2])) * 2.54);
   const metres = lower.match(/^(\d\.\d{1,2})\s*m$/);
   if (metres) return Math.round(Number(metres[1]) * 100);
   const number = lower.match(/^(\d{2,3}(?:\.\d+)?)\s*(cm|in|inches|")?$/);

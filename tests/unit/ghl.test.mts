@@ -13,6 +13,14 @@ test("parses heights in every common format", () => {
   assert.equal(parseHeight("175cm"), 175);
   assert.equal(parseHeight("1.75m"), 175);
   assert.equal(parseHeight("6'"), 183);
+  // Formats found in the agency's GHL data.
+  assert.equal(parseHeight("5'9 1/2"), 177);
+  assert.equal(parseHeight("5`4"), 163);
+  assert.equal(parseHeight("5'7 cm"), 170);
+  assert.equal(parseHeight("510"), 178);
+  assert.equal(parseHeight("509"), 175);
+  assert.equal(parseHeight("512"), null);
+  assert.equal(parseHeight("700"), null);
   assert.equal(parseHeight("tall"), null);
   assert.equal(parseHeight("9'9"), null);
 });

@@ -11,9 +11,16 @@
 //   node --env-file=.env.local scripts/import-ghl.mjs --form=abc,def       # only these forms (overrides GHL_FORM_ID)
 //   node --env-file=.env.local scripts/import-ghl.mjs --source=contacts --tag=join-us --apply
 //
+// Signed models (contacts in a pipeline stage), arriving approved and ready for
+// Dashboard → Applications → "Convert all approved":
+//   node --env-file=.env scripts/import-ghl.mjs --stage="Active Talent" --signed            # dry run
+//   node --env-file=.env scripts/import-ghl.mjs --stage="Active Talent" --signed --apply
+//   (--pipeline="Talent Recruitment Pipeline" is the default pipeline)
+//
 // Environment:
 //   GHL_API_TOKEN        Private Integration token (Settings → Private Integrations),
-//                        scopes: contacts.readonly, forms.readonly, surveys.readonly, locations/customFields.readonly
+//                        scopes: contacts.readonly, forms.readonly, surveys.readonly, locations/customFields.readonly,
+//                        opportunities.readonly (for --stage)
 //   GHL_LOCATION_ID      Sub-account (location) id
 //   GHL_FORM_ID          Form id(s) of the registration forms, comma-separated
 //   GHL_SURVEY_ID        Survey id(s), comma-separated (optional; for funnels built with surveys)
@@ -34,7 +41,12 @@ const picked = typeof args.form === "string" || typeof args.survey === "string";
 let formIds = ids(picked ? args.form : process.env.GHL_FORM_ID);
 let surveyIds = ids(picked ? args.survey : process.env.GHL_SURVEY_ID);
 if (args.source === "surveys" && !surveyIds.length) [formIds, surveyIds] = [[], formIds];
-const source = args.source === "contacts" || (!args.source && !formIds.length && !surveyIds.length) ? "contacts" : "submissions";
+const stageName = typeof args.stage === "string" ? args.stage : null;
+const pipelineName = typeof args.pipeline === "string" ? args.pipeline : "Talent Recruitment Pipeline";
+// --signed: these people are already signed, so the site approves them on arrival.
+const signed = Boolean(args.signed);
+const source = stageName ? "pipeline"
+  : args.source === "contacts" || (!args.source && !formIds.length && !surveyIds.length) ? "contacts" : "submissions";
 
 const required = ["GHL_API_TOKEN", "GHL_LOCATION_ID", ...(apply && !listOnly ? ["GHL_WEBHOOK_SECRET", "IMPORT_TARGET_URL"] : [])];
 const missing = required.filter((name) => !process.env[name]);
@@ -126,6 +138,13 @@ async function* allSubmissions(labels) {
   for (const id of surveyIds) yield* submissions("surveys", id, labels[id] ?? `survey ${id}`);
 }
 
+const contactPayload = (contact) => ({
+  contact_id: contact.id, first_name: contact.firstName, last_name: contact.lastName, email: contact.email, phone: contact.phone,
+  date_of_birth: contact.dateOfBirth, address1: contact.address1, city: contact.city, state: contact.state,
+  postal_code: contact.postalCode, country: contact.country, tags: (contact.tags ?? []).join(", "),
+  date_submitted: contact.dateAdded, customFields: contact.customFields ?? [],
+});
+
 async function* contacts(tag) {
   let startAfter; let startAfterId;
   for (;;) {
@@ -133,27 +152,45 @@ async function* contacts(tag) {
     const rows = data.contacts ?? [];
     for (const contact of rows) {
       if (tag && !(contact.tags ?? []).map((item) => String(item).toLowerCase()).includes(String(tag).toLowerCase())) continue;
-      yield {
-        contact_id: contact.id, first_name: contact.firstName, last_name: contact.lastName, email: contact.email, phone: contact.phone,
-        date_of_birth: contact.dateOfBirth, address1: contact.address1, city: contact.city, state: contact.state,
-        postal_code: contact.postalCode, country: contact.country, tags: (contact.tags ?? []).join(", "),
-        date_submitted: contact.dateAdded, customFields: contact.customFields ?? [],
-      };
+      yield contactPayload(contact);
     }
     if (!rows.length || !data.meta?.startAfterId) return;
     ({ startAfter, startAfterId } = data.meta);
   }
 }
 
+// Contacts whose opportunity sits in one pipeline stage (e.g. Active Talent).
+async function* pipelineStage() {
+  const { pipelines = [] } = await ghl("/opportunities/pipelines", { locationId: GHL_LOCATION_ID });
+  const pipeline = pipelines.find((item) => item.name.trim().toLowerCase() === pipelineName.trim().toLowerCase());
+  if (!pipeline) throw new Error(`No pipeline named "${pipelineName}". Pipelines: ${pipelines.map((item) => item.name).join(", ")}`);
+  const stage = pipeline.stages.find((item) => item.name.trim().toLowerCase() === stageName.trim().toLowerCase());
+  if (!stage) throw new Error(`No stage "${stageName}" in "${pipeline.name}". Stages: ${pipeline.stages.map((item) => item.name).join(", ")}`);
+  const done = new Set();
+  let startAfter; let startAfterId;
+  for (;;) {
+    const data = await ghl("/opportunities/search", { location_id: GHL_LOCATION_ID, pipeline_id: pipeline.id, pipeline_stage_id: stage.id, limit: 100, startAfter, startAfterId });
+    const rows = data.opportunities ?? [];
+    for (const opportunity of rows) {
+      if (!opportunity.contactId || done.has(opportunity.contactId)) continue;
+      done.add(opportunity.contactId);
+      const { contact } = await ghl(`/contacts/${opportunity.contactId}`);
+      yield { ...contactPayload(contact), pipeline_stage: `${pipeline.name} → ${stage.name}` };
+    }
+    if (rows.length < 100 || !data.meta?.startAfterId) return;
+    ({ startAfter, startAfterId } = data.meta);
+  }
+}
+
 const names = await fieldNames();
 const labels = source === "submissions" ? await formNames() : {};
-const stream = source === "contacts" ? contacts(args.tag) : allSubmissions(labels);
+const stream = source === "pipeline" ? pipelineStage() : source === "contacts" ? contacts(args.tag) : allSubmissions(labels);
 const summary = { seen: 0, sent: 0, created: 0, updated: 0, failed: 0, contacts: 0 };
 const seenContacts = new Set();
-const describe = source === "contacts"
-  ? `contacts${args.tag ? ` (tag ${args.tag})` : ""}`
+const describe = source === "pipeline" ? `pipeline "${pipelineName}", stage "${stageName}"`
+  : source === "contacts" ? `contacts${args.tag ? ` (tag ${args.tag})` : ""}`
   : [...formIds.map((id) => `form "${labels[id] ?? id}"`), ...surveyIds.map((id) => `survey "${labels[id] ?? id}"`)].join(", ");
-console.log(`Source: ${describe}. ${apply ? "Sending to " + IMPORT_TARGET_URL : "Dry run (pass --apply to send)."}`);
+console.log(`Source: ${describe}${signed ? " (signed models: arrive approved)" : ""}. ${apply ? "Sending to " + IMPORT_TARGET_URL : "Dry run (pass --apply to send)."}`);
 
 for await (const payload of stream) {
   if (summary.seen >= limit) break;
@@ -170,7 +207,7 @@ for await (const payload of stream) {
     const response = await fetch(IMPORT_TARGET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Webhook-Secret": GHL_WEBHOOK_SECRET },
-      body: JSON.stringify({ ...payload, _fieldNames: names }),
+      body: JSON.stringify({ ...payload, _fieldNames: names, ...(signed ? { _intake: "signed_talent" } : {}) }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`);
