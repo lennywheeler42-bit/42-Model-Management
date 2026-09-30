@@ -2,6 +2,13 @@
 
 _Written 2026-09-30 from a review of the codebase at `bc0ddf7`, the production Supabase project (migrations 001–018), the test suite (94/94 passing), and spec sections 1–72 of `42_Agency_OS_Claude_Master_Prompt.md`._
 
+> **Status (2026-09-30):** Phases 9–17 are built and tested.
+> - Phases 9–10 are live on `main`.
+> - Phases 11–17 are on `release/phases-11-17` (tag `v1.0.0-rc.1`), waiting for the owner to apply migrations 019–025 and merge. See `HANDOFF.md` and `launch-checklist.md`.
+> - Adaptations made on the owner's instructions:
+>   - There is no staging project (single Supabase project; `staging.md`).
+>   - Join Us stays on GoHighLevel, with a webhook and import (`ghl-integration.md`) replacing the native form.
+
 **Answer: 9 more phases (9–17) are needed to reach a fully production-ready system.**
 
 - **One of them is new, Phase 9 (Release Foundation).** The spec assumes staging, CI and browser testing exist, and they don't yet. Every later phase depends on them.

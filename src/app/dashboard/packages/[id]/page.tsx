@@ -31,7 +31,7 @@ export default async function PackagePage({ params }: { params: Promise<{ id: st
   const data: PackageData = { ...rest, has_link: Boolean(hash), items: items.data ?? [] };
 
   return <div className="space-y-6">
-    <Link href="/dashboard/packages" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All packages</Link>
+    <Link href="/dashboard/packages" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All packages</Link>
     <PageHeader eyebrow="Package" title={data.title} />
     <PackageEditor pkg={data} talent={talent} companies={options.companies} contacts={options.contacts} />
   </div>;

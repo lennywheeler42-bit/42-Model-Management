@@ -46,7 +46,7 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
   const extra = Object.entries(app.extra_fields ?? {});
 
   return <div className="space-y-6">
-    <Link href="/dashboard/applications" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All applications</Link>
+    <Link href="/dashboard/applications" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All applications</Link>
     <PageHeader eyebrow={`Application · ${app.source === "ghl" ? "GoHighLevel" : "Manual"}`} title={applicantName(app)}
       description={`Submitted ${formatDateTime(app.submitted_at)}${app.last_received_at !== app.submitted_at ? ` · last update ${formatDateTime(app.last_received_at)}` : ""}`}
       actions={<div className="flex flex-wrap items-center gap-2"><ApplicationStatusBadge status={app.status} />{app.is_minor && <Badge tone="review">Minor — guardian required</Badge>}</div>} />
@@ -62,34 +62,34 @@ export default async function ApplicationPage({ params }: { params: Promise<{ id
                 // Signed, short-lived URL from a private bucket; next/image cannot optimise it.
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <a href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={`${applicantName(app)} — ${KIND_LABELS[photo.kind]}`} className="h-full w-full object-cover" loading="lazy" /></a>
-                : <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-[11px] text-[#8d8f88]"><ImageOff size={18} aria-hidden />Not stored{photo.error ? `: ${photo.error}` : ""}{photo.source_url && <a href={photo.source_url} target="_blank" rel="noreferrer" className="underline">Open in GHL</a>}</div>}
+                : <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-[11px] text-[#6b6d66]"><ImageOff size={18} aria-hidden />Not stored{photo.error ? `: ${photo.error}` : ""}{photo.source_url && <a href={photo.source_url} target="_blank" rel="noreferrer" className="underline">Open in GHL</a>}</div>}
             </div>
-            <figcaption className="mt-1.5 text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{KIND_LABELS[photo.kind] ?? photo.kind}</figcaption>
-          </figure>)}</div> : <p className="text-sm text-[#8d8f88]">No photos were attached to this submission.</p>}
+            <figcaption className="mt-1.5 text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{KIND_LABELS[photo.kind] ?? photo.kind}</figcaption>
+          </figure>)}</div> : <p className="text-sm text-[#6b6d66]">No photos were attached to this submission.</p>}
         </Card>
 
         <Card title="Details">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{label}</dt><dd className="mt-0.5 break-words">{value || <span className="text-[#b5b6b0]">—</span>}</dd></div>)}</dl>
-          {app.message && <div className="mt-5 border-t border-[#efefeb] pt-4"><p className="text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">Message</p><p className="mt-1 whitespace-pre-line text-sm leading-6">{app.message}</p></div>}
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</dt><dd className="mt-0.5 break-words">{value || <span className="text-[#717369]">—</span>}</dd></div>)}</dl>
+          {app.message && <div className="mt-5 border-t border-[#efefeb] pt-4"><p className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">Message</p><p className="mt-1 whitespace-pre-line text-sm leading-6">{app.message}</p></div>}
         </Card>
 
         {extra.length > 0 && <Card title="Other answers" description="Fields from the GHL form without a dedicated column.">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{extra.map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{label}</dt><dd className="mt-0.5 break-words">{value}</dd></div>)}</dl>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">{extra.map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</dt><dd className="mt-0.5 break-words">{value}</dd></div>)}</dl>
         </Card>}
       </div>
 
       <div className="min-w-0 space-y-6">
         {(app.is_minor || app.guardian_name || app.guardian_email) && <Card title="Parent / guardian">
-          <dl className="space-y-3 text-sm">{guardian.map(([label, value]) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{label}</dt><dd className="mt-0.5 break-words">{value || <span className="text-[#b5b6b0]">—</span>}</dd></div>)}</dl>
+          <dl className="space-y-3 text-sm">{guardian.map(([label, value]) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</dt><dd className="mt-0.5 break-words">{value || <span className="text-[#717369]">—</span>}</dd></div>)}</dl>
         </Card>}
 
         <Card title="Consent">
           <p className="text-sm">{app.sms_consent === null ? "No SMS consent answer was received." : app.sms_consent ? "Agreed to receive SMS messages." : "Declined SMS messages."}</p>
-          {app.sms_consent_text && <p className="mt-2 text-xs leading-5 text-[#8d8f88]">Wording: “{app.sms_consent_text}”</p>}
+          {app.sms_consent_text && <p className="mt-2 text-xs leading-5 text-[#6b6d66]">Wording: “{app.sms_consent_text}”</p>}
         </Card>
 
         {duplicates.length > 0 && <Card title="Possible duplicates" description="Same email or phone number.">
-          <ul className="space-y-2 text-sm">{duplicates.map((item) => <li key={`${item.kind}-${item.id}`}><Link className="hover:text-[#c26a48] hover:underline" href={item.kind === "talent" ? `/dashboard/talent/${item.id}` : `/dashboard/applications/${item.id}`}>{item.kind === "talent" ? "Talent: " : "Application: "}{item.label}</Link></li>)}</ul>
+          <ul className="space-y-2 text-sm">{duplicates.map((item) => <li key={`${item.kind}-${item.id}`}><Link className="hover:text-[#a4502f] hover:underline" href={item.kind === "talent" ? `/dashboard/talent/${item.id}` : `/dashboard/applications/${item.id}`}>{item.kind === "talent" ? "Talent: " : "Application: "}{item.label}</Link></li>)}</ul>
         </Card>}
 
         <ApplicationNotes id={app.id} notes={notes} canAdd={canManage} />

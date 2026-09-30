@@ -51,7 +51,7 @@ export function DocumentManager({ talentId, documents, canManage }: { talentId: 
 
   return <section className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="text-sm font-800">Documents</h3><p className="mt-1 text-xs text-[#8d8f88]">Contracts, identification, and other private files. Every download is logged.</p></div>
+      <div><h3 className="text-sm font-800">Documents</h3><p className="mt-1 text-xs text-[#6b6d66]">Contracts, identification, and other private files. Every download is logged.</p></div>
       <label className="flex items-center gap-2 text-xs text-[#6f716b]"><input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} className="accent-[#20211f]" />Show archived</label>
     </div>
 
@@ -64,10 +64,10 @@ export function DocumentManager({ talentId, documents, canManage }: { talentId: 
     </form>}
 
     {visible.length ? <ul className="divide-y divide-[#efefeb] rounded-lg border border-[#e7e7e3]">{visible.map((document) => <li key={document.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-xs">
-      <FileText size={16} className="text-[#a2a39d]" aria-hidden />
+      <FileText size={16} className="text-[#717369]" aria-hidden />
       <div className="min-w-0 flex-1">
         <p className="truncate font-700">{document.file_name}</p>
-        <p className="text-[11px] text-[#8d8f88]">{[document.category, document.mime_type ? ACCEPTED[document.mime_type] : null, document.file_size ? `${Math.max(1, Math.round(document.file_size / 1024))} KB` : null, `Uploaded ${formatDate(document.created_at)}`].filter(Boolean).join(" · ")}</p>
+        <p className="text-[11px] text-[#6b6d66]">{[document.category, document.mime_type ? ACCEPTED[document.mime_type] : null, document.file_size ? `${Math.max(1, Math.round(document.file_size / 1024))} KB` : null, `Uploaded ${formatDate(document.created_at)}`].filter(Boolean).join(" · ")}</p>
         {document.description && <p className="mt-0.5 text-[11px] text-[#6f716b]">{document.description}</p>}
       </div>
       {document.archived_at && <Badge tone="archived">Archived</Badge>}

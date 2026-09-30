@@ -25,9 +25,9 @@ export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, b
     <div className="flex items-end gap-4">
       <Thumb src={thumbnail} alt={talent.display_name} className="h-24 w-20" />
       <div>
-        <p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#c26a48]">{talent.talent_id ?? "Talent"}</p>
+        <p className="text-[10px] font-800 uppercase tracking-[.18em] text-[#a4502f]">{talent.talent_id ?? "Talent"}</p>
         <h1 className="mt-1 text-3xl font-700 tracking-[-.03em]">{talent.display_name}</h1>
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8d8f88]">
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b6d66]">
           <StatusBadge status={talent.publication_status} />
           {live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
           {talent.featured && <Badge tone="review">Featured</Badge>}

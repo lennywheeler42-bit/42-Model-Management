@@ -39,7 +39,7 @@ export function VideoManager({ talentId, videos, canManage }: { talentId: string
   }
 
   return <section className="space-y-4">
-    <div><h3 className="text-sm font-800">Videos</h3><p className="mt-1 text-xs text-[#8d8f88]">YouTube and Vimeo links, or uploaded clips. Shown on the website only when public and the talent&apos;s &quot;Show videos&quot; setting is on.</p></div>
+    <div><h3 className="text-sm font-800">Videos</h3><p className="mt-1 text-xs text-[#6b6d66]">YouTube and Vimeo links, or uploaded clips. Shown on the website only when public and the talent&apos;s &quot;Show videos&quot; setting is on.</p></div>
     {canManage && <div className="flex flex-col gap-3 rounded-lg border border-[#e7e7e3] p-4 sm:flex-row sm:items-end">
       <form onSubmit={addLink} className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
         <TextField label="YouTube or Vimeo link" name="url" type="url" value={link} onChange={setLink} placeholder="https://www.youtube.com/watch?v=…" className="flex-1" />
@@ -52,7 +52,7 @@ export function VideoManager({ talentId, videos, canManage }: { talentId: string
       const href = video.external_id ? watchUrl(video.provider, video.external_id) : null;
       return <li key={video.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-xs">
         <Badge>{video.provider}</Badge>
-        <span className="flex-1 truncate font-700">{href ? <a href={href} target="_blank" rel="noreferrer" className="hover:text-[#c26a48]">{video.title || href}</a> : video.title || "Uploaded video"}</span>
+        <span className="flex-1 truncate font-700">{href ? <a href={href} target="_blank" rel="noreferrer" className="hover:text-[#a4502f]">{video.title || href}</a> : video.title || "Uploaded video"}</span>
         {video.public ? <Badge tone="public">Public</Badge> : <Badge tone="private">Private</Badge>}
         {canManage && <>
           <Button size="sm" variant="secondary" icon={video.public ? <Lock size={12} /> : <Globe2 size={12} />} disabled={pending}

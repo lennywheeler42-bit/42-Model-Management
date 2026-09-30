@@ -11,7 +11,7 @@ This repo is a talent-agency system for 42 Model Management. It has two halves:
 
 Both run on Next.js 16 (App Router), React 19, Tailwind v4 and Supabase (Postgres + RLS, Auth, Storage).
 
-Before starting work, read `docs/HANDOFF.md` (current state) and `docs/ROADMAP.md` (remaining phases 9–17). The product spec lives outside the repo: `../42_Agency_OS_Claude_Master_Prompt.md`.
+Before starting work, read `docs/HANDOFF.md` (current state, what is live vs on `release/phases-11-17`) and `docs/launch-checklist.md`. The product spec lives outside the repo: `../42_Agency_OS_Claude_Master_Prompt.md`.
 
 ## Commands
 
@@ -24,6 +24,8 @@ Before starting work, read `docs/HANDOFF.md` (current state) and `docs/ROADMAP.m
 | `npm test` | All tests: `tests/rls/*.test.mjs` + `tests/acceptance/*.test.mjs` |
 | `npm run test:rls` | RLS tests only |
 | `npm run test:acceptance` | Acceptance tests only |
+| `npm run test:unit` | Pure-logic unit tests (`tests/unit/*.test.mts`, Node type stripping; import `.ts` files by relative path, not `@/`) |
+| `npm run test:e2e` | Playwright (desktop + mobile); uses local Chrome, starts `npm run dev`; `BASE_URL=…` targets a deployed site |
 
 Running a subset of tests:
 
@@ -31,7 +33,7 @@ Running a subset of tests:
 - One test by name: `node --test --test-name-pattern="board" tests/rls/phases.test.mjs`
 - Pre-009 schema: `RLS_UPTO=8 npm run test:rls` replays migrations only up to 008. It is expected to fail, which demonstrates the old vulnerabilities.
 
-Supabase commands (the CLI is linked to project `dvpockrupiovuxcenuiy`, which is **production**; there is no staging project yet):
+Supabase commands (the CLI is linked to project `dvpockrupiovuxcenuiy`, which is **production**; by owner decision there is no staging project; see `docs/staging.md`):
 
 | Command | What it does |
 |---|---|
@@ -139,6 +141,10 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
     - Trigger functions get no EXECUTE for API roles.
     - `security definer` helpers set `search_path`.
     - Anon can't call role helpers.
+- **Generated security tests.** `tests/rls/hardening.test.mjs` fails when a new table lacks RLS, a view is not `security_invoker`, a SECURITY DEFINER function lacks `search_path`, or anon gains any read/write/function access not on its allow-list. Update the allow-list only after a deliberate review.
+- **Public data caching.** Public reads go through `publicCache()` (`features/public/cache.ts`); every dashboard mutation route must call `refreshPublicSite()`. Never use `dynamic = "force-dynamic"` on public pages (it bypasses the cache); use `connection()`.
+- **Service role.** Only `src/lib/supabase/admin.ts` (GHL webhook). `tests/unit/boundaries.test.mts` enforces it.
+- **Shell heredocs on this machine can drop or double backslashes.** Write files that contain backslashes (regexes, SQL `E'\n'` escapes) with the editor tools, not bash heredocs or inline Python.
 - **Tailwind v4.** Numeric weights (`font-600`, `font-800`) only work because `globals.css` defines `--font-weight-*` tokens.
   - Base styles must stay in `@layer base`, or they override utilities.
   - Arbitrary `calc()` needs underscores: `w-[calc(100%_-_32px)]`.

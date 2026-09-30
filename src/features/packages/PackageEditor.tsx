@@ -74,7 +74,7 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
 
       <Card title={`Talent (${items.length})`} description="Only photos approved for public use are shown to the client.">
         <div className="relative mb-4 max-w-md">
-          <label className="flex items-center gap-2 rounded-md border border-[#dcdcd6] bg-white px-3 py-2"><Search size={14} className="text-[#8d8f88]" aria-hidden /><span className="sr-only">Add talent</span>
+          <label className="flex items-center gap-2 rounded-md border border-[#dcdcd6] bg-white px-3 py-2"><Search size={14} className="text-[#6b6d66]" aria-hidden /><span className="sr-only">Add talent</span>
             <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Add talent by name" className="w-full text-sm outline-none" /></label>
           {matches.length > 0 && <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[#e7e7e3] bg-white shadow-lg">{matches.map((item) => <li key={item.id}>
             <button type="button" onClick={() => { setItems([...items, { talent_id: item.id, note: "" }]); setFilter(""); }} className="block w-full px-3 py-2 text-left text-sm hover:bg-[#f7f7f5]">{item.display_name}</button>
@@ -82,13 +82,13 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
         </div>
         {items.length ? <ol className="space-y-2">{items.map((item, index) => <li key={item.talent_id} className="grid grid-cols-1 items-center gap-2 rounded-lg border border-[#efefeb] p-3 sm:grid-cols-[1fr_1.4fr_auto]">
           <span className="text-sm font-700">{index + 1}. {names.get(item.talent_id) ?? "Talent"}</span>
-          <input aria-label={`Note for ${names.get(item.talent_id)}`} value={item.note} maxLength={600} onChange={(event) => setItems(items.map((row, i) => i === index ? { ...row, note: event.target.value } : row))} placeholder="Optional note for the client" className="w-full rounded-md border border-[#dcdcd6] px-3 py-2 text-sm outline-none focus:border-[#c26a48]" />
+          <input aria-label={`Note for ${names.get(item.talent_id)}`} value={item.note} maxLength={600} onChange={(event) => setItems(items.map((row, i) => i === index ? { ...row, note: event.target.value } : row))} placeholder="Optional note for the client" className="w-full rounded-md border border-[#dcdcd6] px-3 py-2 text-sm outline-none focus:border-[#a4502f]" />
           <span className="flex gap-1">
             <IconButton label="Move up" onClick={() => move(index, -1)}><ArrowUp size={13} /></IconButton>
             <IconButton label="Move down" onClick={() => move(index, 1)}><ArrowDown size={13} /></IconButton>
             <IconButton label="Remove" onClick={() => setItems(items.filter((_, i) => i !== index))}><X size={13} /></IconButton>
           </span>
-        </li>)}</ol> : <p className="text-sm text-[#8d8f88]">Add the talent you want to present.</p>}
+        </li>)}</ol> : <p className="text-sm text-[#6b6d66]">Add the talent you want to present.</p>}
       </Card>
       <div className="flex justify-between gap-2"><Button variant="danger" icon={<Trash2 size={14} />} onClick={remove} disabled={pending}>Delete</Button><Button onClick={save} disabled={pending || !title.trim()}>{pending ? "Saving…" : "Save package"}</Button></div>
     </div>
@@ -97,8 +97,8 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
       <Card title="Share with the client" description="A private link that expires. Anyone with the link can view the package.">
         <div className="space-y-3 text-sm">
           <p>{state === "live" ? <Badge tone="public">Link active</Badge> : state === "expired" ? <Badge tone="inactive">Link expired</Badge> : state === "revoked" ? <Badge tone="internal">Link revoked</Badge> : <Badge tone="draft">Not shared</Badge>}</p>
-          {state === "live" && pkg.expires_at && <p className="text-xs text-[#8d8f88]">Expires {formatDateTime(pkg.expires_at)}</p>}
-          {pkg.view_count > 0 && <p className="text-xs text-[#8d8f88]">Viewed {pkg.view_count} time{pkg.view_count === 1 ? "" : "s"}{pkg.last_viewed_at ? `, last ${formatDateTime(pkg.last_viewed_at)}` : ""}</p>}
+          {state === "live" && pkg.expires_at && <p className="text-xs text-[#6b6d66]">Expires {formatDateTime(pkg.expires_at)}</p>}
+          {pkg.view_count > 0 && <p className="text-xs text-[#6b6d66]">Viewed {pkg.view_count} time{pkg.view_count === 1 ? "" : "s"}{pkg.last_viewed_at ? `, last ${formatDateTime(pkg.last_viewed_at)}` : ""}</p>}
           {link && <div className="rounded-md border border-[#b7cdb9] bg-[#f3f8f3] p-3">
             <p className="text-xs font-700 text-[#3f6b45]">Copy this link now. For security it is not shown again.</p>
             <input readOnly value={link} aria-label="Share link" onFocus={(event) => event.target.select()} className="mt-2 w-full rounded border border-[#dcdcd6] bg-white px-2 py-1.5 font-mono text-[11px]" />
@@ -108,7 +108,7 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
             <SelectField label="Valid for" name="days" value={days} onChange={setDays} options={[{ value: "7", label: "7 days" }, { value: "14", label: "14 days" }, { value: "30", label: "30 days" }, { value: "90", label: "90 days" }]} />
             <Button icon={<Link2 size={14} />} disabled={pending || !items.length} onClick={share}>{pkg.has_link ? "New link" : "Create link"}</Button>
           </div>
-          {pkg.has_link && <p className="text-[11px] text-[#8d8f88]">Creating a new link stops the old one working.</p>}
+          {pkg.has_link && <p className="text-[11px] text-[#6b6d66]">Creating a new link stops the old one working.</p>}
           {state === "live" && <Button size="sm" variant="ghost" disabled={pending} onClick={() => window.confirm("Stop this link working now?") && run(`/api/dashboard/packages/${pkg.id}/share`, { method: "DELETE", success: "Link revoked" })}>Revoke link</Button>}
         </div>
       </Card>

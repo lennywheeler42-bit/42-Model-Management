@@ -46,8 +46,8 @@ export function TeamPanel({ members }: { members: Member[] }) {
 
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
     <form onSubmit={approve} className="min-w-0 space-y-4 rounded-xl border border-[#e7e7e3] bg-white p-5">
-      <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3da] text-[#c26a48]"><UserPlus size={17} /></span>
-        <div><h2 className="text-sm font-800">Approve an email</h2><p className="text-[11px] text-[#8d8f88]">They can sign in once their email is confirmed.</p></div></div>
+      <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3da] text-[#a4502f]"><UserPlus size={17} /></span>
+        <div><h2 className="text-sm font-800">Approve an email</h2><p className="text-[11px] text-[#6b6d66]">They can sign in once their email is confirmed.</p></div></div>
       <TextField label="Work email" name="email" type="email" required autoComplete="off" />
       <TextField label="Full name" name="fullName" />
       <SelectField label="Role" name="role" defaultValue="read_only" options={ROLE_OPTIONS} hint="Start with the least access needed." />
@@ -57,13 +57,13 @@ export function TeamPanel({ members }: { members: Member[] }) {
     <div className="relative min-w-0 overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
       <table className="w-full min-w-[560px] text-left text-sm">
         <caption className="sr-only">Approved accounts</caption>
-        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#8d8f88]"><th className="px-4 py-3">Member</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Signed in</th><th className="px-4 py-3"><span className="sr-only">Edit</span></th></tr></thead>
+        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="px-4 py-3">Member</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Signed in</th><th className="px-4 py-3"><span className="sr-only">Edit</span></th></tr></thead>
         <tbody>{members.map((member) => <tr key={member.id} className="border-b border-[#f3f3f0] last:border-0">
-          <td className="px-4 py-3"><p className="font-700">{member.full_name || member.email.split("@")[0]}</p><p className="text-[11px] text-[#8d8f88]">{member.email}</p></td>
+          <td className="px-4 py-3"><p className="font-700">{member.full_name || member.email.split("@")[0]}</p><p className="text-[11px] text-[#6b6d66]">{member.email}</p></td>
           <td className="px-4 py-3 text-xs">{member.role === "owner" ? <Badge tone="review">Owner</Badge> : roleLabel(member.role)}</td>
           <td className="px-4 py-3"><Badge tone={member.status === "active" ? "public" : member.status === "suspended" ? "internal" : "draft"}>{member.status}</Badge></td>
-          <td className="px-4 py-3 text-xs text-[#8d8f88]">{member.user_id ? "Linked" : `Invited ${formatDate(member.created_at)}`}</td>
-          <td className="px-4 py-3 text-right">{member.role !== "owner" && <button type="button" onClick={() => setEditing(member)} aria-label={`Edit ${member.email}`} className="rounded p-1.5 text-[#8d8f88] hover:bg-[#efefeb] hover:text-[#20211f]"><Pencil size={13} /></button>}</td>
+          <td className="px-4 py-3 text-xs text-[#6b6d66]">{member.user_id ? "Linked" : `Invited ${formatDate(member.created_at)}`}</td>
+          <td className="px-4 py-3 text-right">{member.role !== "owner" && <button type="button" onClick={() => setEditing(member)} aria-label={`Edit ${member.email}`} className="rounded p-1.5 text-[#6b6d66] hover:bg-[#efefeb] hover:text-[#20211f]"><Pencil size={13} /></button>}</td>
         </tr>)}</tbody>
       </table>
     </div>

@@ -44,7 +44,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   }
   const missing = rows.filter((row) => !row.financials?.fee_total).length;
   const query = new URLSearchParams(Object.entries(filters).filter(([, value]) => value) as [string, string][]).toString();
-  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#c26a48]";
+  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#a4502f]";
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Administration" title="Finance" description="Fees, commission and invoice status for confirmed and completed bookings."
@@ -58,20 +58,20 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
 
     <section aria-label="Totals" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
       {[...totals.entries()].map(([currency, total]) => [["Billed", total.fees], ["Commission", total.commission], ["Outstanding", total.outstanding]].map(([label, value]) => <div key={`${currency}-${label}`} className="rounded-xl border border-[#e7e7e3] bg-white p-5">
-        <p className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88]">{label} · {currency}</p>
+        <p className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66]">{label} · {currency}</p>
         <p className="mt-2 text-3xl font-700 tabular-nums tracking-[-.03em]">{money(value as number, currency)}</p>
       </div>))}
-      {totals.size === 0 && <p className="text-sm text-[#8d8f88] sm:col-span-3">No fees recorded for these bookings yet.</p>}
+      {totals.size === 0 && <p className="text-sm text-[#6b6d66] sm:col-span-3">No fees recorded for these bookings yet.</p>}
     </section>
     {missing > 0 && <p className="text-xs text-[#94692c]">{missing} booking{missing === 1 ? " has" : "s have"} no fee recorded.</p>}
 
     <DataTable<FinanceRow> rows={rows} rowKey={(row) => row.id} caption="Bookings with fees"
       empty={{ title: "No bookings match", body: "Confirmed and completed bookings appear here." }}
       columns={[
-        { key: "booking", header: "Booking", cell: (row) => <Link href={`/dashboard/bookings/${row.id}`} className="block"><span className="font-700 hover:text-[#c26a48]">{row.title}</span><span className="block text-[11px] text-[#8d8f88]">{row.reference} · {formatDate(row.start_at)}{row.company ? ` · ${row.company.name}` : ""}</span></Link> },
-        { key: "fee", header: "Fee", className: "tabular-nums", cell: (row) => row.financials?.fee_total ? money(Number(row.financials.fee_total), row.financials.currency) : <span className="text-xs text-[#b5b6b0]">—</span> },
+        { key: "booking", header: "Booking", cell: (row) => <Link href={`/dashboard/bookings/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.title}</span><span className="block text-[11px] text-[#6b6d66]">{row.reference} · {formatDate(row.start_at)}{row.company ? ` · ${row.company.name}` : ""}</span></Link> },
+        { key: "fee", header: "Fee", className: "tabular-nums", cell: (row) => row.financials?.fee_total ? money(Number(row.financials.fee_total), row.financials.currency) : <span className="text-xs text-[#717369]">—</span> },
         { key: "commission", header: "Commission", className: "text-xs tabular-nums", cell: (row) => row.financials?.commission_pct ? `${Number(row.financials.commission_pct)}%` : "—" },
-        { key: "invoice", header: "Invoice", cell: (row) => { const status = row.financials?.invoice_status ?? "not_invoiced"; return <span className="flex items-center gap-2"><Badge tone={status === "paid" ? "public" : status === "invoiced" ? "review" : status === "written_off" ? "inactive" : "draft"}>{LABELS.invoice[status as keyof typeof LABELS.invoice]}</Badge>{row.financials?.invoice_number && <span className="text-[11px] text-[#8d8f88]">#{row.financials.invoice_number}</span>}</span>; } },
+        { key: "invoice", header: "Invoice", cell: (row) => { const status = row.financials?.invoice_status ?? "not_invoiced"; return <span className="flex items-center gap-2"><Badge tone={status === "paid" ? "public" : status === "invoiced" ? "review" : status === "written_off" ? "inactive" : "draft"}>{LABELS.invoice[status as keyof typeof LABELS.invoice]}</Badge>{row.financials?.invoice_number && <span className="text-[11px] text-[#6b6d66]">#{row.financials.invoice_number}</span>}</span>; } },
       ]} />
   </div>;
 }

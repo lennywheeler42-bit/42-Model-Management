@@ -4,14 +4,19 @@ Production-oriented talent management software for 42 Model Management. The proj
 
 ## Routes
 
-- `/` — public editorial homepage
-- `/models` — public talent roster with board filters
+- `/` — public home page (content from Dashboard → Website → Site settings)
+- `/models` — searchable roster (URL-driven filters, paging)
 - `/models/[...path]` — public board page (`/models/teens/boys`) or talent profile (`/models/<slug>`)
-- `/preview/talent/[id]` — staff-only preview of a talent's public profile
-- `/login` — email/password and Google sign-in
-- `/dashboard` — authenticated agency dashboard (talent, boards, media, search, settings)
+- `/<page>` — published CMS pages (About, Privacy, …); unknown paths check Website → Redirects
+- `/join` — redirects to the GoHighLevel registration form
+- `/p/<token>` — private client package link (expiring, revocable)
+- `/login`, `/login/forgot`, `/login/reset`, `/login/mfa` — staff sign-in, password reset, two-step sign-in
+- `/dashboard` — agency workspace: talent, applications, bookings, calendar, tasks, companies, contacts, packages, finance, website, settings
+- `/portal` — talent self-service (magic-link sign-in at `/portal/login`)
+- `/preview/talent/[id]`, `/preview/page/[id]` — staff previews
+- `/api/integrations/ghl` — GoHighLevel webhook (shared secret)
 
-Public pages read only from approved Supabase views. Draft, private, legal, financial, and internal fields are not exposed through the public site.
+Public pages read only from approved Supabase views. Draft, private, legal, financial, and internal fields are never exposed.
 
 ## Stack
 
@@ -120,9 +125,10 @@ Use `Config` for variables beginning with `NEXT_PUBLIC_` and `Secret` for `SUPAB
 
 ```bash
 npm run lint
-npm run test:rls
+npx tsc --noEmit
+npm test            # database/RLS (PGlite), unit and acceptance tests
 npm run build
-npm run start
+npm run test:e2e    # Playwright, desktop and mobile
 ```
 
 After deployment, smoke-test `/`, `/models`, `/login`, `/dashboard`, Google sign-in, and one published talent profile.
@@ -133,12 +139,15 @@ After deployment, smoke-test `/`, `/models`, `/login`, `/dashboard`, Google sign
 
 - **[Project handoff](docs/HANDOFF.md)** — current status, what is done, and what to do next
 - **[Production roadmap](docs/ROADMAP.md)** — remaining phases and production-readiness criteria
+- **[Launch checklist](docs/launch-checklist.md)** — how to release v1.0.0 and every later release
+- [QA report](docs/qa-report.md)
+- [GoHighLevel integration](docs/ghl-integration.md)
+- [Operations runbook](docs/operations.md)
 - [Permissions](docs/permissions.md)
 - [Database notes](docs/database.md)
 - [Architecture](docs/architecture.md)
 - [Security review](docs/security-review.md)
 - [Staging guidance](docs/staging.md)
-- [Launch checklist](docs/launch-checklist.md)
 - [Discovery notes](docs/discovery.md)
 
 ## License

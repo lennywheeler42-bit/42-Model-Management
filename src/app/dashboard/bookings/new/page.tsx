@@ -20,7 +20,7 @@ export default async function NewBookingPage({ searchParams }: { searchParams: P
   const initial = { company_id: search.company && /^[0-9a-f-]{36}$/i.test(search.company) ? search.company : null, start_at: start, end_at: end };
 
   return <div className="space-y-6">
-    <Link href="/dashboard/bookings" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All bookings</Link>
+    <Link href="/dashboard/bookings" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All bookings</Link>
     <PageHeader eyebrow="Operations" title="New booking" description="Start as an option; confirm it once the client does." />
     <BookingForm key="new" initial={initial} talent={talent} companies={companies.map((item) => ({ id: item.id, name: item.name }))} contacts={contacts} canManage
       defaultTalent={search.talent && talent.some((item) => item.id === search.talent) ? search.talent : undefined} />

@@ -21,7 +21,7 @@ export function ForgotForm() {
   if (state === "sent") {
     return <div className="mt-8 space-y-4">
       <p className={authNotice} role="status">If an account exists for that email, a reset link is on its way. It expires after one hour.</p>
-      <Link href="/login" className="block text-center text-[11px] text-[#8d8f88] underline-offset-4 hover:text-[#20211f] hover:underline">Back to sign in</Link>
+      <Link href="/login" className="block text-center text-[11px] text-[#6b6d66] underline-offset-4 hover:text-[#20211f] hover:underline">Back to sign in</Link>
     </div>;
   }
 
@@ -29,6 +29,6 @@ export function ForgotForm() {
     <label className={authLabel}>Email<input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} className={authInput} placeholder="you@agency.com" /></label>
     {state === "error" && <p className={authError} role="alert">We could not send the email right now. Please try again in a few minutes.</p>}
     <button disabled={state === "sending"} className={authButton}>{state === "sending" ? "Sending…" : "Email me a reset link"}</button>
-    <Link href="/login" className="block text-center text-[11px] text-[#8d8f88] underline-offset-4 hover:text-[#20211f] hover:underline">Back to sign in</Link>
+    <Link href="/login" className="block text-center text-[11px] text-[#6b6d66] underline-offset-4 hover:text-[#20211f] hover:underline">Back to sign in</Link>
   </form>;
 }

@@ -40,10 +40,10 @@ export function PagesPanel({ pages }: { pages: PageRow[] }) {
     </div>
     <div className="overflow-hidden rounded-xl border border-[#e7e7e3] bg-white">
       {visible.length ? <ul className="divide-y divide-[#f3f3f0]">{visible.map((page) => <li key={page.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-        <Link href={`/dashboard/website/pages/${page.id}`} className="min-w-0 flex-1"><span className="font-700 hover:text-[#c26a48]">{page.title}</span><span className="block text-[11px] text-[#8d8f88]">/{page.slug} · edited {formatDate(page.updated_at)}</span></Link>
+        <Link href={`/dashboard/website/pages/${page.id}`} className="min-w-0 flex-1"><span className="font-700 hover:text-[#a4502f]">{page.title}</span><span className="block text-[11px] text-[#6b6d66]">/{page.slug} · edited {formatDate(page.updated_at)}</span></Link>
         {page.status === "published" ? <Badge tone="public">Live</Badge> : page.status === "archived" ? <Badge tone="archived">Archived</Badge> : <Badge tone="draft">Draft</Badge>}
         {page.status === "published" && page.has_unpublished_changes && <Badge tone="review">Unpublished changes</Badge>}
-      </li>)}</ul> : <p className="px-6 py-10 text-center text-sm text-[#8d8f88]">No pages yet.</p>}
+      </li>)}</ul> : <p className="px-6 py-10 text-center text-sm text-[#6b6d66]">No pages yet.</p>}
     </div>
     <Dialog open={creating} onClose={() => setCreating(false)} title="New page" description="Pages start as private drafts.">
       <form onSubmit={create} className="space-y-4">
@@ -88,7 +88,7 @@ export function NavigationPanel({ items, pages }: { items: Omit<NavRow, "key">[]
         <SmallButton label="Move down" onClick={() => move(row.key, 1)}><ArrowDown size={13} /></SmallButton>
         <SmallButton label="Remove link" onClick={() => setRows((list) => list.filter((item) => item.key !== row.key))}><Trash2 size={13} /></SmallButton>
       </div>
-    </li>)}</ul> : <p className="text-sm text-[#8d8f88]">No links.</p>}
+    </li>)}</ul> : <p className="text-sm text-[#6b6d66]">No links.</p>}
   </Card>;
 
   return <div className="space-y-4">
@@ -173,16 +173,16 @@ export function RedirectsPanel({ redirects }: { redirects: RedirectRow[] }) {
       </form>
     </Card>
     <div className="overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
-      {redirects.length ? <table className="w-full min-w-[560px] text-left text-sm"><thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#8d8f88]"><th className="px-4 py-3">From</th><th className="px-4 py-3">To</th><th className="px-4 py-3">Visits</th><th className="px-4 py-3"><span className="sr-only">Actions</span></th></tr></thead>
+      {redirects.length ? <table className="w-full min-w-[560px] text-left text-sm"><thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="px-4 py-3">From</th><th className="px-4 py-3">To</th><th className="px-4 py-3">Visits</th><th className="px-4 py-3"><span className="sr-only">Actions</span></th></tr></thead>
         <tbody>{redirects.map((row) => <tr key={row.id} className={`border-b border-[#f3f3f0] last:border-0 ${row.is_active ? "" : "opacity-50"}`}>
           <td className="px-4 py-3 font-mono text-xs">{row.from_path}</td>
-          <td className="px-4 py-3 font-mono text-xs">{row.to_path} <span className="font-sans text-[10px] text-[#8d8f88]">{row.permanent ? "301" : "307"}</span></td>
+          <td className="px-4 py-3 font-mono text-xs">{row.to_path} <span className="font-sans text-[10px] text-[#6b6d66]">{row.permanent ? "301" : "307"}</span></td>
           <td className="px-4 py-3 text-xs tabular-nums">{row.hits}</td>
           <td className="px-4 py-3 text-right"><span className="inline-flex gap-1.5">
             <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(`/api/dashboard/website/redirects/${row.id}`, { method: "PATCH", body: { is_active: !row.is_active }, success: row.is_active ? "Redirect paused" : "Redirect active" })}>{row.is_active ? "Pause" : "Resume"}</Button>
             <SmallButton label="Delete redirect" onClick={() => window.confirm("Delete this redirect?") && run(`/api/dashboard/website/redirects/${row.id}`, { method: "DELETE", success: "Redirect deleted" })}><Trash2 size={13} /></SmallButton>
           </span></td>
-        </tr>)}</tbody></table> : <p className="px-6 py-10 text-center text-sm text-[#8d8f88]">No redirects yet.</p>}
+        </tr>)}</tbody></table> : <p className="px-6 py-10 text-center text-sm text-[#6b6d66]">No redirects yet.</p>}
     </div>
   </div>;
 }
@@ -195,7 +195,7 @@ export function MediaPanel() {
   const { load } = library;
   useEffect(() => { void load(); }, [load]);
   return <Card title="Media library" description="Images for website pages and the home page. They become public when used on a published page." actions={<UploadButton busy={library.busy} onFiles={library.upload} />}>
-    {library.items ? <MediaGrid items={library.items} onRemove={library.remove} /> : <p className="py-8 text-center text-sm text-[#8d8f88]">Loading…</p>}
+    {library.items ? <MediaGrid items={library.items} onRemove={library.remove} /> : <p className="py-8 text-center text-sm text-[#6b6d66]">Loading…</p>}
   </Card>;
 }
 

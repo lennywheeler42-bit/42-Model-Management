@@ -19,12 +19,12 @@ export function ApplicationNotes({ id, notes, canAdd }: { id: string; notes: { i
     {canAdd && <form onSubmit={submit} className="mb-5 space-y-2">
       <label htmlFor="application-note" className="sr-only">Add a note</label>
       <textarea id="application-note" value={body} onChange={(event) => setBody(event.target.value)} rows={3} maxLength={4000} placeholder="Add a note for the team…"
-        className="w-full rounded-md border border-[#dcdcd6] px-3 py-2 text-sm outline-none focus:border-[#c26a48]" />
+        className="w-full rounded-md border border-[#dcdcd6] px-3 py-2 text-sm outline-none focus:border-[#a4502f]" />
       <div className="flex justify-end"><Button type="submit" size="sm" disabled={pending || !body.trim()}>{pending ? "Saving…" : "Add note"}</Button></div>
     </form>}
     {notes.length ? <ol className="space-y-4">{notes.map((note) => <li key={note.id} className="border-l-2 border-[#efefeb] pl-3">
       <p className="whitespace-pre-line text-sm leading-6">{note.body}</p>
-      <p className="mt-1 text-[11px] text-[#8d8f88]">{note.author} · {formatDateTime(note.created_at)}</p>
-    </li>)}</ol> : <p className="text-sm text-[#8d8f88]">No notes yet.</p>}
+      <p className="mt-1 text-[11px] text-[#6b6d66]">{note.author} · {formatDateTime(note.created_at)}</p>
+    </li>)}</ol> : <p className="text-sm text-[#6b6d66]">No notes yet.</p>}
   </Card>;
 }

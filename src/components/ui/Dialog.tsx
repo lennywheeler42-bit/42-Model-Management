@@ -23,8 +23,8 @@ export function Dialog({ open, onClose, title, description, children, footer, wi
   return <dialog ref={ref} onClose={onClose} aria-labelledby={titleId}
     className={`m-auto w-[calc(100%_-_32px)] ${wide ? "max-w-3xl" : "max-w-lg"} rounded-xl border border-[#e7e7e3] bg-white p-0 text-[#20211f] shadow-2xl backdrop:bg-[#20211f]/45`}>
     <div className="flex items-start justify-between gap-4 border-b border-[#efefeb] px-6 py-5">
-      <div><h2 id={titleId} className="text-lg font-700">{title}</h2>{description && <p className="mt-1 text-xs leading-5 text-[#8d8f88]">{description}</p>}</div>
-      <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-md p-1 text-[#8d8f88] hover:bg-[#efefeb] hover:text-[#20211f]"><X size={18} /></button>
+      <div><h2 id={titleId} className="text-lg font-700">{title}</h2>{description && <p className="mt-1 text-xs leading-5 text-[#6b6d66]">{description}</p>}</div>
+      <button type="button" onClick={onClose} aria-label="Close dialog" className="rounded-md p-1 text-[#6b6d66] hover:bg-[#efefeb] hover:text-[#20211f]"><X size={18} /></button>
     </div>
     <div data-dialog-body className="max-h-[70vh] overflow-y-auto px-6 py-5">{children}</div>
     {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-[#efefeb] px-6 py-4">{footer}</div>}

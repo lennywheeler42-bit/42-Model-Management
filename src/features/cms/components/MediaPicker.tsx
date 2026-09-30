@@ -61,15 +61,15 @@ export function useMediaLibrary() {
 }
 
 export function MediaGrid({ items, selected, onSelect, onRemove }: { items: MediaItem[]; selected?: string | null; onSelect?: (path: string) => void; onRemove?: (path: string) => void }) {
-  if (!items.length) return <p className="py-8 text-center text-sm text-[#8d8f88]">No images yet. Upload one to get started.</p>;
+  if (!items.length) return <p className="py-8 text-center text-sm text-[#6b6d66]">No images yet. Upload one to get started.</p>;
   return <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">{items.map((item) => <li key={item.path} className="group relative">
     <button type="button" onClick={() => onSelect?.(item.path)} disabled={!onSelect} aria-pressed={selected === item.path}
-      className={`block aspect-square w-full overflow-hidden rounded-lg bg-[#efefeb] ring-2 ${selected === item.path ? "ring-[#c26a48]" : "ring-transparent hover:ring-[#dcdcd6]"}`}>
+      className={`block aspect-square w-full overflow-hidden rounded-lg bg-[#efefeb] ring-2 ${selected === item.path ? "ring-[#a4502f]" : "ring-transparent hover:ring-[#dcdcd6]"}`}>
       {/* Public CMS image; next/image adds nothing in the editor grid. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={item.url} alt="" loading="lazy" className="h-full w-full object-cover" />
     </button>
-    <p className="mt-1 truncate text-[10px] text-[#8d8f88]" title={item.path}>{item.path.replace(/^cms\//, "")}</p>
+    <p className="mt-1 truncate text-[10px] text-[#6b6d66]" title={item.path}>{item.path.replace(/^cms\//, "")}</p>
     {onRemove && <button type="button" aria-label={`Delete ${item.path}`} onClick={() => window.confirm("Delete this image? Pages that use it will show no image.") && onRemove(item.path)}
       className="absolute right-1.5 top-1.5 rounded bg-white/90 p-1 text-[#a9593d] opacity-0 shadow group-hover:opacity-100 focus:opacity-100"><Trash2 size={13} /></button>}
   </li>)}</ul>;
@@ -96,17 +96,17 @@ export function MediaField({ label, value, onChange, hint }: { label: string; va
     <div className="mt-2 flex items-center gap-3">
       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#efefeb]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <ImagePlus size={18} className="text-[#a2a39d]" aria-hidden />}
+        {url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <ImagePlus size={18} className="text-[#717369]" aria-hidden />}
       </div>
       <div className="flex flex-wrap gap-2 normal-case tracking-normal">
         <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>{value ? "Change image" : "Choose image"}</Button>
         {value && <Button size="sm" variant="ghost" icon={<X size={13} />} onClick={() => onChange(null)}>Remove</Button>}
       </div>
     </div>
-    {hint && <p className="mt-1.5 text-[11px] font-400 normal-case tracking-normal text-[#8d8f88]">{hint}</p>}
+    {hint && <p className="mt-1.5 text-[11px] font-400 normal-case tracking-normal text-[#6b6d66]">{hint}</p>}
     <Dialog open={open} onClose={() => setOpen(false)} title="Choose an image" description="Images in the website media library are public once used on a published page." wide
       footer={<UploadButton busy={library.busy} onFiles={async (files) => { const [first] = await library.upload(files); if (first) { onChange(first); setOpen(false); } }} />}>
-      {library.items ? <MediaGrid items={library.items} selected={value} onSelect={(path) => { onChange(path); setOpen(false); }} /> : <p className="py-8 text-center text-sm text-[#8d8f88]">Loading…</p>}
+      {library.items ? <MediaGrid items={library.items} selected={value} onSelect={(path) => { onChange(path); setOpen(false); }} /> : <p className="py-8 text-center text-sm text-[#6b6d66]">Loading…</p>}
     </Dialog>
   </div>;
 }

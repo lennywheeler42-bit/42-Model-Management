@@ -38,21 +38,21 @@ export function RecordList({ talentId, module, rows, canEdit, datalists = {}, de
   const current = editing && editing !== "new" ? editing : null;
   return <section className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="text-sm font-800">{ui.title}</h3>{"description" in ui && ui.description && <p className="mt-1 text-xs text-[#8d8f88]">{ui.description}</p>}</div>
+      <div><h3 className="text-sm font-800">{ui.title}</h3>{"description" in ui && ui.description && <p className="mt-1 text-xs text-[#6b6d66]">{ui.description}</p>}</div>
       {canEdit && <Button size="sm" variant="secondary" icon={<Plus size={13} />} onClick={() => setEditing("new")}>Add {ui.singular}</Button>}
     </div>
 
     {rows.length ? <div className="relative overflow-x-auto rounded-lg border border-[#e7e7e3]">
       <table className="w-full min-w-[560px] text-left text-xs">
-        <thead><tr className="border-b border-[#efefeb] bg-[#fafaf8] text-[9px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">
+        <thead><tr className="border-b border-[#efefeb] bg-[#fafaf8] text-[9px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">
           {ui.columns.map((column) => <th key={column.key} scope="col" className="px-3 py-2.5">{column.label}</th>)}
           {canEdit && <th scope="col" className="w-20 px-3 py-2.5"><span className="sr-only">Actions</span></th>}
         </tr></thead>
         <tbody>{rows.map((row) => <tr key={row.id} className="border-b border-[#f3f3f0] last:border-0">
           {ui.columns.map((column) => <td key={column.key} className="max-w-xs px-3 py-2.5 align-top">{formatCell(row[column.key], "format" in column ? column.format : undefined)}</td>)}
           {canEdit && <td className="px-3 py-2 text-right whitespace-nowrap">
-            {canUpdate && <button type="button" onClick={() => setEditing(row)} className="rounded p-1.5 text-[#8d8f88] hover:bg-[#efefeb] hover:text-[#20211f]" aria-label={`Edit ${ui.singular}`}><Pencil size={13} /></button>}
-            {"canDelete" in ui && ui.canDelete && <button type="button" onClick={() => remove(row)} disabled={pending} className="rounded p-1.5 text-[#8d8f88] hover:bg-[#f8e8df] hover:text-[#a9593d]" aria-label={`Remove ${ui.singular}`}><Trash2 size={13} /></button>}
+            {canUpdate && <button type="button" onClick={() => setEditing(row)} className="rounded p-1.5 text-[#6b6d66] hover:bg-[#efefeb] hover:text-[#20211f]" aria-label={`Edit ${ui.singular}`}><Pencil size={13} /></button>}
+            {"canDelete" in ui && ui.canDelete && <button type="button" onClick={() => remove(row)} disabled={pending} className="rounded p-1.5 text-[#6b6d66] hover:bg-[#f8e8df] hover:text-[#a9593d]" aria-label={`Remove ${ui.singular}`}><Trash2 size={13} /></button>}
           </td>}
         </tr>)}</tbody>
       </table>

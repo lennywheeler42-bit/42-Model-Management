@@ -26,7 +26,7 @@ export default async function PackagesPage() {
     <DataTable<Row> rows={data as unknown as Row[]} rowKey={(row) => row.id} caption="Packages"
       empty={{ title: "No packages yet", body: "Create a package, add talent, and send the client a link." }}
       columns={[
-        { key: "title", header: "Package", cell: (row) => { const company = Array.isArray(row.company) ? row.company[0] : row.company; return <Link href={`/dashboard/packages/${row.id}`} className="block"><span className="font-700 hover:text-[#c26a48]">{row.title}</span><span className="block text-[11px] text-[#8d8f88]">{company?.name ?? "No client"} · created {formatDate(row.created_at)}</span></Link>; } },
+        { key: "title", header: "Package", cell: (row) => { const company = Array.isArray(row.company) ? row.company[0] : row.company; return <Link href={`/dashboard/packages/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.title}</span><span className="block text-[11px] text-[#6b6d66]">{company?.name ?? "No client"} · created {formatDate(row.created_at)}</span></Link>; } },
         { key: "talent", header: "Talent", className: "text-xs tabular-nums", cell: (row) => row.package_items[0]?.count ?? 0 },
         { key: "link", header: "Link", cell: (row) => { const state = linkState(row); return state === "revoked" ? <Badge tone="internal">Revoked</Badge> : state === "none" ? <Badge tone="draft">Not shared</Badge> : state === "expired" ? <Badge tone="inactive">Expired</Badge> : <Badge tone="public">Active</Badge>; } },
         { key: "views", header: "Views", className: "text-xs tabular-nums", cell: (row) => row.view_count },

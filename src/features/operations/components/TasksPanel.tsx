@@ -40,16 +40,16 @@ export function TasksPanel({ tasks, members, viewerId, canAssign }: { tasks: Tas
           onClick={() => run(`/api/dashboard/tasks/${task.id}`, { method: "PATCH", body: { status: task.status === "open" ? "done" : "open" }, success: task.status === "open" ? "Done" : "Reopened" })}
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${task.status === "done" ? "border-[#4f7a54] bg-[#4f7a54] text-white" : "border-[#bdbdb6] hover:border-[#20211f]"}`}>{task.status === "done" && <Check size={12} />}</button>
         <div className="min-w-0 flex-1">
-          <p className={`text-sm ${task.status === "done" ? "text-[#8d8f88] line-through" : "font-700"}`}>{task.title}</p>
-          <p className="text-[11px] text-[#8d8f88]">
+          <p className={`text-sm ${task.status === "done" ? "text-[#6b6d66] line-through" : "font-700"}`}>{task.title}</p>
+          <p className="text-[11px] text-[#6b6d66]">
             {task.assignee_id ? names.get(task.assignee_id) ?? "Team member" : "Unassigned"}
             {task.related_type && task.related_id && <> · <Link href={`${RELATED_PATH[task.related_type]}${task.related_id}`} className="underline-offset-2 hover:underline">{task.related_type}</Link></>}
           </p>
         </div>
         {task.priority === "high" && <Badge tone="internal">High</Badge>}
-        {task.due_on && <span className={`text-xs ${overdue ? "font-700 text-[#a9593d]" : "text-[#8d8f88]"}`}>{overdue ? "Overdue · " : "Due "}{formatDate(task.due_on)}</span>}
-        {canAssign && <button type="button" aria-label={`Delete “${task.title}”`} onClick={() => window.confirm("Delete this task?") && run(`/api/dashboard/tasks/${task.id}`, { method: "DELETE", success: "Task deleted" })} className="rounded p-1.5 text-[#8d8f88] hover:bg-[#efefeb] hover:text-[#a9593d]"><Trash2 size={13} /></button>}
+        {task.due_on && <span className={`text-xs ${overdue ? "font-700 text-[#a9593d]" : "text-[#6b6d66]"}`}>{overdue ? "Overdue · " : "Due "}{formatDate(task.due_on)}</span>}
+        {canAssign && <button type="button" aria-label={`Delete “${task.title}”`} onClick={() => window.confirm("Delete this task?") && run(`/api/dashboard/tasks/${task.id}`, { method: "DELETE", success: "Task deleted" })} className="rounded p-1.5 text-[#6b6d66] hover:bg-[#efefeb] hover:text-[#a9593d]"><Trash2 size={13} /></button>}
       </li>;
-    })}</ul> : <p className="rounded-xl border border-dashed border-[#dcdcd6] bg-white px-6 py-10 text-center text-sm text-[#8d8f88]">No tasks here.</p>}
+    })}</ul> : <p className="rounded-xl border border-dashed border-[#dcdcd6] bg-white px-6 py-10 text-center text-sm text-[#6b6d66]">No tasks here.</p>}
   </div>;
 }

@@ -34,10 +34,10 @@ export function FieldInput({ field, value, disabled }: { field: FieldDef; value:
 function ListAwareText({ field, value, common }: { field: FieldDef; value: Value; common: Parameters<typeof TextField>[0] }) {
   // TextField has no list attribute; datalist-backed inputs render their own input.
   if (field.list) {
-    return <label className={`block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b] ${common.className}`}>{field.label}{field.required && <span className="text-[#c26a48]"> *</span>}
+    return <label className={`block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b] ${common.className}`}>{field.label}{field.required && <span className="text-[#a4502f]"> *</span>}
       <input name={field.name} list={field.list} required={field.required} disabled={common.disabled} defaultValue={value === null || value === undefined ? "" : String(value)}
-        className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#c26a48]" />
-      {field.hint && <span className="mt-1.5 block text-[11px] font-400 normal-case tracking-normal text-[#8d8f88]">{field.hint}</span>}
+        className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#a4502f]" />
+      {field.hint && <span className="mt-1.5 block text-[11px] font-400 normal-case tracking-normal text-[#6b6d66]">{field.hint}</span>}
     </label>;
   }
   return <TextField {...common} type={field.type ?? "text"} required={field.required} step={field.type === "number" ? "any" : undefined} min={field.type === "number" ? 0 : undefined}
@@ -45,11 +45,11 @@ function ListAwareText({ field, value, common }: { field: FieldDef; value: Value
 }
 
 export function formatCell(value: unknown, format: ColumnFormat = "text") {
-  if (value === null || value === undefined || value === "") return <span className="text-[#b5b6b0]">—</span>;
+  if (value === null || value === undefined || value === "") return <span className="text-[#717369]">—</span>;
   switch (format) {
     case "date": return formatDate(String(value));
     case "datetime": return formatDateTime(String(value));
-    case "bool": return value ? "Yes" : <span className="text-[#b5b6b0]">No</span>;
+    case "bool": return value ? "Yes" : <span className="text-[#717369]">No</span>;
     case "height": return heightLabel(Number(value));
     case "length": return lengthLabel(Number(value));
     case "number": return Number(value).toLocaleString("en-US");

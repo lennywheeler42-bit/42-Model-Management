@@ -48,7 +48,7 @@ export function MfaForm({ next, email }: { next: string; email: string }) {
     router.refresh();
   }
 
-  if (mode === "loading") return <p className="mt-8 text-sm text-[#8d8f88]">Loading…</p>;
+  if (mode === "loading") return <p className="mt-8 text-sm text-[#6b6d66]">Loading…</p>;
   if (mode === "error") return <p className={`mt-8 ${authError}`} role="alert">{error}</p>;
 
   return <form onSubmit={verify} className="mt-8 space-y-4">
@@ -57,7 +57,7 @@ export function MfaForm({ next, email }: { next: string; email: string }) {
       {/* Supabase returns the QR code as an SVG data URL. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={setup.qr} alt="QR code for your authenticator app" className="mx-auto h-44 w-44" />
-      <p className="text-xs text-[#8d8f88]">Can’t scan? Enter this key: <code className="break-all font-mono text-[#20211f]">{setup.secret}</code></p>
+      <p className="text-xs text-[#6b6d66]">Can’t scan? Enter this key: <code className="break-all font-mono text-[#20211f]">{setup.secret}</code></p>
       <p><strong>2.</strong> Enter the 6-digit code it shows.</p>
     </div>}
     <label className={authLabel}>6-digit code<input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9 ]{6,7}" maxLength={7} value={code} onChange={(event) => setCode(event.target.value)} className={`${authInput} text-center font-mono text-lg tracking-[.4em]`} placeholder="000000" /></label>

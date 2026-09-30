@@ -51,8 +51,8 @@ export function BoardManager({ roots, flat, counts, canManage }: { roots: BoardN
       <div className={`flex flex-wrap items-center gap-3 rounded-lg border bg-white px-4 py-3 ${board.is_active ? "border-[#e7e7e3]" : "border-dashed border-[#dcdcd6] opacity-70"}`} style={{ marginLeft: board.depth * 24 }}>
         <div className="min-w-0 flex-1">
           <p className="font-700">{board.shortName}</p>
-          <p className="truncate text-[11px] text-[#8d8f88]">
-            {board.isPublic ? <a href={`/models/${board.path}`} target="_blank" rel="noreferrer" className="hover:text-[#c26a48] hover:underline">/models/{board.path}</a> : <span>No public page</span>}
+          <p className="truncate text-[11px] text-[#6b6d66]">
+            {board.isPublic ? <a href={`/models/${board.path}`} target="_blank" rel="noreferrer" className="hover:text-[#a4502f] hover:underline">/models/{board.path}</a> : <span>No public page</span>}
             {board.description ? ` · ${board.description}` : ""}
           </p>
         </div>

@@ -80,15 +80,15 @@ export function ContactsPanel({ companyId, contacts, canManage }: { companyId: s
   return <Card title="Contacts" actions={canManage ? <Button size="sm" variant="secondary" icon={<Plus size={13} />} onClick={() => setEditing("new")}>Add contact</Button> : undefined}>
     {contacts.length ? <ul className="divide-y divide-[#f3f3f0] text-sm">{contacts.map((contact) => <li key={contact.id} className="flex flex-wrap items-center gap-3 py-3">
       <div className="min-w-0 flex-1">
-        <p className="font-700">{contact.name}{contact.is_primary && <Star size={12} className="ml-1.5 inline text-[#c26a48]" aria-label="Primary contact" />}</p>
-        <p className="text-xs text-[#8d8f88]">{[contact.title, contact.email, contact.phone].filter(Boolean).join(" · ")}</p>
+        <p className="font-700">{contact.name}{contact.is_primary && <Star size={12} className="ml-1.5 inline text-[#a4502f]" aria-label="Primary contact" />}</p>
+        <p className="text-xs text-[#6b6d66]">{[contact.title, contact.email, contact.phone].filter(Boolean).join(" · ")}</p>
       </div>
       {contact.email && <a href={`mailto:${contact.email}`} className="text-xs text-[#5f615b] hover:underline">Email</a>}
       {canManage && <>
         <Button size="sm" variant="ghost" onClick={() => setEditing(contact)}>Edit</Button>
         <Button size="sm" variant="ghost" icon={<Trash2 size={13} />} disabled={pending} onClick={() => window.confirm(`Remove ${contact.name}?`) && run(`/api/dashboard/contacts/${contact.id}`, { method: "DELETE", success: "Contact removed" })}><span className="sr-only">Remove</span></Button>
       </>}
-    </li>)}</ul> : <p className="text-sm text-[#8d8f88]">No contacts yet.</p>}
+    </li>)}</ul> : <p className="text-sm text-[#6b6d66]">No contacts yet.</p>}
     <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} title={current ? `Edit ${current.name}` : "New contact"}>
       {editing && <form onSubmit={submit} className="space-y-4" key={current?.id ?? "new"}>
         <TextField label="Name" name="name" required defaultValue={current?.name} />

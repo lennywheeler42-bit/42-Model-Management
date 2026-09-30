@@ -36,7 +36,7 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
     const query = params.toString();
     return `/dashboard/applications${query ? `?${query}` : ""}`;
   };
-  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#c26a48]";
+  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#a4502f]";
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Join Us" title="Applications" description="Submissions from the GoHighLevel registration form. Review them here and convert approved applicants into draft talent."
@@ -64,14 +64,14 @@ export default async function ApplicationsPage({ searchParams }: { searchParams:
       empty={{ title: "No applications here", body: search.q ? "Try a different search." : "New GHL submissions appear here automatically once the webhook is connected (docs/ghl-integration.md)." }}
       columns={[
         { key: "photo", header: "", className: "w-14", cell: (row) => <Thumb src={row.thumbnail ?? null} alt={applicantName(row)} /> },
-        { key: "name", header: "Applicant", cell: (row) => <Link href={`/dashboard/applications/${row.id}`} className="block"><span className="font-700 hover:text-[#c26a48]">{applicantName(row)}</span><span className="block text-[11px] text-[#8d8f88]">{[row.email, row.phone].filter(Boolean).join(" · ")}</span></Link> },
+        { key: "name", header: "Applicant", cell: (row) => <Link href={`/dashboard/applications/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{applicantName(row)}</span><span className="block text-[11px] text-[#6b6d66]">{[row.email, row.phone].filter(Boolean).join(" · ")}</span></Link> },
         { key: "details", header: "Details", cell: (row) => <span className="flex flex-wrap items-center gap-1.5 text-xs text-[#5f615b]">{[[row.city, row.state].filter(Boolean).join(", "), row.date_of_birth ? `${ageFromDob(row.date_of_birth)} yrs` : null, row.height_cm ? heightLabel(row.height_cm) : null].filter(Boolean).join(" · ")}{row.is_minor && <Badge tone="review">Minor</Badge>}</span> },
         { key: "status", header: "Status", cell: (row) => <ApplicationStatusBadge status={row.status} /> },
-        { key: "submitted", header: "Submitted", className: "whitespace-nowrap text-xs text-[#8d8f88]", cell: (row) => formatDate(row.submitted_at) },
+        { key: "submitted", header: "Submitted", className: "whitespace-nowrap text-xs text-[#6b6d66]", cell: (row) => formatDate(row.submitted_at) },
       ]}
     />
 
-    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#8d8f88]">
+    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#6b6d66]">
       <span>Page {result.page} of {result.pageCount} · {result.total} applications</span>
       <div className="flex gap-2">
         {result.page > 1 && <Link className={buttonClass("secondary", "sm")} href={href({ page: String(result.page - 1) })}>Previous</Link>}

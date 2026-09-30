@@ -106,9 +106,9 @@ export function BookingForm({ booking, initial, talentIds: initialTalent = [], t
       <ul className="mb-3 flex flex-wrap gap-2">{selected.map((id) => <li key={id} className="inline-flex items-center gap-1.5 rounded-full bg-[#efefeb] py-1 pl-3 pr-1.5 text-xs font-700">
         {names.get(id) ?? "Unknown talent"}
         {canManage && <button type="button" aria-label={`Remove ${names.get(id)}`} onClick={() => setSelected(selected.filter((item) => item !== id))} className="rounded-full p-0.5 hover:bg-white"><X size={12} /></button>}
-      </li>)}{!selected.length && <li className="text-sm text-[#8d8f88]">No talent yet.</li>}</ul>
+      </li>)}{!selected.length && <li className="text-sm text-[#6b6d66]">No talent yet.</li>}</ul>
       {canManage && <div className="relative max-w-md">
-        <label className="flex items-center gap-2 rounded-md border border-[#dcdcd6] bg-white px-3 py-2"><Search size={14} className="text-[#8d8f88]" aria-hidden /><span className="sr-only">Find talent</span>
+        <label className="flex items-center gap-2 rounded-md border border-[#dcdcd6] bg-white px-3 py-2"><Search size={14} className="text-[#6b6d66]" aria-hidden /><span className="sr-only">Find talent</span>
           <input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Add talent by name" className="w-full text-sm outline-none" /></label>
         {matches.length > 0 && <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border border-[#e7e7e3] bg-white shadow-lg">{matches.map((item) => <li key={item.id}>
           <button type="button" onClick={() => { setSelected([...selected, item.id]); setFilter(""); }} className="block w-full px-3 py-2 text-left text-sm hover:bg-[#f7f7f5]">{item.display_name}</button>

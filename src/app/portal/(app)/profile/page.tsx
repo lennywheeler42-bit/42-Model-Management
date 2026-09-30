@@ -11,7 +11,7 @@ export default async function PortalProfile() {
   const { data: requests } = await supabase.from("talent_change_requests").select("id,field_group,changes,status,created_at,review_note").order("created_at", { ascending: false }).limit(20);
   const m = profile.measurements;
   const card = "rounded-xl border border-[var(--line)] bg-white p-5";
-  const row = (label: string, value: string | null | undefined) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[var(--muted)]">{label}</dt><dd className="mt-0.5 break-words text-sm">{value || <span className="text-[#b5b6b0]">—</span>}</dd></div>;
+  const row = (label: string, value: string | null | undefined) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[var(--muted)]">{label}</dt><dd className="mt-0.5 break-words text-sm">{value || <span className="text-[#717369]">—</span>}</dd></div>;
   const section = (title: string, group: "contact" | "address" | "measurements" | "social", rows: [string, string | null | undefined][], current: Record<string, string | number | null | undefined>) =>
     <section className={card}>
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-sm font-800">{title}</h2><ChangeRequestButton group={group} current={current} /></div>

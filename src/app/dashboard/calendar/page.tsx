@@ -73,28 +73,28 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
     {/* Month grid on tablets and up; a day list on phones. */}
     <div className="hidden overflow-hidden rounded-xl border border-[#e7e7e3] bg-white md:block">
-      <div className="grid grid-cols-7 border-b border-[#efefeb] text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88]">{WEEKDAYS.map((day) => <div key={day} className="px-2 py-2">{day}</div>)}</div>
+      <div className="grid grid-cols-7 border-b border-[#efefeb] text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66]">{WEEKDAYS.map((day) => <div key={day} className="px-2 py-2">{day}</div>)}</div>
       {weeks.map((week) => <div key={week[0]} className="grid grid-cols-7 border-b border-[#f3f3f0] last:border-0">{week.map((day) => {
         const inMonth = day.startsWith(current);
         const events = byDay.get(day) ?? [];
         return <div key={day} className={`min-h-28 min-w-0 border-r border-[#f3f3f0] p-1.5 last:border-r-0 ${inMonth ? "" : "bg-[#fafaf8]"}`}>
           <div className="flex items-center justify-between">
-            <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${day === today ? "bg-[#c26a48] font-800 text-white" : inMonth ? "text-[#20211f]" : "text-[#b5b6b0]"}`}>{Number(day.slice(8))}</span>
-            {canManage && inMonth && <Link href={`/dashboard/bookings/new?date=${day}${talentId ? `&talent=${talentId}` : ""}`} aria-label={`New booking on ${day}`} className="rounded p-0.5 text-[#b5b6b0] opacity-0 hover:text-[#20211f] focus:opacity-100 [div:hover>&]:opacity-100"><Plus size={12} /></Link>}
+            <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs ${day === today ? "bg-[#a4502f] font-800 text-white" : inMonth ? "text-[#20211f]" : "text-[#717369]"}`}>{Number(day.slice(8))}</span>
+            {canManage && inMonth && <Link href={`/dashboard/bookings/new?date=${day}${talentId ? `&talent=${talentId}` : ""}`} aria-label={`New booking on ${day}`} className="rounded p-0.5 text-[#717369] opacity-0 hover:text-[#20211f] focus:opacity-100 [div:hover>&]:opacity-100"><Plus size={12} /></Link>}
           </div>
           <ul className="mt-1 space-y-1">{events.slice(0, 4).map((event) => <li key={`${event.kind}-${event.id}`}>
             <Link href={event.href} title={`${event.title}${event.talent.length ? ` — ${event.talent.join(", ")}` : ""}`} className={`block truncate rounded px-1.5 py-0.5 text-[10px] font-700 ${STYLES[event.kind === "appointment" ? "appointment" : event.status] ?? STYLES.option}`}>
               {localDay(event.start_at) === day && <span className="font-400 opacity-80">{timeLabel(event.start_at)} </span>}{event.title}
             </Link>
-          </li>)}{events.length > 4 && <li className="px-1.5 text-[10px] text-[#8d8f88]">+{events.length - 4} more</li>}</ul>
+          </li>)}{events.length > 4 && <li className="px-1.5 text-[10px] text-[#6b6d66]">+{events.length - 4} more</li>}</ul>
         </div>;
       })}</div>)}
     </div>
 
     <ol className="space-y-3 md:hidden">{weeks.flat().filter((day) => day.startsWith(current) && byDay.has(day)).map((day) => <li key={day} className="rounded-xl border border-[#e7e7e3] bg-white p-3">
-      <p className={`text-xs font-800 ${day === today ? "text-[#c26a48]" : "text-[#5f615b]"}`}>{new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</p>
+      <p className={`text-xs font-800 ${day === today ? "text-[#a4502f]" : "text-[#5f615b]"}`}>{new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</p>
       <ul className="mt-2 space-y-1.5">{(byDay.get(day) ?? []).map((event) => <li key={`${event.kind}-${event.id}`}><Link href={event.href} className={`block rounded px-2 py-1.5 text-xs font-700 ${STYLES[event.kind === "appointment" ? "appointment" : event.status] ?? STYLES.option}`}>{timeLabel(event.start_at)} · {event.title}{event.talent.length > 0 && <span className="block font-400 opacity-80">{event.talent.join(", ")}</span>}</Link></li>)}</ul>
     </li>)}</ol>
-    {items.length === 0 && <p className="text-center text-sm text-[#8d8f88]">Nothing scheduled this month.</p>}
+    {items.length === 0 && <p className="text-center text-sm text-[#6b6d66]">Nothing scheduled this month.</p>}
   </div>;
 }

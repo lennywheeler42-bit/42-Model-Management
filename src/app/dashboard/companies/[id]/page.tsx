@@ -34,13 +34,13 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   ];
 
   return <div className="space-y-6">
-    <Link href="/dashboard/companies" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All companies</Link>
+    <Link href="/dashboard/companies" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All companies</Link>
     <PageHeader eyebrow={LABELS.company[company.kind as keyof typeof LABELS.company] ?? "Company"} title={company.name} description={company.is_active ? undefined : "Inactive"}
       actions={canManage ? <div className="flex flex-wrap gap-2"><ButtonLink href={`/dashboard/bookings/new?company=${company.id}`} size="sm" icon={<Plus size={13} />}>New booking</ButtonLink><CompanyDialog trigger="edit" company={company} /><DeleteCompanyButton id={company.id} name={company.name} /></div> : null} />
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
       <div className="min-w-0 space-y-6">
         <Card title="Details">
-          <dl className="space-y-3 text-sm">{details.map(([label, value]) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{label}</dt><dd className="mt-0.5 break-words">{value ? (label === "Website" && /^https?:/.test(value) ? <a href={value} target="_blank" rel="noopener noreferrer" className="underline">{value}</a> : value) : <span className="text-[#b5b6b0]">—</span>}</dd></div>)}</dl>
+          <dl className="space-y-3 text-sm">{details.map(([label, value]) => <div key={label}><dt className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</dt><dd className="mt-0.5 break-words">{value ? (label === "Website" && /^https?:/.test(value) ? <a href={value} target="_blank" rel="noopener noreferrer" className="underline">{value}</a> : value) : <span className="text-[#717369]">—</span>}</dd></div>)}</dl>
           {company.notes && <p className="mt-4 whitespace-pre-line border-t border-[#efefeb] pt-4 text-sm leading-6">{company.notes}</p>}
         </Card>
         <ContactsPanel companyId={company.id} contacts={contacts} canManage={canManage} />

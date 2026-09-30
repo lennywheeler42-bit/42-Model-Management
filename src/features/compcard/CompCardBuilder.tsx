@@ -21,7 +21,7 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
   const href = `/api/dashboard/talents/${talentId}/comp-card?photos=${ids.join(",")}&measurements=${measurements ? 1 : 0}`;
   const shownStats = measurements ? stats : [];
 
-  if (!photos.length) return <Card title="No approved photos"><p className="text-sm text-[#8d8f88]">Comp cards only use photos approved for public use. Open the Media tab and make at least one photo public.</p></Card>;
+  if (!photos.length) return <Card title="No approved photos"><p className="text-sm text-[#6b6d66]">Comp cards only use photos approved for public use. Open the Media tab and make at least one photo public.</p></Card>;
 
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
     <Card title="Choose photos" description="Tap the star for the front photo; tick up to four for the back.">
@@ -31,9 +31,9 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
         return <li key={photo.id} className="relative">
           {/* Public talent image; next/image adds nothing in a picker grid. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.url} alt={photo.alt} className={`aspect-[3/4] w-full rounded-md object-cover ring-2 ${isFront ? "ring-[#c26a48]" : onBack ? "ring-[#20211f]" : "ring-transparent"}`} loading="lazy" />
+          <img src={photo.url} alt={photo.alt} className={`aspect-[3/4] w-full rounded-md object-cover ring-2 ${isFront ? "ring-[#a4502f]" : onBack ? "ring-[#20211f]" : "ring-transparent"}`} loading="lazy" />
           <button type="button" aria-pressed={isFront} aria-label={isFront ? "Front photo" : "Use as front photo"} onClick={() => { setFront(photo.id); setBack((list) => list.filter((item) => item !== photo.id)); }}
-            className={`absolute left-1.5 top-1.5 rounded-full p-1.5 shadow ${isFront ? "bg-[#c26a48] text-white" : "bg-white/90 text-[#5f615b]"}`}><Star size={12} /></button>
+            className={`absolute left-1.5 top-1.5 rounded-full p-1.5 shadow ${isFront ? "bg-[#a4502f] text-white" : "bg-white/90 text-[#5f615b]"}`}><Star size={12} /></button>
           {!isFront && <label className="absolute right-1.5 top-1.5 flex items-center rounded bg-white/90 p-1 shadow"><input type="checkbox" checked={onBack} onChange={() => toggle(photo.id)} disabled={!onBack && back.length >= 4} className="h-4 w-4 accent-[#20211f]" /><span className="sr-only">Use on the back</span></label>}
         </li>;
       })}</ul>
@@ -45,13 +45,13 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
     </Card>
 
     <div className="space-y-3" aria-label="Preview">
-      <p className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88]">Preview</p>
+      <p className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66]">Preview</p>
       <div className="grid grid-cols-2 gap-3">
         <div className="aspect-[5.5/8.5] overflow-hidden rounded-md bg-white p-2 shadow-sm ring-1 ring-[#e7e7e3]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {byId.get(front) && <img src={byId.get(front)!.url} alt="" className="h-[84%] w-full object-cover" />}
           <p className="mt-1.5 truncate text-[11px] font-800 uppercase">{name}</p>
-          {location && <p className="truncate text-[8px] uppercase tracking-[.12em] text-[#8d8f88]">{location}</p>}
+          {location && <p className="truncate text-[8px] uppercase tracking-[.12em] text-[#6b6d66]">{location}</p>}
         </div>
         <div className="flex aspect-[5.5/8.5] flex-col overflow-hidden rounded-md bg-white p-2 shadow-sm ring-1 ring-[#e7e7e3]">
           <div className="grid flex-1 grid-cols-2 gap-1">{back.map((id) => byId.get(id)).filter(Boolean).map((photo) => (

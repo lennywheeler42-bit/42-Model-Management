@@ -40,7 +40,7 @@ export function NewTalentForm({ boards, canSetDob, canAssignBoards }: { boards: 
       {boards.length ? <div className="grid gap-2 sm:grid-cols-2">{boards.map((board) => <label key={board.id} className="flex items-center gap-3 rounded-md border border-[#e7e7e3] px-3 py-2.5 text-xs">
         <input type="checkbox" checked={selected.includes(board.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, board.id] : current.filter((id) => id !== board.id))} className="h-4 w-4 accent-[#20211f]" />
         <span className="flex-1">{board.label}</span>{!board.isPublic && <Badge tone="internal">Internal</Badge>}
-      </label>)}</div> : <p className="text-xs text-[#8d8f88]">No active boards yet.</p>}
+      </label>)}</div> : <p className="text-xs text-[#6b6d66]">No active boards yet.</p>}
     </FormSection>}
 
     <div className="flex justify-end gap-2 border-t border-[#efefeb] pt-6">

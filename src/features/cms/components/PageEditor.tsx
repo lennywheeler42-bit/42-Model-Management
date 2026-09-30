@@ -146,7 +146,7 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
         </Card>
 
         <div className="flex items-center justify-between"><h2 className="text-sm font-800">Sections</h2><Button size="sm" variant="secondary" icon={<Plus size={13} />} onClick={() => setAdding(true)}>Add section</Button></div>
-        {sections.length === 0 && <p className="rounded-xl border border-dashed border-[#dcdcd6] bg-white px-6 py-10 text-center text-sm text-[#8d8f88]">This page has no sections yet.</p>}
+        {sections.length === 0 && <p className="rounded-xl border border-dashed border-[#dcdcd6] bg-white px-6 py-10 text-center text-sm text-[#6b6d66]">This page has no sections yet.</p>}
         <ol className="space-y-3">{sections.map((section, index) => {
           const expanded = open === section.id;
           const summary = String(section.data.heading ?? section.data.alt ?? section.data.url ?? "").slice(0, 60);
@@ -154,7 +154,7 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
             <div className="flex items-center gap-2 px-4 py-3">
               <button type="button" onClick={() => setOpen(expanded ? null : section.id)} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 {expanded ? <ChevronDown size={15} aria-hidden /> : <ChevronRight size={15} aria-hidden />}
-                <span className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88]">{BLOCK_LABELS[section.type].label}</span>
+                <span className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66]">{BLOCK_LABELS[section.type].label}</span>
                 <span className="truncate text-sm">{summary}</span>
               </button>
               <IconButton label="Move up" disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={13} /></IconButton>
@@ -174,8 +174,8 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
                 case "textarea": return <TextareaField key={field.key} className={wide} label={field.label} name={name} rows={3} value={String(value ?? "")} onChange={(next) => update(section.id, field.key, next)} />;
                 case "markdown": return <TextareaField key={field.key} className={wide} label={field.label} name={name} rows={12} value={String(value ?? "")} onChange={(next) => update(section.id, field.key, next)} hint={field.hint} />;
                 case "code": return <label key={field.key} className={`${wide} block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]`}>{field.label}
-                  <textarea rows={10} spellCheck={false} value={String(value ?? "")} onChange={(event) => update(section.id, field.key, event.target.value)} className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-[#fbfbfa] px-3 py-2.5 font-mono text-xs normal-case tracking-normal text-[#20211f] outline-none focus:border-[#c26a48]" />
-                  {field.hint && <span className="mt-1.5 block text-[11px] font-400 normal-case tracking-normal text-[#8d8f88]">{field.hint}</span>}</label>;
+                  <textarea rows={10} spellCheck={false} value={String(value ?? "")} onChange={(event) => update(section.id, field.key, event.target.value)} className="mt-2 w-full rounded-md border border-[#dcdcd6] bg-[#fbfbfa] px-3 py-2.5 font-mono text-xs normal-case tracking-normal text-[#20211f] outline-none focus:border-[#a4502f]" />
+                  {field.hint && <span className="mt-1.5 block text-[11px] font-400 normal-case tracking-normal text-[#6b6d66]">{field.hint}</span>}</label>;
                 default: return <TextField key={field.key} className={wide} label={field.label} name={name} value={String(value ?? "")} onChange={(next) => update(section.id, field.key, next)} hint={field.hint} />;
               }
             })}</div>}
@@ -194,9 +194,9 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
         </Card>
         <Card title="Published versions" description="Restore a version into the draft, then publish it.">
           {revisions.length ? <ul className="space-y-2 text-sm">{revisions.map((revision) => <li key={revision.id} className="flex items-center justify-between gap-3">
-            <span className="min-w-0"><span className="font-700">v{revision.version}</span> <span className="text-xs text-[#8d8f88]">{formatDateTime(revision.published_at)}</span></span>
+            <span className="min-w-0"><span className="font-700">v{revision.version}</span> <span className="text-xs text-[#6b6d66]">{formatDateTime(revision.published_at)}</span></span>
             <Button size="sm" variant="ghost" icon={<History size={13} />} disabled={pending} onClick={() => restore(revision)}>Restore</Button>
-          </li>)}</ul> : <p className="text-xs text-[#8d8f88]">Not published yet.</p>}
+          </li>)}</ul> : <p className="text-xs text-[#6b6d66]">Not published yet.</p>}
         </Card>
         {canPublish && <Card title="Status">
           <div className="flex flex-wrap gap-2">
@@ -205,7 +205,7 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
               : <Button size="sm" variant="secondary" disabled={pending} onClick={() => unpublish(false)}>Restore as draft</Button>}
             {!live && <Button size="sm" variant="danger" icon={<Trash2 size={13} />} disabled={pending} onClick={remove}>Delete</Button>}
           </div>
-          {page.published_at && <p className="mt-3 text-xs text-[#8d8f88]">Last published {formatDateTime(page.published_at)}</p>}
+          {page.published_at && <p className="mt-3 text-xs text-[#6b6d66]">Last published {formatDateTime(page.published_at)}</p>}
         </Card>}
       </aside>
     </div>
@@ -213,7 +213,7 @@ export function PageEditor({ page, revisions, boards, canPublish }: EditorProps)
     <Dialog open={adding} onClose={() => setAdding(false)} title="Add a section" wide>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">{(Object.keys(BLOCK_LABELS) as BlockType[]).map((type) => <li key={type}>
         <button type="button" onClick={() => add(type)} className="w-full rounded-lg border border-[#e7e7e3] px-4 py-3 text-left hover:border-[#20211f]">
-          <span className="block text-sm font-800">{BLOCK_LABELS[type].label}</span><span className="mt-0.5 block text-xs text-[#8d8f88]">{BLOCK_LABELS[type].hint}</span>
+          <span className="block text-sm font-800">{BLOCK_LABELS[type].label}</span><span className="mt-0.5 block text-xs text-[#6b6d66]">{BLOCK_LABELS[type].hint}</span>
         </button>
       </li>)}</ul>
     </Dialog>

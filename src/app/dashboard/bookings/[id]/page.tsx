@@ -39,7 +39,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   const companiesForForm = canManage ? companies : company ? [company] : [];
 
   return <div className="space-y-6">
-    <Link href="/dashboard/bookings" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All bookings</Link>
+    <Link href="/dashboard/bookings" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All bookings</Link>
     <PageHeader eyebrow={`Booking ${booking.reference}`} title={booking.title}
       actions={<div className="flex items-center gap-2"><BookingStatus status={booking.status} />
         <a href={`/api/dashboard/calendar/ics?booking=${booking.id}`} className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[10px] font-800 uppercase tracking-[.12em] text-[#5f615b] hover:bg-[#efefeb]"><CalendarPlus size={13} aria-hidden />Add to calendar</a></div>} />

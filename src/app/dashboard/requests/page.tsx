@@ -41,9 +41,9 @@ export default async function RequestsPage() {
     {permissions.has("talent.private.view") && <Card title={`Change requests (${changeRequests.length})`}><ChangeRequestList requests={changeRequests} showTalent /></Card>}
     {permissions.has("media.manage") && <Card title={`Digitals to review (${[...byTalent.values()].reduce((sum, item) => sum + item.count, 0)})`}>
       {byTalent.size ? <ul className="divide-y divide-[#f3f3f0] text-sm">{[...byTalent.entries()].map(([talentId, item]) => <li key={talentId} className="flex items-center justify-between gap-3 py-2.5">
-        <Link href={`/dashboard/talent/${talentId}?tab=media`} className="font-700 hover:text-[#c26a48]">{item.name}</Link>
-        <span className="text-xs text-[#8d8f88]">{item.count} new · since {formatDateTime(item.since)}</span>
-      </li>)}</ul> : <p className="text-sm text-[#8d8f88]">No digitals waiting.</p>}
+        <Link href={`/dashboard/talent/${talentId}?tab=media`} className="font-700 hover:text-[#a4502f]">{item.name}</Link>
+        <span className="text-xs text-[#6b6d66]">{item.count} new · since {formatDateTime(item.since)}</span>
+      </li>)}</ul> : <p className="text-sm text-[#6b6d66]">No digitals waiting.</p>}
     </Card>}
   </div>;
 }

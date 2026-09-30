@@ -8,7 +8,7 @@ const tones = {
   private: "bg-[#efefeb] text-[#6f716b]",
   public: "bg-[#e4eee5] text-[#4f7a54]",
   internal: "bg-[#f8e8df] text-[#a9593d]",
-  inactive: "bg-[#efefeb] text-[#a2a39d]",
+  inactive: "bg-[#efefeb] text-[#717369]",
   neutral: "bg-[#efefeb] text-[#5f615b]",
 } as const;
 

@@ -28,7 +28,7 @@ function pageHref(search: TalentSearch, page: number) {
 export function TalentListView({ result, boards, search, canCreate, canExportPrivate = false }: {
   result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean;
 }) {
-  const fieldClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#c26a48]";
+  const fieldClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#a4502f]";
   return <div className="space-y-6">
     <PageHeader eyebrow="Talent" title="Roster" description={`${result.total} talent record${result.total === 1 ? "" : "s"} match these filters.`}
       actions={<div className="flex flex-wrap gap-2">
@@ -54,15 +54,15 @@ export function TalentListView({ result, boards, search, canCreate, canExportPri
       empty={{ title: "No talent found", body: search.q || search.status || search.board ? "Try different filters." : "Create the first talent record to get started." }}
       columns={[
         { key: "photo", header: "", className: "w-14", cell: (row) => <Thumb src={row.thumbnail} alt={row.display_name} /> },
-        { key: "name", header: "Talent", cell: (row) => <Link href={`/dashboard/talent/${row.id}`} className="block"><span className="font-700 hover:text-[#c26a48]">{row.display_name}</span><span className="block text-[11px] text-[#8d8f88]">{[row.talent_id, row.location, row.gender, row.age !== null ? `${row.age} yrs` : null].filter(Boolean).join(" · ")}</span></Link> },
-        { key: "boards", header: "Boards", cell: (row) => row.boards.length ? <span className="text-xs text-[#5f615b]">{row.boards.map((board) => board.name).join(", ")}</span> : <span className="text-xs text-[#a2a39d]">Unassigned</span> },
+        { key: "name", header: "Talent", cell: (row) => <Link href={`/dashboard/talent/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.display_name}</span><span className="block text-[11px] text-[#6b6d66]">{[row.talent_id, row.location, row.gender, row.age !== null ? `${row.age} yrs` : null].filter(Boolean).join(" · ")}</span></Link> },
+        { key: "boards", header: "Boards", cell: (row) => row.boards.length ? <span className="text-xs text-[#5f615b]">{row.boards.map((board) => board.name).join(", ")}</span> : <span className="text-xs text-[#717369]">Unassigned</span> },
         { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.publication_status} /> },
         { key: "website", header: "Website", cell: (row) => row.publication_status === "published" && row.show_on_website ? <Badge tone="public">Live</Badge> : <Badge tone="private">Hidden</Badge> },
-        { key: "updated", header: "Updated", className: "whitespace-nowrap text-xs text-[#8d8f88]", cell: (row) => formatDate(row.updated_at) },
+        { key: "updated", header: "Updated", className: "whitespace-nowrap text-xs text-[#6b6d66]", cell: (row) => formatDate(row.updated_at) },
       ]}
     />
 
-    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#8d8f88]">
+    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#6b6d66]">
       <span>Page {result.page} of {result.pageCount}</span>
       <div className="flex gap-2">
         {result.page > 1 && <Link className={buttonClass("secondary", "sm")} href={pageHref(search, result.page - 1)}>Previous</Link>}

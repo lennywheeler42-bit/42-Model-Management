@@ -23,7 +23,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
     log.error("operations", "companies failed", error);
     return <ErrorState title="Companies could not be loaded" />;
   }
-  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#c26a48]";
+  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#a4502f]";
   return <div className="space-y-6">
     <PageHeader eyebrow="Relationships" title="Companies" description="Clients, brands, agencies and production partners." actions={context.permissions.has("operations.manage") ? <CompanyDialog trigger="new" /> : null} />
     <form role="search" className="grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1fr_auto_auto] sm:items-center">
@@ -37,7 +37,7 @@ export default async function CompaniesPage({ searchParams }: { searchParams: Pr
     <DataTable<CompanyRow> rows={rows} rowKey={(row) => row.id} caption="Companies"
       empty={{ title: "No companies found", body: search.q ? "Try a different search." : "Add the first client or brand." }}
       columns={[
-        { key: "name", header: "Company", cell: (row) => <Link href={`/dashboard/companies/${row.id}`} className="font-700 hover:text-[#c26a48]">{row.name}</Link> },
+        { key: "name", header: "Company", cell: (row) => <Link href={`/dashboard/companies/${row.id}`} className="font-700 hover:text-[#a4502f]">{row.name}</Link> },
         { key: "kind", header: "Type", cell: (row) => <span className="text-xs text-[#5f615b]">{LABELS.company[row.kind as keyof typeof LABELS.company] ?? row.kind}</span> },
         { key: "contact", header: "Contact", cell: (row) => <span className="text-xs text-[#5f615b]">{[row.email, row.phone].filter(Boolean).join(" · ") || "—"}</span> },
         { key: "city", header: "City", cell: (row) => <span className="text-xs">{row.city ?? "—"}</span> },

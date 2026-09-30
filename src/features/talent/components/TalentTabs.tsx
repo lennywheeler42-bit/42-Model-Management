@@ -160,7 +160,7 @@ function MeasurementSummary({ title, row }: { title: string; row: Row | undefine
     ["Hips", lengthLabel(row.hips_cm as number)], ["Shoe", (row.shoe_size_us as string) ?? null], ["Eyes", (row.eye_color as string) ?? null], ["Hair", (row.hair_color as string) ?? null],
   ] : [];
   return <Card title={title} description={row ? `Measured ${formatDate(row.measured_on as string)}` : "No snapshot recorded yet."}>
-    {row ? <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-4">{items.map(([label, value]) => <div key={label}><dt className="text-[9px] font-800 uppercase tracking-[.12em] text-[#8d8f88]">{label}</dt><dd className="mt-1 font-700">{value || "—"}</dd></div>)}</dl>
-      : <p className="text-xs text-[#a2a39d]">Add a measurement snapshot below.</p>}
+    {row ? <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs sm:grid-cols-4">{items.map(([label, value]) => <div key={label}><dt className="text-[9px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</dt><dd className="mt-1 font-700">{value || "—"}</dd></div>)}</dl>
+      : <p className="text-xs text-[#717369]">Add a measurement snapshot below.</p>}
   </Card>;
 }

@@ -39,9 +39,9 @@ export function SingletonForm({ talentId, module, ui, record, canEdit, descripti
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h3 className="flex items-center gap-2 text-sm font-800"><Lock size={13} className="text-[#a9593d]" aria-hidden />{config.title}</h3>
-        <p className="mt-1 text-xs text-[#8d8f88]">{description ?? "Restricted. Access and changes are recorded in the audit log."}</p>
+        <p className="mt-1 text-xs text-[#6b6d66]">{description ?? "Restricted. Access and changes are recorded in the audit log."}</p>
       </div>
-      {typeof record?.updated_at === "string" && <p className="text-[11px] text-[#a2a39d]">Last updated {formatDateTime(record.updated_at)}</p>}
+      {typeof record?.updated_at === "string" && <p className="text-[11px] text-[#717369]">Last updated {formatDateTime(record.updated_at)}</p>}
     </div>
 
     {masked && record && <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#efe0d8] bg-[#fdf8f5] px-4 py-3 text-xs">

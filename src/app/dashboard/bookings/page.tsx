@@ -33,7 +33,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     const params = new URLSearchParams(Object.entries({ ...search, ...overrides }).filter(([, value]) => value) as [string, string][]);
     return `/dashboard/bookings${params.size ? `?${params}` : ""}`;
   };
-  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#c26a48]";
+  const fieldClass = "w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#a4502f]";
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Operations" title="Bookings" description="Options, confirmed jobs and their history."
@@ -53,13 +53,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     <DataTable<BookingRow> rows={result.rows} rowKey={(row) => row.id} caption="Bookings"
       empty={{ title: "No bookings found", body: when === "upcoming" ? "Nothing coming up. Create a booking or check past bookings." : "Try different filters." }}
       columns={[
-        { key: "title", header: "Booking", cell: (row) => <Link href={`/dashboard/bookings/${row.id}`} className="block"><span className="font-700 hover:text-[#c26a48]">{row.title}</span><span className="block text-[11px] text-[#8d8f88]">{row.reference} · {LABELS.booking[row.booking_type as keyof typeof LABELS.booking] ?? row.booking_type}</span></Link> },
+        { key: "title", header: "Booking", cell: (row) => <Link href={`/dashboard/bookings/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.title}</span><span className="block text-[11px] text-[#6b6d66]">{row.reference} · {LABELS.booking[row.booking_type as keyof typeof LABELS.booking] ?? row.booking_type}</span></Link> },
         { key: "when", header: "When", className: "text-xs", cell: (row) => bookingWhen(row) },
         { key: "talent", header: "Talent", cell: (row) => <span className="text-xs text-[#5f615b]">{row.talent.map((item) => item.display_name).join(", ") || "—"}</span> },
-        { key: "client", header: "Client", cell: (row) => row.company ? <Link href={`/dashboard/companies/${row.company.id}`} className="text-xs hover:text-[#c26a48]">{row.company.name}</Link> : <span className="text-xs text-[#b5b6b0]">—</span> },
+        { key: "client", header: "Client", cell: (row) => row.company ? <Link href={`/dashboard/companies/${row.company.id}`} className="text-xs hover:text-[#a4502f]">{row.company.name}</Link> : <span className="text-xs text-[#717369]">—</span> },
         { key: "status", header: "Status", cell: (row) => <BookingStatus status={row.status} /> },
       ]} />
-    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#8d8f88]">
+    {result.pageCount > 1 && <nav aria-label="Pagination" className="flex items-center justify-between text-xs text-[#6b6d66]">
       <span>Page {result.page} of {result.pageCount}</span>
       <div className="flex gap-2">
         {result.page > 1 && <Link className={buttonClass("secondary", "sm")} href={href({ page: String(result.page - 1) })}>Previous</Link>}

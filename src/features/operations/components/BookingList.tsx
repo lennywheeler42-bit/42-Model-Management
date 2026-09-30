@@ -21,11 +21,11 @@ export function bookingWhen(row: Pick<BookingRow, "start_at" | "end_at" | "all_d
 
 // Compact list used on company, talent and dashboard pages.
 export function BookingList({ rows, empty }: { rows: BookingRow[]; empty: string }) {
-  if (!rows.length) return <p className="text-sm text-[#8d8f88]">{empty}</p>;
+  if (!rows.length) return <p className="text-sm text-[#6b6d66]">{empty}</p>;
   return <ul className="divide-y divide-[#f3f3f0] text-sm">{rows.map((row) => <li key={row.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
     <div className="min-w-0">
-      <Link href={`/dashboard/bookings/${row.id}`} className="font-700 hover:text-[#c26a48]">{row.title}</Link>
-      <p className="text-xs text-[#8d8f88]">{row.reference} · {bookingWhen(row)}{row.company ? ` · ${row.company.name}` : ""}</p>
+      <Link href={`/dashboard/bookings/${row.id}`} className="font-700 hover:text-[#a4502f]">{row.title}</Link>
+      <p className="text-xs text-[#6b6d66]">{row.reference} · {bookingWhen(row)}{row.company ? ` · ${row.company.name}` : ""}</p>
       {row.talent.length > 0 && <p className="mt-0.5 text-xs text-[#5f615b]">{row.talent.map((item) => item.display_name).join(", ")}</p>}
     </div>
     <BookingStatus status={row.status} />

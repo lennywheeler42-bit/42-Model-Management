@@ -32,7 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <PageHeader eyebrow="Administration" title="Settings" />
     <nav aria-label="Settings sections" className="flex gap-1 border-b border-[#e7e7e3]">
       {sections.map((section) => <Link key={section.key} href={`/dashboard/settings?section=${section.key}`} aria-current={section.key === active.key ? "page" : undefined}
-        className={`border-b-2 px-3 py-3 text-[10px] font-800 uppercase tracking-[.12em] ${section.key === active.key ? "border-[#c26a48] text-[#c26a48]" : "border-transparent text-[#8d8f88] hover:text-[#20211f]"}`}>{section.label}</Link>)}
+        className={`border-b-2 px-3 py-3 text-[10px] font-800 uppercase tracking-[.12em] ${section.key === active.key ? "border-[#a4502f] text-[#a4502f]" : "border-transparent text-[#6b6d66] hover:text-[#20211f]"}`}>{section.label}</Link>)}
     </nav>
     {active.key === "team" && <TeamSection supabase={context.supabase} />}
     {active.key === "roles" && <RolesSection supabase={context.supabase} canEdit={context.permissions.has("team.manage")} />}
@@ -75,19 +75,19 @@ async function ActivitySection({ supabase, page }: { supabase: Client; page: num
     <div className="relative overflow-x-auto rounded-xl border border-[#e7e7e3] bg-white">
       <table className="w-full min-w-[720px] text-left text-xs">
         <caption className="sr-only">Audit log</caption>
-        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#8d8f88]"><th className="px-4 py-3">When</th><th className="px-4 py-3">Who</th><th className="px-4 py-3">Action</th><th className="px-4 py-3">Record</th></tr></thead>
+        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="px-4 py-3">When</th><th className="px-4 py-3">Who</th><th className="px-4 py-3">Action</th><th className="px-4 py-3">Record</th></tr></thead>
         <tbody>{data.map((event) => {
           const actor = (Array.isArray(event.actor) ? event.actor[0] : event.actor) as { full_name: string; email: string } | null;
           return <tr key={event.id} className="border-b border-[#f3f3f0] last:border-0">
-            <td className="whitespace-nowrap px-4 py-2.5 text-[#8d8f88]">{formatDateTime(event.created_at)}</td>
+            <td className="whitespace-nowrap px-4 py-2.5 text-[#6b6d66]">{formatDateTime(event.created_at)}</td>
             <td className="px-4 py-2.5">{actor?.full_name || actor?.email || "System"}</td>
-            <td className="px-4 py-2.5"><span className="font-700">{describeAction(event.action)}</span><span className="block text-[11px] text-[#a2a39d]">{event.action}</span></td>
-            <td className="px-4 py-2.5">{event.entity_type === "talent" && event.entity_id ? <Link href={`/dashboard/talent/${event.entity_id}`} className="hover:text-[#c26a48]">Talent record</Link> : event.entity_type}</td>
+            <td className="px-4 py-2.5"><span className="font-700">{describeAction(event.action)}</span><span className="block text-[11px] text-[#717369]">{event.action}</span></td>
+            <td className="px-4 py-2.5">{event.entity_type === "talent" && event.entity_id ? <Link href={`/dashboard/talent/${event.entity_id}`} className="hover:text-[#a4502f]">Talent record</Link> : event.entity_type}</td>
           </tr>;
         })}</tbody>
       </table>
     </div>
-    {pages > 1 && <p className="flex justify-between text-xs text-[#8d8f88]"><span>Page {page} of {pages}</span><span className="flex gap-3">
+    {pages > 1 && <p className="flex justify-between text-xs text-[#6b6d66]"><span>Page {page} of {pages}</span><span className="flex gap-3">
       {page > 1 && <Link href={`/dashboard/settings?section=activity&page=${page - 1}`}>Previous</Link>}
       {page < pages && <Link href={`/dashboard/settings?section=activity&page=${page + 1}`}>Next</Link>}
     </span></p>}

@@ -28,8 +28,8 @@ export function BoardAssignments({ talentId, boards, assigned, canAssign }: { ta
   const count = assigned.length;
   return <section className="space-y-3">
     <div>
-      <h3 className="text-sm font-800">Boards <span className="ml-1 text-xs font-400 text-[#8d8f88]">{count} assigned</span></h3>
-      <p className="mt-1 text-xs leading-5 text-[#8d8f88]">Published talent appears on every public board they are on. Internal and unpublished boards never show on the website.</p>
+      <h3 className="text-sm font-800">Boards <span className="ml-1 text-xs font-400 text-[#6b6d66]">{count} assigned</span></h3>
+      <p className="mt-1 text-xs leading-5 text-[#6b6d66]">Published talent appears on every public board they are on. Internal and unpublished boards never show on the website.</p>
     </div>
     {boards.length ? <ul className="space-y-1">{boards.map((board) => {
       const checked = assigned.includes(board.id);
@@ -40,6 +40,6 @@ export function BoardAssignments({ talentId, boards, assigned, canAssign }: { ta
           {boardStatus(board)}
         </label>
       </li>;
-    })}</ul> : <p className="text-xs text-[#8d8f88]">No boards exist yet. Create them under Boards.</p>}
+    })}</ul> : <p className="text-xs text-[#6b6d66]">No boards exist yet. Create them under Boards.</p>}
   </section>;
 }

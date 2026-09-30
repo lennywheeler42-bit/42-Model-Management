@@ -86,7 +86,7 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
 
   return <section className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#8d8f88]">Uploads are private originals. <strong>Make public</strong> copies an image to the website; the first public image (or the primary) is the cover. Drag to reorder.</p></div>
+      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#6b6d66]">Uploads are private originals. <strong>Make public</strong> copies an image to the website; the first public image (or the primary) is the cover. Drag to reorder.</p></div>
       {canManage && <>
         <input ref={input} type="file" accept={IMAGE_MIME_TYPES.join(",")} multiple className="sr-only" aria-label="Upload images" onChange={(event) => { void upload(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
         <Button size="sm" icon={<Upload size={13} />} disabled={Boolean(uploading)} onClick={() => input.current?.click()}>{uploading ? `Uploading ${uploading.done}/${uploading.total}…` : "Upload images"}</Button>
@@ -95,13 +95,13 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
 
     {canManage && <div onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDropActive(true); } }} onDragLeave={() => setDropActive(false)}
       onDrop={(event) => { if (event.dataTransfer.files.length) { event.preventDefault(); setDropActive(false); void upload(Array.from(event.dataTransfer.files)); } }}
-      className={`rounded-lg border border-dashed px-4 py-5 text-center text-xs transition-colors ${dropActive ? "border-[#c26a48] bg-[#fdf6f3] text-[#a9593d]" : "border-[#dcdcd6] text-[#a2a39d]"}`}>
+      className={`rounded-lg border border-dashed px-4 py-5 text-center text-xs transition-colors ${dropActive ? "border-[#a4502f] bg-[#fdf6f3] text-[#a9593d]" : "border-[#dcdcd6] text-[#717369]"}`}>
       Drop JPG, PNG, or WebP files here (up to 25 MB each)
     </div>}
 
     {order.length ? <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{order.map((photo, index) => <li key={photo.id}
       draggable={canManage} onDragStart={() => setDragging(photo.id)} onDragEnd={() => setDragging(null)} onDragOver={(event) => { if (dragging) event.preventDefault(); }} onDrop={() => drop(photo.id)}
-      className={`group overflow-hidden rounded-lg border bg-white ${dragging === photo.id ? "opacity-40" : ""} ${photo.featured ? "border-[#c26a48]" : "border-[#e7e7e3]"}`}>
+      className={`group overflow-hidden rounded-lg border bg-white ${dragging === photo.id ? "opacity-40" : ""} ${photo.featured ? "border-[#a4502f]" : "border-[#e7e7e3]"}`}>
       <div className="relative aspect-[3/4] bg-[#efefeb]">
         {photo.url && /* eslint-disable-next-line @next/next/no-img-element -- signed private URLs bypass the shared optimizer */
           <img src={photo.url} alt={photo.alt_text || photo.title || "Talent image"} className="h-full w-full object-cover" style={photo.focal_point ? { objectPosition: `${photo.focal_point.x}% ${photo.focal_point.y}%` } : undefined} />}
@@ -116,7 +116,7 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
       </div>
       <div className="space-y-2 p-3">
         <p className="truncate text-xs font-700" title={photo.title ?? undefined}>{photo.title || "Untitled"}</p>
-        {photo.photographer && <p className="truncate text-[11px] text-[#8d8f88]">© {photo.photographer}</p>}
+        {photo.photographer && <p className="truncate text-[11px] text-[#6b6d66]">© {photo.photographer}</p>}
         {canManage && photo.review_status === "pending" && <div className="flex gap-1.5">
           <Button size="sm" variant="success" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "approved" }, success: "Digital approved" })}>Approve</Button>
           <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "rejected" }, success: "Marked as not used" })}>Reject</Button>

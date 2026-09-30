@@ -14,7 +14,11 @@ const sans = Manrope({
   weight: ["400", "500", "600", "700", "800"],
 });
 
+// Absolute base for canonical and OpenGraph URLs (Search Console requires absolute canonicals).
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "42 Model Management",
     template: "%s — 42 Model Management",

@@ -43,6 +43,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Searc
             <span aria-live="polite">{result.total} {result.total === 1 ? "talent" : "talents"}{result.pageCount > 1 ? ` · page ${result.page} of ${result.pageCount}` : ""}</span>
             {filters.board && <Link href={`/models/${filters.board}`} className="hover:text-[var(--ink)]">Open board page ↗</Link>}
           </div>
+          <h2 className="sr-only">Results</h2>
           {result.talents.length
             ? <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4">{result.talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
             : <div className="flex min-h-72 flex-col items-center justify-center gap-4 border border-dashed border-[var(--line)] px-6 text-center text-sm text-[var(--muted)]">

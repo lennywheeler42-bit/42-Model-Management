@@ -30,7 +30,7 @@ export default async function EditWebsitePage({ params }: { params: Promise<{ id
   if (!data) notFound();
 
   return <div className="space-y-4">
-    <Link href="/dashboard/website" className="inline-flex items-center gap-2 text-xs text-[#8d8f88] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All pages</Link>
+    <Link href="/dashboard/website" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All pages</Link>
     <PageHeader eyebrow="Website page" title={data.page.title} description={`/${data.page.slug}`} />
     <PageEditor page={data.page} revisions={data.revisions} boards={boards} canPublish={context.permissions.has("website.publish")} />
   </div>;

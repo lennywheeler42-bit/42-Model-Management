@@ -50,14 +50,14 @@ export function DashboardFrame({ nav, viewer, children }: { nav: NavSection[]; v
       </div>
       <nav aria-label="Dashboard" className="mt-8 flex-1 space-y-7">
         {nav.map((section) => <div key={section.title}>
-          <p className="px-3 text-[9px] font-800 uppercase tracking-[.2em] text-white/35">{section.title}</p>
+          <p className="px-3 text-[9px] font-800 uppercase tracking-[.2em] text-white/55">{section.title}</p>
           <ul className="mt-2 space-y-0.5">{section.items.map((item) => {
             const Icon = icons[item.icon];
             const active = isActive(pathname, item.href);
             return <li key={item.href}><Link href={item.href} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-600 transition-colors ${active ? "bg-white text-[#20211f]" : "text-white/65 hover:bg-white/10 hover:text-white"}`}>
               <Icon size={16} strokeWidth={1.8} /><span className="flex-1">{item.label}</span>
-              {item.phase && <span className={`text-[8px] font-800 uppercase tracking-[.1em] ${active ? "text-[#8d8f88]" : "text-white/30"}`}>Soon</span>}
+              {item.phase && <span className={`text-[8px] font-800 uppercase tracking-[.1em] ${active ? "text-[#6b6d66]" : "text-white/55"}`}>Soon</span>}
             </Link></li>;
           })}</ul>
         </div>)}
@@ -67,7 +67,7 @@ export function DashboardFrame({ nav, viewer, children }: { nav: NavSection[]; v
           {viewer.avatarUrl
             ? <span className="h-8 w-8 shrink-0 rounded-full bg-cover bg-center" style={{ backgroundImage: `url(${viewer.avatarUrl})` }} aria-hidden />
             : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-800">{viewer.name.slice(0, 1).toUpperCase()}</span>}
-          <div className="min-w-0"><p className="truncate text-xs font-700">{viewer.name}</p><p className="truncate text-[10px] uppercase tracking-[.1em] text-white/45">{viewer.role.replace("_", " ")}</p></div>
+          <div className="min-w-0"><p className="truncate text-xs font-700">{viewer.name}</p><p className="truncate text-[10px] uppercase tracking-[.1em] text-white/60">{viewer.role.replace("_", " ")}</p></div>
         </div>
         <button type="button" onClick={signOut} className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] text-white/60 hover:bg-white/10 hover:text-white"><LogOut size={16} />Sign out</button>
       </div>
@@ -77,11 +77,11 @@ export function DashboardFrame({ nav, viewer, children }: { nav: NavSection[]; v
       <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-[#e7e7e3] bg-[#f7f7f5]/95 px-4 backdrop-blur sm:px-8">
         <button type="button" className="lg:hidden" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}><Menu size={20} /></button>
         <form action="/dashboard/search" role="search" className="flex max-w-md flex-1 items-center gap-2 rounded-md border border-[#e7e7e3] bg-white px-3 py-2">
-          <Search size={15} className="text-[#8d8f88]" aria-hidden />
+          <Search size={15} className="text-[#6b6d66]" aria-hidden />
           <label htmlFor="global-search" className="sr-only">Search the workspace</label>
-          <input id="global-search" name="q" placeholder="Search talent and boards" className="w-full bg-transparent text-sm outline-none placeholder:text-[#a2a39d]" />
+          <input id="global-search" name="q" placeholder="Search talent and boards" className="w-full bg-transparent text-sm outline-none placeholder:text-[#717369]" />
         </form>
-        <Link href="/" className="ml-auto hidden text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f] sm:block">View website ↗</Link>
+        <Link href="/" className="ml-auto hidden text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66] hover:text-[#20211f] sm:block">View website ↗</Link>
       </header>
       <main id="main" className="mx-auto max-w-7xl px-4 py-8 sm:px-8">{children}</main>
     </div>

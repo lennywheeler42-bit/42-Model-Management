@@ -89,7 +89,7 @@ export default async function Home() {
         <div className="relative aspect-[.85] overflow-hidden bg-[#d7d0c5]">
           {aboutImage
             ? <Image src={aboutImage} alt="" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
-            : <div className="flex h-full items-center justify-center"><span className="display text-[clamp(120px,20vw,240px)] leading-none text-[var(--ink)]/10">42</span></div>}
+            : <div className="paper-grid h-full" aria-hidden="true" />}
           <div className="absolute bottom-4 left-4 rounded-full bg-white/85 px-3 py-2 text-[9px] font-800 uppercase tracking-[.14em]">42 Model Management</div>
         </div>
         <div className="flex flex-col justify-center">

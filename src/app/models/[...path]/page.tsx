@@ -84,6 +84,7 @@ export default async function ModelsPathPage({ params }: Params) {
       {children.length > 0 && <nav aria-label={`${board.name} boards`} className="flex flex-wrap gap-2 pt-8">
         {children.map((child) => <Link key={child.id} href={`/models/${child.path}`} className="rounded-full border border-[var(--line)] px-4 py-2 text-[10px] font-800 uppercase tracking-[.11em] hover:border-[var(--ink)]">{child.name.split(" / ").pop()}</Link>)}
       </nav>}
+      <h2 className="sr-only">Talent on this board</h2>
       <p className="pb-8 pt-10 text-[10px] font-800 uppercase tracking-[.15em] text-[var(--muted)]">{talents.length} {talents.length === 1 ? "talent" : "talents"}</p>
       {talents.length
         ? <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-x-6">{talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
