@@ -12,6 +12,7 @@ export const TALENT_TABS = [
   { key: "skills", label: "Skills", permission: "talent.view" },
   { key: "documents", label: "Documents", permission: "documents.view" },
   { key: "items", label: "Items", permission: "operations.view" },
+  { key: "bookings", label: "Bookings", permission: "operations.view" },
   { key: "usage", label: "Usage", permission: "operations.view" },
   { key: "appointments", label: "Appointments", permission: "operations.view" },
   { key: "medical", label: "Medical", permission: "medical.view" },

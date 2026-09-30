@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Card } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
+import { BookingList } from "@/features/operations/components/BookingList";
+import { listBookings } from "@/features/operations/queries";
 import type { PermissionSet } from "@/lib/permissions";
 import { heightLabel, lengthLabel, formatDate } from "@/lib/format";
 import { BoardAssignments } from "@/features/boards/BoardAssignments";
@@ -104,6 +107,15 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       return <Card><RecordList talentId={id} module="items" rows={await getRecords<Row>(supabase, "talent_items", id, { column: "created_at", ascending: false })} canEdit={can("operations.manage")} /></Card>;
     case "usage":
       return <Card><RecordList talentId={id} module="usages" rows={await getRecords<Row>(supabase, "talent_usages", id, { column: "start_date", ascending: false })} canEdit={can("operations.manage")} /></Card>;
+    case "bookings": {
+      const [upcoming, past] = await Promise.all([listBookings(supabase, { talent: id, when: "upcoming" }), listBookings(supabase, { talent: id, when: "past" })]);
+      return <div className="space-y-6">
+        <Card title="Upcoming bookings" actions={<div className="flex gap-2"><a href={`/api/dashboard/calendar/ics?talent=${id}`} className="rounded-md px-3 py-2 text-[10px] font-800 uppercase tracking-[.12em] text-[#5f615b] hover:bg-[#efefeb]">Export .ics</a>{can("operations.manage") && <ButtonLink href={`/dashboard/bookings/new?talent=${id}`} size="sm">New booking</ButtonLink>}</div>}>
+          <BookingList rows={upcoming.rows} empty="Nothing booked." />
+        </Card>
+        <Card title="Past bookings"><BookingList rows={past.rows} empty="No past bookings." /></Card>
+      </div>;
+    }
     case "appointments":
       return <Card><RecordList talentId={id} module="appointments" rows={await getRecords<Row>(supabase, "talent_appointments", id, { column: "start_at", ascending: false })} canEdit={can("operations.manage")} /></Card>;
     case "notes":

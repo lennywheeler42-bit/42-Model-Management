@@ -6,6 +6,7 @@ import { Card, PageHeader } from "@/components/ui/PageHeader";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { PermissionSet } from "@/lib/permissions";
 import { describeAction } from "./activity";
+import { BookingList } from "@/features/operations/components/BookingList";
 import type { loadOverview } from "./overview";
 
 export type OverviewData = Awaited<ReturnType<typeof loadOverview>>;
@@ -46,6 +47,14 @@ export function OverviewView({ name, permissions, data }: { name: string; permis
     </section>}
 
     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+      {data.bookings && <Card title="Upcoming bookings" actions={<Link href="/dashboard/calendar" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">Calendar</Link>}>
+        <BookingList rows={data.bookings} empty="Nothing booked yet." />
+      </Card>}
+
+      {data.tasks && data.tasks.length > 0 && <Card title="My tasks" actions={<Link href="/dashboard/tasks" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">All tasks</Link>}>
+        <ul className="divide-y divide-[#f3f3f0] text-sm">{data.tasks.map((task) => <Row key={task.id}><span className={task.priority === "high" ? "font-700" : ""}>{task.title}</span><span className={`${meta} ${task.due_on && task.due_on < new Date().toISOString().slice(0, 10) ? "font-700 text-[#a9593d]" : ""}`}>{task.due_on ? formatDate(task.due_on) : "No due date"}</span></Row>)}</ul>
+      </Card>}
+
       {data.applications && <Card title={`New applications${data.applications.total ? ` (${data.applications.total})` : ""}`} description="Join Us submissions from GoHighLevel awaiting review."
         actions={<Link href="/dashboard/applications" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#8d8f88] hover:text-[#20211f]">View all</Link>}>
         {data.applications.latest.length ? <ul className="divide-y divide-[#f3f3f0] text-sm">{data.applications.latest.map((item) => <Row key={item.id}>

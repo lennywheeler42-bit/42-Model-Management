@@ -129,3 +129,12 @@ test.describe("CMS routes", () => {
     expect(sources.filter((src) => src.includes("unsplash"))).toEqual([]);
   });
 });
+
+test.describe("operations exports", () => {
+  test("calendar and finance exports require sign-in", async ({ request }) => {
+    for (const path of ["/api/dashboard/calendar/ics?talent=00000000-0000-0000-0000-000000000000", "/api/dashboard/finance/export"]) {
+      const response = await request.get(path);
+      expect([401, 403], path).toContain(response.status());
+    }
+  });
+});

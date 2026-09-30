@@ -12,7 +12,7 @@ export default async function DashboardHome() {
 
   let data: OverviewData;
   try {
-    data = await loadOverview(context.supabase, context.permissions);
+    data = await loadOverview(context.supabase, context.permissions, context.user.id);
   } catch (error) {
     log.error("dashboard", "overview failed", error);
     return <ErrorState title="The dashboard could not be loaded" />;

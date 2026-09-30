@@ -61,6 +61,18 @@ See `ghl-integration.md`.
 - **Previews:** `/preview/page/[id]` shows the working copy to editors.
 - **Home page:** hero, about and contact text and images come from `website_settings`. Until images are chosen, the first published talent photo is used, never stock photography.
 
+## Operations
+
+- **Screens:**
+  - Companies and contacts.
+  - Bookings (`features/operations`), whose form warns live about double bookings.
+  - Calendar: a month grid bucketed in the agency time zone (`AGENCY_TIME_ZONE`, America/Chicago), with a phone list view.
+  - Tasks.
+  - Finance: totals per currency and a CSV export with formula-injection protection.
+- **Access:** fees are only loaded for `finance.view`.
+- **Calendar files:** a single booking or a talent's next 12 months download as `.ics`. This is read-only, with no calendar sync.
+- **Booking form:** renders in the browser only, so date/time inputs use the viewer's time zone without server/client mismatches.
+
 ## Board flow
 
 Boards form a tree. Each board's `path_segment` is unique among its siblings, and its URL is the chain of segments. Assigning or removing a board changes only `talent_board_assignments`, and those changes are audited. Deactivating or unpublishing a board hides it from the website without touching talent.

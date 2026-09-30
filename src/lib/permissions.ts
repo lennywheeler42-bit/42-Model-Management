@@ -32,6 +32,8 @@ export const PERMISSIONS = [
   "operations.manage",
   "applications.view",
   "applications.manage",
+  "finance.view",
+  "finance.manage",
   "website.manage",
   "website.publish",
   "audit.view",

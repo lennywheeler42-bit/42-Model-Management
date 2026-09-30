@@ -46,6 +46,14 @@ Migration order:
     - `cms-media` storage policies. The bucket no longer accepts SVG.
     - Seeds draft About, Privacy and Terms pages (the legal pages are marked for legal review) and default settings.
 
+22. `022_operations.sql` — **Agency operations.**
+    - Tables: `companies`, `company_contacts`, `bookings` (reference `BK-00001`; statuses option, confirmed, cancelled, completed), `booking_talent`, and `tasks`.
+    - Money is kept apart in `booking_financials` and `booking_talent_fees`, behind the new `finance.view` and `finance.manage` permissions, and audited without amounts.
+    - Existing `talent_appointments` and `talent_usages` rows can link to a booking.
+    - `talent_booking_conflicts()` powers double-booking warnings.
+    - Talent logins read only their own confirmed bookings (no money, no companies).
+    - Tasks: members see and complete their own; operations managers assign and see all.
+
 ## Naming (spec → this schema)
 
 These existing tables are kept rather than duplicated:

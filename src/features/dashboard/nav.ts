@@ -1,6 +1,6 @@
 import type { Permission, PermissionSet } from "@/lib/permissions";
 
-export type NavIcon = "dashboard" | "talent" | "applications" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings";
+export type NavIcon = "dashboard" | "talent" | "applications" | "bookings" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings";
 
 export type NavItem = { href: string; label: string; icon: NavIcon; anyOf: Permission[]; phase?: string };
 export type NavSection = { title: string; items: NavItem[] };
@@ -16,22 +16,23 @@ export const dashboardNav: NavSection[] = [
       { href: "/dashboard/applications", label: "Applications", icon: "applications", anyOf: ["applications.view"] },
       { href: "/dashboard/boards", label: "Boards", icon: "boards", anyOf: ["boards.view"] },
       { href: "/dashboard/search", label: "Search", icon: "search", anyOf: ["talent.view"] },
-      { href: "/dashboard/calendar", label: "Calendar", icon: "calendar", anyOf: ["operations.view"], phase: "Phase 12" },
-      { href: "/dashboard/tasks", label: "Tasks", icon: "tasks", anyOf: ["dashboard.access"], phase: "Phase 12" },
+      { href: "/dashboard/bookings", label: "Bookings", icon: "bookings", anyOf: ["operations.view"] },
+      { href: "/dashboard/calendar", label: "Calendar", icon: "calendar", anyOf: ["operations.view"] },
+      { href: "/dashboard/tasks", label: "Tasks", icon: "tasks", anyOf: ["dashboard.access"] },
     ],
   },
   {
     title: "Relationships",
     items: [
-      { href: "/dashboard/companies", label: "Companies", icon: "companies", anyOf: ["operations.view"], phase: "Phase 12" },
-      { href: "/dashboard/contacts", label: "Contacts", icon: "contacts", anyOf: ["operations.view"], phase: "Phase 12" },
+      { href: "/dashboard/companies", label: "Companies", icon: "companies", anyOf: ["operations.view"] },
+      { href: "/dashboard/contacts", label: "Contacts", icon: "contacts", anyOf: ["operations.view"] },
       { href: "/dashboard/packages", label: "Packages", icon: "packages", anyOf: ["talent.view"], phase: "Phase 13" },
     ],
   },
   {
     title: "Administration",
     items: [
-      { href: "/dashboard/finance", label: "Finance", icon: "finance", anyOf: ["banking.view"], phase: "Phase 12" },
+      { href: "/dashboard/finance", label: "Finance", icon: "finance", anyOf: ["finance.view"] },
       { href: "/dashboard/website", label: "Website", icon: "website", anyOf: ["website.manage"] },
       { href: "/dashboard/settings", label: "Settings", icon: "settings", anyOf: ["team.manage", "settings.manage", "audit.view"] },
     ],
