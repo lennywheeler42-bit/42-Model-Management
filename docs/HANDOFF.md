@@ -12,14 +12,15 @@ This is the single place to pick the project up. The detail lives in the linked 
   - `security-review.md`
   - `staging.md`
   - `discovery.md` (the Phase 0 audit)
-  - `launch-checklist.md`
+  - `launch-checklist.md` (release-day procedure)
+  - **`ROADMAP.md`**: the remaining phases and production-readiness criteria
 
 ## 1. Status at a glance
 
 | Item | State |
 |---|---|
 | Phases complete | **0–8** |
-| Next phase | **9: Search and Filtering**, after the review gate in §9 |
+| Remaining phases | **9 more (9–17)**; see `ROADMAP.md`. Next is **Phase 9: Release foundation and Phase 1–8 sign-off**. |
 | GitHub | `lennywheeler42-bit/42-Model-Management`, branch `main`. Pushed directly, with no PRs, at the owner's request. |
 | Hosting | Vercel builds from `main` |
 | Supabase | Production project `dvpockrupiovuxcenuiy`. Migrations **001–018 applied** (checked with `supabase migration list --linked`). |
@@ -224,42 +225,43 @@ This is the single place to pick the project up. The detail lives in the linked 
    - Whether applications replace or sync with the GoHighLevel "Join Us" funnel. This is needed for Phase 10.
    - Whether to keep the medical module. It is currently limited to owner and administrator.
    - Brand palette and founding facts for the public site.
-7. **Not built yet:** Phases 9–16 and the placeholder dashboard sections in §6. Rate limiting and upload-abuse controls are also missing; they are needed before the public forms of Phase 10.
-8. **Launch checklist** (`launch-checklist.md`): not yet ticked. It depends on items 1–2 above.
+7. **Not built yet:** roadmap Phases 10–17 and the placeholder dashboard sections in §6. The full gap list (G1–G24) is in `ROADMAP.md` Part 2.
+8. **Production readiness:** none of the criteria in `ROADMAP.md` Part 4 are signed off yet.
 
 ## 9. What to do next
 
-**Immediate task: close the Phase 1–8 review gate.** The spec says not to start Phase 9 until Phases 1–8 are reviewed and the Phase 8 acceptance workflow passes.
+The full plan is in **[ROADMAP.md](ROADMAP.md)**. It renumbers the remaining work into 9 phases:
 
-1. The owner reviews the live site and dashboard.
-2. Run the Saih workflow by hand on production with a real account (§8 item 2).
-3. Fix anything that turns up.
-4. Do the owner actions in §8 item 3.
-5. Ideally, create the staging project first so Phase 9 onwards follow the spec's staging flow.
+| Phase | Name | Spec phase |
+|---|---|---|
+| 9 | Release foundation and Phase 1–8 sign-off | new; staging, CI, Phase 7 leftovers |
+| 10 | Public discovery, search and site performance | 9 |
+| 11 | Applications, inquiries and public forms | 10 |
+| 12 | CMS, website content and brand completion | 11 |
+| 13 | Agency operations | 12 |
+| 14 | Comp cards, packages and client sharing | 13 |
+| 15 | Talent portal | 14 |
+| 16 | Security hardening | 15 |
+| 17 | QA, release candidate and production launch | 16 |
 
-**Then Phase 9: Search and Filtering** (spec §53, "PHASE 9").
+**Next: Phase 9, Release foundation.** It covers:
 
-- **Goal:** public talent discovery with combinable filters: board, gender, age, height, hair, eyes, waist, hips, ethnicity, location and skills. Add pagination and shareable URLs, backed by suitable indexes.
-- **Starting point:** `src/app/models/ModelsDirectory.tsx` currently filters on the client by name and board only.
-- **Suggested approach:**
-  - Move filtering to URL search params.
-  - Query `public_talents_view` joined to `public_talent_skills_view` and the measurement columns on the server, with pagination.
-  - Add any filter-supporting indexes in migration `019_*`.
-  - Measurements must only be filterable when `show_measurements` allows it, so filtering never leaks hidden values.
-- **Before pushing:** extend `tests/rls/public-views.test.mjs`.
+- a staging project and seed data
+- CI with branch protection
+- Playwright end-to-end tests, including the Saih test in a real browser
+- signed-in verification of the Phase 3–8 flows
+- the legacy-media move
+- contract migration `019` (destructive, so it needs a backup and owner approval)
+- Supabase settings, including custom SMTP
+- a password-reset flow and a login audit event
+- error monitoring, error pages and security headers
+- a backup/restore runbook
 
-**Spec order after Phase 9:**
+**First, the owner needs to decide:**
+- whether to create a staging Supabase project, and which plan
+- the email provider
 
-1. Phase 10: Applications / Join Us
-2. Phase 7 hardening
-3. Phase 11: CMS / Website Builder
-4. Phase 12: Bookings, Usage, Calendar, Tasks
-5. Phase 13: Comp Cards and Exports
-6. Phase 14: Talent Portal
-7. Phase 15: Security Hardening
-8. Phase 16: QA and Production Readiness
-
-**Release routine for each phase:**
+**Release routine** (until Phase 9 adds staging and CI):
 
 1. Run `npm test`, `npx tsc --noEmit`, `npm run lint` and `npm run build`.
 2. Run the secret scan.

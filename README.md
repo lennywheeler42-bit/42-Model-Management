@@ -132,6 +132,7 @@ After deployment, smoke-test `/`, `/models`, `/login`, `/dashboard`, Google sign
 ## Documentation
 
 - **[Project handoff](docs/HANDOFF.md)** — current status, what is done, and what to do next
+- **[Production roadmap](docs/ROADMAP.md)** — remaining phases and production-readiness criteria
 - [Permissions](docs/permissions.md)
 - [Database notes](docs/database.md)
 - [Architecture](docs/architecture.md)
