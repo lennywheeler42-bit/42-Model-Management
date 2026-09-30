@@ -3,6 +3,7 @@ import { createElement } from "react";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { feetInches, lengthLabel } from "@/lib/format";
+import { siteOrigin } from "@/lib/site";
 import { getSiteSettings } from "@/features/cms/queries";
 import { CompCardDocument, type CompCardData } from "./CompCardDocument";
 
@@ -59,7 +60,7 @@ export async function renderCompCard(supabase: SupabaseClient, talentId: string,
     primary,
     supporting: supporting.length ? supporting : [primary],
     stats: options.measurements && talent.show_measurements ? await publicStats(supabase, talentId, talent.gender) : [],
-    contact: { email: settings.contact_email, phone: settings.contact_phone, website: (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/^https?:\/\//, "").replace(/\/$/, "") || null, locationLine: settings.location_line },
+    contact: { email: settings.contact_email, phone: settings.contact_phone, website: siteOrigin()?.replace(/^https?:\/\//, "") ?? null, locationLine: settings.location_line },
   };
   const { renderToBuffer } = await import("@react-pdf/renderer");
   const pdf = await renderToBuffer(createElement(CompCardDocument, { card }) as Parameters<typeof renderToBuffer>[0]);

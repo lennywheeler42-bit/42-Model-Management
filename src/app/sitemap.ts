@@ -1,13 +1,14 @@
 import type { MetadataRoute } from "next";
 import { getSitemapEntries } from "@/features/public/queries";
 import { getLivePages } from "@/features/cms/queries";
+import { siteOrigin } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 // Only published boards, talent and CMS pages: the public views never return drafts,
 // archived, or internal records, so they cannot leak into the sitemap.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const site = siteOrigin() ?? "http://localhost:3000";
   const [{ boards, talent }, pages] = await Promise.all([getSitemapEntries(), getLivePages()]);
   return [
     { url: `${site}/`, changeFrequency: "weekly", priority: 1 },

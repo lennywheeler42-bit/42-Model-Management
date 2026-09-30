@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { siteOrigin } from "@/lib/site";
 import "./globals.css";
 
 const display = Cormorant_Garamond({
@@ -15,7 +16,7 @@ const sans = Manrope({
 });
 
 // Absolute base for canonical and OpenGraph URLs (Search Console requires absolute canonicals).
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";
+const siteUrl = siteOrigin() ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

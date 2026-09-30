@@ -8,6 +8,7 @@ import { TalentCard } from "@/components/TalentCard";
 import { cmsMediaUrl, getSiteSettings } from "@/features/cms/queries";
 import { getRoster } from "@/features/public/queries";
 import { PLACEHOLDER_IMAGE } from "@/features/public/types";
+import { siteOrigin } from "@/lib/site";
 
 // Two-line display headings: the second line is set in italics.
 function Headline({ text }: { text?: string }) {
@@ -24,7 +25,7 @@ export default async function Home() {
   const talentImage = publicTalents.find((talent) => talent.image !== PLACEHOLDER_IMAGE)?.image ?? null;
   const heroImage = cmsMediaUrl(settings.home_hero.image_path) ?? talentImage;
   const aboutImage = cmsMediaUrl(settings.home_about.image_path) ?? publicTalents.filter((talent) => talent.image !== PLACEHOLDER_IMAGE)[1]?.image ?? talentImage;
-  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const site = siteOrigin() ?? "";
   const organization = {
     "@context": "https://schema.org",
     "@type": "Organization",

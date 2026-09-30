@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
+import { siteOrigin } from "@/lib/site";
 import { hashShareToken, newShareToken } from "@/features/packages/share";
 
 const schema = z.object({ days: z.coerce.number().int().min(1).max(180).default(30) });
@@ -20,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq("id", id).select("id").maybeSingle();
   if (error) return databaseError(error, "create the link");
   if (!data) return NextResponse.json({ error: "Package not found" }, { status: 404 });
-  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin).replace(/\/$/, "");
+  const origin = siteOrigin() ?? new URL(request.url).origin;
   return NextResponse.json({ url: `${origin}/p/${token}`, expires_at: expiresAt });
 }
 
