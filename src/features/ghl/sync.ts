@@ -439,6 +439,7 @@ async function storePhotos(db: Db, talentId: string, custom: Record<string, unkn
         synced_at: new Date().toISOString(), display_order: file.role === "headshot" ? 0 : file.role === "three_quarter" ? 1 : file.role === "full_body" ? 2 : 10,
       });
       if (error && error.code !== "23505") throw error;
+      if (failures) await db.from("ghl_field_state").delete().eq("talent_id", talentId).eq("target", `file:${file.id}`);
       hashes.set(sha, file.id);
       stored.add(file.id);
       bump(stats, "photos_stored");
