@@ -93,15 +93,17 @@ export async function drainQueue(deadline: number, stats: SyncStats = {}, config
 type Cursor = { phase: "discovery" | "opportunities" | "contacts" | "jobs" | "cleanup"; page?: number; searchAfter?: unknown[]; full?: boolean };
 type Run = { id: string; cursor: Cursor; stats: SyncStats; started_at: string };
 
-export async function reconcile(trigger: "cron" | "dashboard" | "script", deadline: number, triggeredBy: string | null = null) {
+// `continuation` marks a run calling itself to carry on: it must not be turned
+// away by the overlap guard (its own previous call just saved a heartbeat).
+export async function reconcile(trigger: "cron" | "dashboard" | "script", deadline: number, triggeredBy: string | null = null, continuation = false) {
   if (!ghlConfigured()) throw new Error("GHL_API_TOKEN and GHL_LOCATION_ID must be set on the server");
   const db = createAdminSupabaseClient();
   const { data: running } = await db.from("ghl_sync_runs").select("id,cursor,stats,started_at").eq("kind", "reconcile").eq("status", "running").order("started_at", { ascending: false }).limit(1).maybeSingle();
   let run = running as Run | null;
   if (run) {
-    // Another invocation is working on it right now: leave it alone.
+    // A scheduled call while another invocation is working on it right now: leave it alone.
     const { data: fresh } = await db.from("ghl_sync_runs").select("heartbeat_at").eq("id", run.id).single();
-    if (fresh && Date.now() - new Date(fresh.heartbeat_at).getTime() < 75_000 && trigger === "cron") return { runId: run.id, done: false, busy: true, stats: run.stats };
+    if (fresh && Date.now() - new Date(fresh.heartbeat_at).getTime() < 75_000 && trigger === "cron" && !continuation) return { runId: run.id, done: false, busy: true, stats: run.stats };
   } else {
     const { data, error } = await db.from("ghl_sync_runs").insert({ kind: "reconcile", trigger, triggered_by: triggeredBy, cursor: { phase: "discovery" } }).select("id,cursor,stats,started_at").single();
     if (error) throw error;

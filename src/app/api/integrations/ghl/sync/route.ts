@@ -16,7 +16,7 @@ async function run(request: Request) {
   if (!cronAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const hop = Math.min(Number(request.headers.get("x-sync-hop") ?? 0) || 0, MAX_HOPS);
   try {
-    const result = await reconcile("cron", Date.now() + 50_000);
+    const result = await reconcile("cron", Date.now() + 50_000, null, hop > 0);
     const origin = siteOrigin() ?? new URL(request.url).origin;
     if (!result.done && !("busy" in result && result.busy) && hop < MAX_HOPS) {
       after(() => fetch(new URL("/api/integrations/ghl/sync", origin), {
