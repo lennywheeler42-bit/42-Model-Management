@@ -8,8 +8,10 @@ import { useMutation } from "@/lib/use-mutation";
 import { CrmBadges } from "@/features/ghl/components/CrmBadges";
 import type { TalentCore } from "../types";
 
-export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, boardCount }: {
+export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, boardCount, photos }: {
   talent: TalentCore; age: number | null; thumbnail: string | null; canPublish: boolean; canArchive: boolean; boardCount: number;
+  // Photos on the website, and private approved photos that could be (null when the viewer cannot manage media).
+  photos?: { onWebsite: number; ready: number } | null;
 }) {
   const { run, pending } = useMutation();
   const live = talent.publication_status === "published" && talent.show_on_website;
@@ -17,6 +19,18 @@ export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, b
   const act = (action: string, success: string) => run(`/api/dashboard/talents/${talent.id}/publication`, { body: { action }, success });
 
   async function publish() {
+    // The website shows only photos marked "On website": offer to add them first.
+    if (photos && photos.onWebsite === 0) {
+      if (photos.ready > 0) {
+        if (window.confirm(`None of ${talent.display_name}'s photos are on the website yet, so the profile would have no pictures.
+
+OK: show all ${photos.ready} photo${photos.ready === 1 ? "" : "s"} on the website, then publish.
+Cancel: go back without publishing.`)) {
+          const shown = await run(`/api/dashboard/talents/${talent.id}/media/publish-all`, { refresh: false });
+          if (!shown) return;
+        } else return;
+      } else if (!window.confirm("This model has no photos to show, so the website will display a placeholder. Upload photos in the Media tab first, or publish anyway?")) return;
+    }
     if (boardCount === 0 && !window.confirm("This talent is not on any board, so it will not appear on board pages or the roster. Publish anyway?")) return;
     if (talent.is_minor && talent.consent_status !== "granted" && !window.confirm("Guardian consent is not recorded as granted for this minor. Publish anyway?")) return;
     await act("publish", "Published — the website now shows this talent");
@@ -31,6 +45,7 @@ export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, b
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b6d66]">
           <StatusBadge status={talent.publication_status} />
           {live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
+          {photos && photos.onWebsite === 0 && <Badge tone="internal">No photos on website</Badge>}
           {talent.featured && <Badge tone="review">Featured</Badge>}
           {talent.is_minor && <Badge tone="internal">Minor</Badge>}
           <CrmBadges status={talent.crm_status} programs={talent.crm_programs} />

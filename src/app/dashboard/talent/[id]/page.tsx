@@ -40,6 +40,10 @@ export default async function TalentDetailPage({ params, searchParams }: { param
       : Promise.resolve({ data: null }),
     supabase.from("talent_board_assignments").select("board_id", { count: "exact", head: true }).eq("talent_id", id).then((result) => result.count ?? 0),
   ]);
+  const photoStates = permissions.has("media.manage")
+    ? ((await supabase.from("talent_photos").select("public,review_status").eq("talent_id", id).is("archived_at", null)).data ?? []) as { public: boolean; review_status: string | null }[]
+    : null;
+  const photos = photoStates && { onWebsite: photoStates.filter((photo) => photo.public).length, ready: photoStates.filter((photo) => !photo.public && (photo.review_status ?? "approved") === "approved").length };
   const coverUrl = cover.data ? (await photoUrls(supabase, [cover.data])).get(cover.data.id) ?? null : null;
 
   let body: React.ReactNode;
@@ -53,7 +57,7 @@ export default async function TalentDetailPage({ params, searchParams }: { param
   return <div className="space-y-6">
     <Link href="/dashboard/talent" className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6b6d66] hover:text-[#20211f]">← Roster</Link>
     <TalentHeader talent={talent} age={ageFromDob(privateDetails?.date_of_birth)} thumbnail={coverUrl} boardCount={boardCount}
-      canPublish={permissions.has("talent.publish")} canArchive={permissions.has("talent.archive")} />
+      canPublish={permissions.has("talent.publish")} canArchive={permissions.has("talent.archive")} photos={photos} />
     <nav aria-label="Talent record sections" className="-mx-1 flex gap-x-1 overflow-x-auto border-b border-[#e7e7e3] px-1 [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden">
       {tabs.map((tab) => <Link key={tab.key} href={`/dashboard/talent/${id}?tab=${tab.key}`} aria-current={tab.key === active ? "page" : undefined}
         className={`whitespace-nowrap border-b-2 px-3 py-3 text-[10px] font-800 uppercase tracking-[.12em] ${tab.key === active ? "border-[#a4502f] text-[#a4502f]" : "border-transparent text-[#6b6d66] hover:text-[#20211f]"}`}>{tab.label}</Link>)}

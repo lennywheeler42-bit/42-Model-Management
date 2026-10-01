@@ -4,6 +4,7 @@ import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue, optionalText } from "@/lib/validation";
 import { refreshPublicSite } from "@/features/public/cache";
+import { publicCopyChanges } from "@/features/media/publish";
 
 const percent = z.union([z.number(), z.string()]).transform((value) => Math.min(100, Math.max(0, Number(value) || 0)));
 
@@ -25,7 +26,7 @@ const schema = z.object({
 type Photo = { id: string; storage_path: string; storage_bucket: string; public_storage_path: string | null };
 
 // Publishing copies the private original into talent-public; withdrawing (or
-// archiving) removes that copy. The original is always preserved.
+// archiving) removes that copy (features/media/publish.ts). The original is always preserved.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string; photoId: string }> }) {
   const { id, photoId } = await params;
   const auth = await requireApi("media.manage");
@@ -44,24 +45,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (focal_x !== undefined || focal_y !== undefined) update.focal_point = { x: focal_x ?? 50, y: focal_y ?? 50 };
 
   const withdraw = makePublic === false || archived === true;
-  if (makePublic === true && !photo.public_storage_path) {
-    if (photo.storage_bucket === "talent-public") {
-      update.public_storage_path = photo.storage_path;
-    } else {
-      const publicPath = `talent/${id}/${photo.id}-${photo.storage_path.split("/").pop()}`;
-      const copy = await supabase.storage.from("talent-private").copy(photo.storage_path, publicPath, { destinationBucket: "talent-public" });
-      if (copy.error) return databaseError(copy.error, "publish this image");
-      update.public_storage_path = publicPath;
-    }
+  if (makePublic === true || (withdraw && photo.public_storage_path)) {
+    const result = await publicCopyChanges(supabase, id, photo, makePublic === true);
+    if (result.error) return databaseError(result.error, makePublic ? "publish this image" : "withdraw this image");
+    Object.assign(update, result.changes);
   }
-  if (withdraw && photo.public_storage_path) {
-    if (photo.storage_bucket === "talent-private") {
-      const removal = await supabase.storage.from("talent-public").remove([photo.public_storage_path]);
-      if (removal.error) return databaseError(removal.error, "withdraw this image");
-    }
-    update.public_storage_path = null;
-  }
-  if (makePublic !== undefined) Object.assign(update, { public: makePublic, publish_to_website: makePublic });
+  if (makePublic === false) Object.assign(update, { public: false, publish_to_website: false });
   if (archived !== undefined) Object.assign(update, { archived_at: archived ? new Date().toISOString() : null, ...(archived ? { public: false, publish_to_website: false, featured: false } : {}) });
 
   const { error: updateError } = await supabase.from("talent_photos").update({ ...update, updated_at: new Date().toISOString() }).eq("id", photo.id);

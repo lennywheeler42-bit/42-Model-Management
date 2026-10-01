@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 
-export type MenuLink = { href: string; label: string };
+export type MenuLink = { href: string; label: string; children?: MenuLink[] };
 
 // Full-screen menu (all screen sizes). Closes on Escape or when a link is chosen, and
 // returns focus to the button; the page behind does not scroll while it is open.
@@ -37,10 +37,16 @@ export function SiteMenu({ links, email }: { links: MenuLink[]; email: string })
       </div>
       <nav aria-label="Menu" className="container flex flex-1 flex-col justify-center gap-1 overflow-y-auto py-8">
         {links.map((link, index) => {
-          const className = "display w-fit text-[clamp(38px,7vw,76px)] uppercase leading-[1.08] tracking-[.02em] text-white/85 transition-colors hover:text-white";
-          return external(link.href)
-            ? <a key={link.href} ref={index === 0 ? first : undefined} href={link.href} target="_blank" rel="noopener noreferrer" className={className}>{link.label}</a>
-            : <Link key={link.href} ref={index === 0 ? first : undefined} href={link.href} prefetch={link.href === "/join" ? false : undefined} className={className} onClick={() => setOpen(false)}>{link.label}</Link>;
+          const className = "display w-fit text-[clamp(36px,7vw,72px)] uppercase leading-[1.08] tracking-[.02em] text-white/85 transition-colors hover:text-white";
+          const main = external(link.href)
+            ? <a ref={index === 0 ? first : undefined} href={link.href} target="_blank" rel="noopener noreferrer" className={className}>{link.label}</a>
+            : <Link ref={index === 0 ? first : undefined} href={link.href} prefetch={link.href === "/join" ? false : undefined} className={className} onClick={() => setOpen(false)}>{link.label}</Link>;
+          return <div key={link.href}>
+            {main}
+            {link.children?.length ? <ul className="mb-3 mt-1 flex flex-wrap gap-x-6 gap-y-2 pl-1">
+              {link.children.map((child) => <li key={child.href}><Link href={child.href} onClick={() => setOpen(false)} className="label-sm text-white/55 hover:text-white">{child.label}</Link></li>)}
+            </ul> : null}
+          </div>;
         })}
       </nav>
       <div className="container flex flex-col gap-4 border-t border-white/15 py-6 sm:flex-row sm:items-center sm:justify-between">

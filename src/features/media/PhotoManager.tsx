@@ -86,12 +86,25 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
 
   return <section className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#6b6d66]">Uploads are private originals. <strong>Make public</strong> copies an image to the website; the first public image (or the primary) is the cover. Drag to reorder.</p></div>
+      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#6b6d66]">New uploads are private. Click <strong>Show on website</strong> on a photo (or <strong>Show all on website</strong>) to put it on the public profile; the <strong>★ primary</strong> photo is the cover. Drag to reorder.</p></div>
       {canManage && <>
         <input ref={input} type="file" accept={IMAGE_MIME_TYPES.join(",")} multiple className="sr-only" aria-label="Upload images" onChange={(event) => { void upload(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
         <Button size="sm" icon={<Upload size={13} />} disabled={Boolean(uploading)} onClick={() => input.current?.click()}>{uploading ? `Uploading ${uploading.done}/${uploading.total}…` : "Upload images"}</Button>
       </>}
     </div>
+
+    {canManage && order.length > 0 && (() => {
+      const onSite = order.filter((photo) => photo.public).length;
+      const ready = order.filter((photo) => !photo.public && (photo.review_status ?? "approved") === "approved").length;
+      return <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs ${onSite ? "bg-[#e4eee5] text-[#3f6a45]" : "bg-[#f7ecd8] text-[#7a5520]"}`}>
+        <span><strong>{onSite} of {order.length}</strong> photo{order.length === 1 ? "" : "s"} {onSite === 1 ? "is" : "are"} on the website.{!onSite && " The website shows only photos marked “On website”, so this profile will have no pictures until you add some."}</span>
+        {ready > 0 && <Button size="sm" variant={onSite ? "secondary" : "primary"} icon={<Globe2 size={13} />} disabled={pending}
+          onClick={async () => {
+            const result = await run<{ published: number; failed: number }>(`${base}/publish-all`, {});
+            if (result) toast.success(`${result.published} photo${result.published === 1 ? "" : "s"} now on the website${result.failed ? ` (${result.failed} failed)` : ""}`);
+          }}>Show all on website ({ready})</Button>}
+      </div>;
+    })()}
 
     {canManage && <div onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setDropActive(true); } }} onDragLeave={() => setDropActive(false)}
       onDrop={(event) => { if (event.dataTransfer.files.length) { event.preventDefault(); setDropActive(false); void upload(Array.from(event.dataTransfer.files)); } }}
@@ -108,7 +121,7 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
           <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-800">#{index + 1}</span>
           {photo.featured && <Badge tone="review">Primary</Badge>}
-          {photo.public ? <Badge tone="public">Public</Badge> : <Badge tone="private">Private</Badge>}
+          {photo.public ? <Badge tone="public">On website</Badge> : <Badge tone="private">Private</Badge>}
           {photo.review_status === "pending" && <Badge tone="review">From talent · review</Badge>}
           {photo.review_status === "rejected" && <Badge tone="inactive">Not used</Badge>}
         </div>
@@ -121,11 +134,16 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
           <Button size="sm" variant="success" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "approved" }, success: "Digital approved" })}>Approve</Button>
           <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { review_status: "rejected" }, success: "Marked as not used" })}>Reject</Button>
         </div>}
+        {canManage && <Button size="sm" className="w-full" variant={photo.public ? "success" : "secondary"} icon={photo.public ? <Globe2 size={13} /> : <Lock size={13} />}
+          disabled={pending || (!photo.public && Boolean(photo.review_status) && photo.review_status !== "approved")}
+          title={photo.public ? "Click to remove from the website (the original is kept)" : "Click to show this photo on the website"}
+          onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { public: !photo.public }, success: photo.public ? "Removed from the website" : "Now on the website" })}>
+          {photo.public ? "On website" : photo.review_status && photo.review_status !== "approved" ? "Approve first" : "Show on website"}
+        </Button>}
         {canManage && <div className="flex flex-wrap gap-1">
           <IconButton label="Move earlier" onClick={() => move(index, -1)} disabled={pending || index === 0}><ArrowUp size={13} /></IconButton>
           <IconButton label="Move later" onClick={() => move(index, 1)} disabled={pending || index === order.length - 1}><ArrowDown size={13} /></IconButton>
           <IconButton label={photo.featured ? "Primary image" : "Make primary image"} disabled={pending || photo.featured} onClick={() => run(`${base}/featured`, { body: { photo_id: photo.id }, success: "Primary image set" })}><Star size={13} /></IconButton>
-          <IconButton label={photo.public ? "Make private" : photo.review_status && photo.review_status !== "approved" ? "Approve before making public" : "Make public"} disabled={pending || (!photo.public && Boolean(photo.review_status) && photo.review_status !== "approved")} onClick={() => run(`${base}/${photo.id}`, { method: "PATCH", body: { public: !photo.public }, success: photo.public ? "Image made private" : "Image published to the website" })}>{photo.public ? <Lock size={13} /> : <Globe2 size={13} />}</IconButton>
           <IconButton label="Edit details" onClick={() => setEditing(photo)}><Pencil size={13} /></IconButton>
           <IconButton label="Archive image" disabled={pending} onClick={() => window.confirm("Archive this image? It is removed from the website and hidden here; the original file is kept.") && run(`${base}/${photo.id}`, { method: "PATCH", body: { archived: true }, success: "Image archived" })}><Archive size={13} /></IconButton>
         </div>}
