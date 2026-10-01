@@ -1,86 +1,125 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
 import { TalentCard } from "@/components/TalentCard";
 import { embedUrl } from "@/features/media/video";
 import { CONTACT_EMAIL } from "@/lib/site";
-import type { PublicProfile, TalentCardData } from "./types";
+import { PhotoGallery, ViewAllButton } from "./profile/PhotoGallery";
+import { ProfileHero } from "./profile/ProfileHero";
+import { ProfileTabs } from "./profile/ProfileTabs";
+import type { ProfileImage, PublicProfile, TalentCardData } from "./types";
 
-// Public talent profile. Rendered for live profiles and for staff previews, so a
-// preview shows exactly what publishing will show.
+// Public talent profile: full-bleed hero, sticky section tabs, then Portfolio,
+// Video, Digitals, Stats and Book. Rendered for live profiles and for staff
+// previews, so a preview shows exactly what publishing will show. Sections with
+// no content are left out; nothing is invented.
 export function ProfileView({ talent, related = [], backHref = "/models" }: { talent: PublicProfile; related?: TalentCardData[]; backHref?: string }) {
-  const board = talent.boards[0];
-  const facts = [talent.location, talent.age !== null ? `${talent.age} years` : null].filter(Boolean).join(" · ");
+  // Digitals are captioned by their alt text when staff set a short one (e.g. "Front", "3/4").
+  const caption = (image: ProfileImage) => (image.alt && !image.alt.includes("42 Model Management") && !image.alt.includes(talent.name) && image.alt.length <= 24 ? image.alt : null);
+  const books = talent.portfolios.filter((portfolio) => portfolio.kind === "portfolio");
+  const digitals = talent.portfolios.filter((portfolio) => portfolio.kind === "digitals").flatMap((portfolio) => portfolio.images);
+  // Portfolio: the gallery, or the first book when there is no gallery.
+  const portfolio = talent.gallery.length ? talent.gallery : books[0]?.images ?? [];
+  const moreBooks = talent.gallery.length ? books : books.slice(1);
+  const heroImages = [{ src: talent.image, alt: talent.imageAlt }, ...portfolio.filter((image) => image.src !== talent.image)].slice(0, 3);
+  const categories = talent.boards.map((board) => board.name.split(" / ").pop() as string).slice(0, 3);
+  const firstName = talent.firstName || talent.name;
+  const bookingHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Booking enquiry: ${talent.name}`)}`;
+
+  const tabs = [
+    portfolio.length ? { id: "portfolio", label: "Portfolio" } : null,
+    talent.videos.length ? { id: "video", label: "Video" } : null,
+    digitals.length ? { id: "digitals", label: "Digitals" } : null,
+    { id: "stats", label: "Stats" },
+    { id: "book", label: "Book" },
+  ].filter((tab): tab is { id: string; label: string } => Boolean(tab));
+
   return <>
-    <section className="container pt-32 sm:pt-40">
-      <Link href={backHref} className="mb-10 inline-flex items-center gap-2 text-[10px] font-800 uppercase tracking-[.16em] text-[var(--muted)] hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden /> Back to roster</Link>
-      <div className="grid gap-6 md:grid-cols-[1.1fr_.9fr]">
-        <div className="image-hover relative aspect-[.82] max-h-[820px] bg-[#ddd8cf] md:aspect-[.78]">
-          <Image src={talent.image} alt={talent.imageAlt} fill priority sizes="(max-width: 768px) 100vw, 55vw" className="object-cover" />
+    <ProfileHero images={heroImages} name={talent.name} categories={categories} location={talent.location} hasVideo={talent.videos.length > 0} backHref={backHref} />
+    <ProfileTabs tabs={tabs} />
+
+    {portfolio.length > 0 && <Section id="portfolio" title="Portfolio" description={`A selection of editorial, commercial and lifestyle work featuring ${firstName}.`}
+      mobileAction={<ViewAllButton gallery="portfolio" />}>
+      <PhotoGallery id="portfolio" photos={portfolio} label={`${talent.name} portfolio`} />
+    </Section>}
+
+    {moreBooks.map((book) => <Section key={book.id} id={`book-${book.id}`} title={book.name} description="From the book." mobileAction={<ViewAllButton gallery={`book-${book.id}`} />}>
+      <PhotoGallery id={`book-${book.id}`} photos={book.images} label={`${talent.name}: ${book.name}`} />
+    </Section>)}
+
+    {talent.videos.length > 0 && <Section id="video" title="Video" description="Runway, commercial reels and behind the scenes.">
+      <div className={`grid gap-4 ${talent.videos.length > 1 ? "lg:grid-cols-2" : ""}`}>
+        {talent.videos.map((video) => {
+          const embed = video.externalId ? embedUrl(video.provider, video.externalId) : null;
+          return <div key={video.id} className="relative aspect-video overflow-hidden bg-[#1a1a19]">
+            {embed
+              ? <iframe src={embed} title={video.title || `${talent.name} video`} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full border-0" />
+              : video.src && <video src={video.src} controls preload="metadata" playsInline className="absolute inset-0 h-full w-full object-cover" aria-label={video.title || `${talent.name} video`} />}
+          </div>;
+        })}
+      </div>
+    </Section>}
+
+    {digitals.length > 0 && <Section id="digitals" title="Digitals" description="Natural, unretouched images for casting use." mobileAction={<ViewAllButton gallery="digitals" />}>
+      <PhotoGallery id="digitals" variant="digitals" photos={digitals.map((image) => ({ ...image, caption: caption(image) }))} label={`${talent.name} digitals`} />
+    </Section>}
+
+    <Section id="stats" title="Stats" description={talent.bio || null}>
+      {talent.stats.length > 0
+        ? <dl className="grid grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-5 lg:flex lg:flex-wrap lg:gap-x-12">
+            {talent.stats.map((stat) => <div key={stat.label} className="flex min-w-0 flex-col gap-1.5">
+              <dt className="label-sm order-2 !text-[9px] text-[var(--muted)] lg:order-1">{stat.label}</dt>
+              {/* "6' 2" / 188 cm": imperial large, metric small underneath. */}
+              <dd className="order-1 lg:order-2">
+                <span className="serif block text-[22px] leading-none sm:text-[24px]">{stat.value.split(" / ")[0]}</span>
+                {stat.value.includes(" / ") && <span className="mt-1 block text-[10px] tracking-[.08em] text-[var(--muted)]">{stat.value.split(" / ").slice(1).join(" / ")}</span>}
+              </dd>
+            </div>)}
+          </dl>
+        : <p className="serif text-[18px] italic text-[var(--muted)]">Measurements are available on request.</p>}
+      {talent.skills.length > 0 && <ul className="mt-10 flex flex-wrap gap-2" aria-label="Skills">{talent.skills.map((skill) => <li key={`${skill.category}-${skill.skill}`} className="label-sm border border-[var(--line)] px-3 py-2 !text-[9px]">
+        {skill.skill}{skill.level ? <span className="ml-2 text-[var(--muted)]">{skill.level}</span> : null}
+      </li>)}</ul>}
+    </Section>
+
+    <section id="book" className="scroll-mt-16 border-t border-[var(--line)]">
+      <div className="container flex flex-col items-stretch gap-4 py-12 sm:py-16 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="label-sm text-[var(--muted)]">Book</p>
+          <p className="display mt-3 text-[clamp(30px,4vw,48px)] uppercase leading-none">{talent.name}</p>
         </div>
-        <div className="flex flex-col justify-between bg-[#e8e4dc] p-6 sm:p-10 md:p-12">
-          <div>
-            {board && <Link href={`/models/${board.path}`} className="eyebrow mb-6 inline-block text-[var(--accent)] hover:underline">{board.name}</Link>}
-            <h1 className="display text-[clamp(64px,9vw,135px)] leading-[.77] tracking-[-.05em]">{talent.firstName}{talent.lastName && <><br /><em>{talent.lastName}</em></>}</h1>
-            {facts && <p className="mt-6 text-[11px] font-800 uppercase tracking-[.16em] text-[var(--muted)]">{facts}</p>}
-            {talent.bio && <p className="mt-6 max-w-sm text-[14px] leading-7 text-[var(--muted)]">{talent.bio}</p>}
-          </div>
-          <div className="mt-16">
-            {talent.stats.length > 0 && <dl className="grid grid-cols-2 border-t border-[var(--line)] sm:grid-cols-3">
-              {talent.stats.map((stat) => <div key={stat.label} className="border-b border-[var(--line)] py-4 pr-3">
-                <dt className="text-[9px] font-800 uppercase tracking-[.14em] text-[var(--muted)]">{stat.label}</dt>
-                <dd className="mt-1 text-[13px] font-700">{stat.value}</dd>
-              </div>)}
-            </dl>}
-            <a href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Booking enquiry: ${talent.name}`)}`} className="mt-8 flex w-fit items-center gap-3 text-[10px] font-800 uppercase tracking-[.16em]">
-              Enquire about {talent.firstName}<span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--ink)]"><ArrowUpRight size={14} aria-hidden /></span>
-            </a>
-          </div>
+        <div className="flex flex-col items-stretch gap-3 md:items-end">
+          <a href={bookingHref} className="label flex items-center justify-center gap-4 bg-[var(--ink)] px-10 py-5 text-white transition-colors hover:bg-[#2c2c2a]">Book {firstName} <ArrowRight size={15} aria-hidden /></a>
+          <p className="label-sm text-center !text-[9px] text-[var(--muted)] md:text-right">Inquire at 42 Model Management</p>
         </div>
       </div>
     </section>
 
-    {talent.gallery.length > 0 && <Gallery title="Selected work" heading="Portfolio" images={talent.gallery} />}
-    {talent.portfolios.map((portfolio) => <Gallery key={portfolio.id} title={portfolio.kind === "digitals" ? "Digitals" : "Book"} heading={portfolio.name} images={portfolio.images} />)}
-
-    {talent.videos.length > 0 && <section className="container pb-20 sm:pb-28">
-      <SectionHeading eyebrow="In motion" title="Video" />
-      <div className="grid gap-6 md:grid-cols-2">{talent.videos.map((video) => {
-        const embed = video.externalId ? embedUrl(video.provider, video.externalId) : null;
-        return <div key={video.id} className="relative aspect-video overflow-hidden bg-[#1f1f1d]">
-          {embed
-            ? <iframe src={embed} title={video.title || `${talent.name} video`} loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full border-0" />
-            : video.src && <video src={video.src} controls preload="metadata" className="absolute inset-0 h-full w-full object-cover" aria-label={video.title || `${talent.name} video`} />}
-        </div>;
-      })}</div>
-    </section>}
-
-    {talent.skills.length > 0 && <section className="container pb-20 sm:pb-28">
-      <SectionHeading eyebrow="Also" title="Skills" />
-      <ul className="flex flex-wrap gap-2">{talent.skills.map((skill) => <li key={`${skill.category}-${skill.skill}`} className="rounded-full border border-[var(--line)] px-4 py-2 text-[11px] font-700">
-        {skill.skill}<span className="ml-2 text-[var(--muted)]">{[skill.category !== skill.skill ? skill.category : null, skill.level].filter(Boolean).join(" · ")}</span>
-      </li>)}</ul>
-    </section>}
-
-    {related.length > 0 && <section className="bg-[#e6e1d8] py-20 sm:py-28"><div className="container">
-      <SectionHeading eyebrow="From the same board" title="You may also like" />
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">{related.map((item, index) => <TalentCard key={item.id} talent={item} index={index} />)}</div>
+    {related.length > 0 && <section className="bg-[var(--cream)] py-16 sm:py-24"><div className="container">
+      <div className="mb-10 flex items-end justify-between gap-6 border-b border-[var(--line)] pb-5">
+        <h2 className="label">You may also like</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 lg:grid-cols-6 md:gap-x-5">{related.map((item, index) => <TalentCard key={item.id} talent={item} index={index} />)}</div>
     </div></section>}
   </>;
 }
 
-function SectionHeading({ eyebrow, title, aside }: { eyebrow: string; title: string; aside?: string }) {
-  return <div className="mb-8 flex items-end justify-between border-b border-[var(--line)] pb-5">
-    <div><p className="eyebrow mb-3 text-[var(--accent)]">{eyebrow}</p><h2 className="display text-5xl">{title}</h2></div>
-    {aside && <span className="text-[10px] font-800 uppercase tracking-[.15em] text-[var(--muted)]">{aside}</span>}
-  </div>;
-}
-
-function Gallery({ title, heading, images }: { title: string; heading: string; images: { src: string; alt: string }[] }) {
-  return <section className="container py-20 sm:py-28">
-    <SectionHeading eyebrow={title} title={heading} aside={`${images.length} image${images.length === 1 ? "" : "s"}`} />
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3">{images.map((image, index) => <div key={`${image.src}-${index}`} className={`image-hover relative aspect-[.78] bg-[#dedbd4] ${index % 3 === 1 ? "md:mt-16" : ""}`}>
-      <Image src={image.src} alt={image.alt} fill sizes="(max-width: 768px) 50vw, 33vw" className="object-cover" />
-    </div>)}</div>
+// Two columns on desktop (title + note on the left, content on the right);
+// on phones the title sits above the content with an optional "View all".
+function Section({ id, title, description, mobileAction, children }: { id: string; title: string; description: string | null; mobileAction?: ReactNode; children: ReactNode }) {
+  return <section id={id} className="scroll-mt-16 border-b border-[var(--line)]">
+    <div className="container grid gap-5 py-10 sm:py-14 lg:grid-cols-[240px_1fr] lg:gap-12">
+      <div>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="label !text-[13px] !tracking-[.26em] sm:!text-[15px]">{title}</h2>
+          {mobileAction && <div className="sm:hidden">{mobileAction}</div>}
+        </div>
+        <span aria-hidden className="mt-4 hidden h-px w-7 bg-[var(--ink)]/40 lg:block" />
+        {description && <p className="serif mt-5 hidden max-w-[220px] text-[16px] leading-[1.45] text-[var(--muted)] lg:block">{description}</p>}
+      </div>
+      <div className="min-w-0">
+        {description && id === "stats" && <p className="serif -mt-1 mb-6 text-[16px] leading-snug text-[var(--muted)] lg:hidden">{description}</p>}
+        {children}
+      </div>
+    </div>
   </section>;
 }

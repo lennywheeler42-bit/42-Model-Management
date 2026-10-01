@@ -32,20 +32,20 @@ export default async function ModelsPage({ searchParams }: { searchParams: Searc
   return (
     <main className="min-h-screen bg-[var(--paper)]">
       <SiteHeader />
-      <section className="container pb-16 pt-36 sm:pb-24 sm:pt-48">
-        <div className="flex flex-col justify-between gap-8 border-b border-[var(--line)] pb-12 md:flex-row md:items-end">
-          <div><p className="eyebrow mb-5 text-[var(--accent)]">The roster</p><h1 className="display text-[clamp(72px,13vw,180px)] leading-[.72] tracking-[-.06em]">All <em>talent.</em></h1></div>
-          <div className="max-w-xs text-[13px] leading-6 text-[var(--muted)]"><p>Search our working roster by board, measurements, location, or skills.</p><Link href="/#contact" className="mt-5 flex w-fit items-center gap-2 border-b border-[var(--ink)] pb-1 text-[10px] font-800 uppercase tracking-[.14em]">Book talent <ArrowUpRight size={14} aria-hidden /></Link></div>
+      <section className="container pb-16 pt-32 sm:pb-24 sm:pt-44">
+        <div className="flex flex-col justify-between gap-8 border-b border-[var(--line)] pb-10 md:flex-row md:items-end">
+          <div><p className="label-sm mb-5 text-[var(--muted)]">The roster</p><h1 className="display text-[clamp(56px,10vw,150px)] uppercase leading-[.84] tracking-[-.01em]">All talent</h1></div>
+          <div className="max-w-xs"><p className="serif text-[18px] leading-snug text-[var(--muted)]">Search our working roster by board, measurements, location or skills.</p><Link href="/#contact" className="label-sm mt-5 flex w-fit items-center gap-2 border-b border-[var(--ink)] pb-1">Book talent <ArrowUpRight size={13} aria-hidden /></Link></div>
         </div>
-        <div className="pt-12">
+        <div id="search" className="scroll-mt-6 pt-10">
           <RosterFilterBar key={rosterQuery(filters, { page: undefined })} filters={filters} boards={boards} options={options} />
           <div className="mb-8 flex items-center justify-between text-[10px] font-800 uppercase tracking-[.15em] text-[var(--muted)]">
-            <span aria-live="polite">{result.total} {result.total === 1 ? "talent" : "talents"}{result.pageCount > 1 ? ` · page ${result.page} of ${result.pageCount}` : ""}</span>
+            <span aria-live="polite" className="label-sm">{result.total} {result.total === 1 ? "talent" : "talents"}{result.pageCount > 1 ? ` · page ${result.page} of ${result.pageCount}` : ""}</span>
             {filters.board && <Link href={`/models/${filters.board}`} className="hover:text-[var(--ink)]">Open board page ↗</Link>}
           </div>
           <h2 className="sr-only">Results</h2>
           {result.talents.length
-            ? <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 md:gap-x-6 lg:grid-cols-4">{result.talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
+            ? <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 md:gap-x-5 lg:grid-cols-4">{result.talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
             : <div className="flex min-h-72 flex-col items-center justify-center gap-4 border border-dashed border-[var(--line)] px-6 text-center text-sm text-[var(--muted)]">
                 {filtered || result.page > 1 ? <>No talent matches these filters.<Link href="/models" className="text-[10px] font-800 uppercase tracking-[.14em] text-[var(--ink)] underline underline-offset-4">Clear filters</Link></> : "The roster is being updated. Please check back soon."}
               </div>}

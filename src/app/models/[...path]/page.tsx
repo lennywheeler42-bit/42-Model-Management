@@ -63,7 +63,7 @@ export default async function ModelsPathPage({ params }: Params) {
     const board = found.talent.boards[0];
     const related = board ? (await getRoster({ boardPath: board.path, limit: 7 })).filter((item) => item.id !== found.talent.id).slice(0, 6) : [];
     return <main className="bg-[var(--paper)]">
-      <SiteHeader />
+      <SiteHeader dark />
       <ProfileView talent={found.talent} related={related} backHref={board ? `/models/${board.path}` : "/models"} />
       <SiteFooter />
     </main>;
@@ -75,19 +75,19 @@ export default async function ModelsPathPage({ params }: Params) {
   const talents = await getRoster({ boardPath: board.path });
   return <main className="min-h-screen bg-[var(--paper)]">
     <SiteHeader />
-    <section className="container pb-16 pt-36 sm:pb-24 sm:pt-48">
-      <Link href={parent ? `/models/${parent.path}` : "/models"} className="mb-8 inline-flex items-center gap-2 text-[10px] font-800 uppercase tracking-[.16em] text-[var(--muted)] hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden />{parent ? parent.name : "All talent"}</Link>
+    <section className="container pb-16 pt-32 sm:pb-24 sm:pt-44">
+      <Link href={parent ? `/models/${parent.path}` : "/models"} className="label-sm mb-8 inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden />{parent ? parent.name : "All talent"}</Link>
       <div className="flex flex-col justify-between gap-8 border-b border-[var(--line)] pb-12 md:flex-row md:items-end">
-        <div><p className="eyebrow mb-5 text-[var(--accent)]">{parent ? parent.name : "Board"}</p><h1 className="display text-[clamp(64px,11vw,160px)] leading-[.78] tracking-[-.05em]">{board.name.split(" / ").pop()}</h1></div>
-        {board.description && <p className="max-w-sm text-[13px] leading-6 text-[var(--muted)]">{board.description}</p>}
+        <div><p className="label-sm mb-5 text-[var(--muted)]">{parent ? parent.name : "Board"}</p><h1 className="display text-[clamp(56px,10vw,150px)] uppercase leading-[.84] tracking-[-.01em]">{board.name.split(" / ").pop()}</h1></div>
+        {board.description && <p className="serif max-w-sm text-[18px] leading-snug text-[var(--muted)]">{board.description}</p>}
       </div>
       {children.length > 0 && <nav aria-label={`${board.name} boards`} className="flex flex-wrap gap-2 pt-8">
-        {children.map((child) => <Link key={child.id} href={`/models/${child.path}`} className="rounded-full border border-[var(--line)] px-4 py-2 text-[10px] font-800 uppercase tracking-[.11em] hover:border-[var(--ink)]">{child.name.split(" / ").pop()}</Link>)}
+        {children.map((child) => <Link key={child.id} href={`/models/${child.path}`} className="label-sm border border-[var(--line)] px-4 py-2.5 hover:border-[var(--ink)]">{child.name.split(" / ").pop()}</Link>)}
       </nav>}
       <h2 className="sr-only">Talent on this board</h2>
-      <p className="pb-8 pt-10 text-[10px] font-800 uppercase tracking-[.15em] text-[var(--muted)]">{talents.length} {talents.length === 1 ? "talent" : "talents"}</p>
+      <p className="label-sm pb-8 pt-10 text-[var(--muted)]">{talents.length} {talents.length === 1 ? "talent" : "talents"}</p>
       {talents.length
-        ? <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-x-6">{talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
+        ? <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 lg:grid-cols-4 md:gap-x-5">{talents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}</div>
         : <div className="flex min-h-72 items-center justify-center border border-dashed border-[var(--line)] text-sm text-[var(--muted)]">No talent on this board yet.</div>}
     </section>
     <SiteFooter />

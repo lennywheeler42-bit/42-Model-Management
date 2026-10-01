@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Bodoni_Moda, Cormorant_Garamond, Manrope } from "next/font/google";
 import { siteOrigin } from "@/lib/site";
 import "./globals.css";
 
-const display = Cormorant_Garamond({
+// Bodoni for names, headlines and the 42 mark; Cormorant for editorial copy;
+// Manrope for small-caps labels and UI.
+const display = Bodoni_Moda({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const serif = Cormorant_Garamond({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
 });
 
 const sans = Manrope({
@@ -29,7 +39,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en" data-scroll-behavior="smooth" className={`${display.variable} ${serif.variable} ${sans.variable}`}>
       <body>{children}</body>
     </html>
   );

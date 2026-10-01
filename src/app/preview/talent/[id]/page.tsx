@@ -28,7 +28,7 @@ export default async function ProfilePreviewPage({ params }: { params: Promise<{
         <Link href={`/dashboard/talent/${id}`} className="ml-auto rounded-md border border-white/30 px-3 py-1.5 font-800 uppercase tracking-[.12em] hover:bg-white hover:text-[#20211f]">Back to record</Link>
       </div>
     </div>
-    <SiteHeader />
+    <SiteHeader dark />
     <ProfileView talent={preview.profile} backHref={`/dashboard/talent/${id}`} />
     <div className="h-24" aria-hidden />
   </main>;
