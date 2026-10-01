@@ -63,7 +63,7 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 **The database is the security boundary.**
 
 - Every query in the app runs under the caller's own session. The only exception is the public site, which uses the anonymous client.
-- **The only service-role client** is `src/lib/supabase/admin.ts`, used solely by the GHL webhook (see "Service role" below).
+- **The only service-role client** is `src/lib/supabase/admin.ts`, used solely by the GHL integration: the webhook routes and the sync engine `src/features/ghl/engine.ts` (see "Service role" below).
 - Every table has RLS, with policies that call `has_permission('<key>')`.
 - Checks are repeated in three layers, all reading the same matrix:
   1. RLS in the database.
@@ -143,7 +143,12 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
     - Anon can't call role helpers.
 - **Generated security tests.** `tests/rls/hardening.test.mjs` fails when a new table lacks RLS, a view is not `security_invoker`, a SECURITY DEFINER function lacks `search_path`, or anon gains any read/write/function access not on its allow-list. Update the allow-list only after a deliberate review.
 - **Public data caching.** Public reads go through `publicCache()` (`features/public/cache.ts`); every dashboard mutation route must call `refreshPublicSite()`. Never use `dynamic = "force-dynamic"` on public pages (it bypasses the cache); use `connection()`.
-- **Service role.** Only `src/lib/supabase/admin.ts` (GHL webhook). `tests/unit/boundaries.test.mts` enforces it.
+- **Service role.** Only `src/lib/supabase/admin.ts`, imported by the GHL webhook route and `src/features/ghl/engine.ts`. The engine may be imported only by authenticated entry points: webhook secret, `CRON_SECRET`, or `requireApi("integrations.manage")`. `tests/unit/boundaries.test.mts` enforces both rules.
+- **GHL sync** (`docs/ghl-sync.md`, migration 026):
+  - GHL is the CRM; `ghl_*` tables mirror it, and `ghl_contacts.talent_id` (unique) is the one-talent-per-contact link.
+  - Mappings (pipeline purpose, stage status, field target and ownership) are data, edited in Dashboard → GHL Sync. Never hard-code pipeline or stage names in code.
+  - `GHL_API_TOKEN` is read only by `src/features/ghl/client.ts`.
+  - `talent.crm_status` / `crm_programs` are separate from publication; the public site never reads them.
 - **Shell heredocs on this machine can drop or double backslashes.** Write files that contain backslashes (regexes, SQL `E'\n'` escapes) with the editor tools, not bash heredocs or inline Python.
 - **Tailwind v4.** Numeric weights (`font-600`, `font-800`) only work because `globals.css` defines `--font-weight-*` tokens.
   - Base styles must stay in `@layer base`, or they override utilities.

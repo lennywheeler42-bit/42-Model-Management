@@ -1,6 +1,6 @@
 import type { Permission, PermissionSet } from "@/lib/permissions";
 
-export type NavIcon = "dashboard" | "talent" | "applications" | "bookings" | "requests" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings";
+export type NavIcon = "dashboard" | "talent" | "applications" | "bookings" | "requests" | "boards" | "search" | "calendar" | "tasks" | "companies" | "contacts" | "packages" | "finance" | "website" | "settings" | "ghl";
 
 export type NavItem = { href: string; label: string; icon: NavIcon; anyOf: Permission[]; phase?: string };
 export type NavSection = { title: string; items: NavItem[] };
@@ -35,6 +35,7 @@ export const dashboardNav: NavSection[] = [
     items: [
       { href: "/dashboard/finance", label: "Finance", icon: "finance", anyOf: ["finance.view"] },
       { href: "/dashboard/website", label: "Website", icon: "website", anyOf: ["website.manage"] },
+      { href: "/dashboard/ghl", label: "GHL Sync", icon: "ghl", anyOf: ["integrations.view"] },
       { href: "/dashboard/settings", label: "Settings", icon: "settings", anyOf: ["team.manage", "settings.manage", "audit.view"] },
     ],
   },

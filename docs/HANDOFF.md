@@ -11,7 +11,9 @@ This is the single place to pick the project up. Detail lives in:
 - `permissions.md`
 - `security-review.md`
 - `operations.md`
-- `ghl-integration.md`
+- `ghl-integration.md` (Join Us applications)
+- `ghl-sync.md` (full GHL ↔ dashboard sync: mapping, status, photos, conflicts)
+- `mobile-roadmap.md` (talent mobile portal and paid entitlements, planned)
 - `staging.md`: the single-project release process
 
 The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
@@ -21,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–025 applied** |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–025 applied; 026 (GHL sync) written and tested, waiting for `npx supabase db push`** |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |
@@ -42,10 +44,17 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | 15 Talent portal | Magic-link portal: profile, change requests, digitals, availability, bookings, shared documents; staff review queue | 024 |
 | 16 Security | Schema-wide generated security tests, anon grant cleanup, CSP, MFA for owner/admin, permission-matrix editor, data-subject export/erase | 025 |
 | 17 QA | Contrast fixes, heading order, canonical URLs, QA report, launch checklist, RC tag | — |
+| 18 GHL sync | Mirror of all GHL contacts, opportunities, pipelines, stages and fields; configurable status mapping; one talent per GHL contact; program tags ("Model Expo", "Talent Recruitment"); photo import; webhooks, queue and hourly reconciliation; conflicts; optional write-back; GHL Sync dashboard and CRM tab | 026 |
 
 ## 3. What to do next (owner)
 
 Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
+
+**GHL sync (Phase 18)**, in order. Details are in `ghl-sync.md` → Setup.
+1. Apply migration 026: `npx supabase db push`.
+2. Set `GHL_API_TOKEN`, `GHL_LOCATION_ID` and `CRON_SECRET` in Vercel, and `CRON_SECRET` as a GitHub Actions secret.
+3. Run `node --env-file=.env scripts/ghl-initial-mapping.mjs --apply`, then **Run sync now**.
+4. Create the "Sync to 42 Agency OS" GHL workflow pointing to `/api/integrations/ghl/events`.
 
 Remaining from **`launch-checklist.md` §1**:
 1. Import past GHL applications (`ghl-integration.md` §3). Choose only the forms that are real applications.

@@ -24,7 +24,7 @@ function allowedHost(url: URL) {
 // allowed host (an allowed host cannot bounce the server to an internal
 // address), and the body is read with a running size cap so a huge or endless
 // response is cut off rather than buffered.
-async function downloadPhoto(start: URL): Promise<Buffer> {
+export async function downloadPhoto(start: URL): Promise<Buffer> {
   let url = start;
   for (let hop = 0; hop <= 3; hop += 1) {
     if (!allowedHost(url)) throw new Error(`host not allowed: ${url.hostname}`);

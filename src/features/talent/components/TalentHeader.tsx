@@ -5,6 +5,7 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Thumb } from "@/components/ui/Thumb";
 import { useMutation } from "@/lib/use-mutation";
+import { CrmBadges } from "@/features/ghl/components/CrmBadges";
 import type { TalentCore } from "../types";
 
 export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, boardCount }: {
@@ -32,6 +33,7 @@ export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, b
           {live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
           {talent.featured && <Badge tone="review">Featured</Badge>}
           {talent.is_minor && <Badge tone="internal">Minor</Badge>}
+          <CrmBadges status={talent.crm_status} programs={talent.crm_programs} />
           <span>{[talent.location, talent.gender, age !== null ? `${age} yrs` : null].filter(Boolean).join(" · ")}</span>
         </div>
       </div>

@@ -4,7 +4,7 @@ export const TALENT_COLUMNS = [
   "id", "talent_id", "slug", "first_name", "last_name", "display_name", "location", "gender", "date_joined", "status",
   "publication_status", "show_on_website", "show_in_search", "featured", "show_age", "show_measurements", "show_portfolio",
   "show_videos", "show_resume", "show_comp_card", "is_minor", "guardian_required", "consent_status", "guardian_contact_id",
-  "public_bio", "archived_at", "created_at", "updated_at",
+  "public_bio", "archived_at", "created_at", "updated_at", "crm_status", "crm_programs",
 ].join(",");
 
 export const PRIVATE_COLUMNS = [
@@ -44,6 +44,10 @@ export type TalentCore = {
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+  // From GHL (migration 026), read-only here: normalized CRM status and the
+  // short pipeline tags ("Model Expo", "Talent Recruitment") they qualify through.
+  crm_status: string | null;
+  crm_programs: string[];
 };
 
 export type TalentPrivate = {

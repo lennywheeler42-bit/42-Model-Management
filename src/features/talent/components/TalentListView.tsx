@@ -7,8 +7,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Thumb } from "@/components/ui/Thumb";
 import { formatDate } from "@/lib/format";
 import type { listTalent, loadBoards, TalentListRow } from "@/features/talent/queries";
+import { CrmBadges } from "@/features/ghl/components/CrmBadges";
+import { CRM_STATUSES, CRM_STATUS_LABELS } from "@/features/ghl/status";
 
-export type TalentSearch = { q?: string; status?: string; board?: string; page?: string };
+export type TalentSearch = { q?: string; status?: string; board?: string; program?: string; crm?: string; page?: string };
 
 const statusOptions = [
   { value: "", label: "Active (not archived)" },
@@ -25,8 +27,8 @@ function pageHref(search: TalentSearch, page: number) {
   return `/dashboard/talent?${params}`;
 }
 
-export function TalentListView({ result, boards, search, canCreate, canExportPrivate = false }: {
-  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean;
+export function TalentListView({ result, boards, programs = [], search, canCreate, canExportPrivate = false }: {
+  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; programs?: string[]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean;
 }) {
   const fieldClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#a4502f]";
   return <div className="space-y-6">
@@ -40,10 +42,12 @@ export function TalentListView({ result, boards, search, canCreate, canExportPri
         {canCreate && <ButtonLink href="/dashboard/talent/new" icon={<Plus size={14} />}>New talent</ButtonLink>}
       </div>} />
 
-    <form className="grid gap-3 rounded-xl border border-[#e7e7e3] bg-white p-4 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end" role="search">
+    <form className="grid gap-3 rounded-xl border border-[#e7e7e3] bg-white p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] sm:items-end" role="search">
       <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Search<input name="q" defaultValue={search.q ?? ""} placeholder="Name, talent ID, or location" className={fieldClass} /></label>
       <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Status<select name="status" defaultValue={search.status ?? ""} className={fieldClass}>{statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
       <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Board<select name="board" defaultValue={search.board ?? ""} className={fieldClass}><option value="">All boards</option>{boards.map((board) => <option key={board.id} value={board.id}>{"— ".repeat(board.depth)}{board.name}</option>)}</select></label>
+      <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Program<select name="program" defaultValue={search.program ?? ""} className={fieldClass}><option value="">All programs</option>{programs.map((program) => <option key={program} value={program}>{program}</option>)}</select></label>
+      <label className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">CRM status<select name="crm" defaultValue={search.crm ?? ""} className={fieldClass}><option value="">Any</option>{CRM_STATUSES.map((status) => <option key={status} value={status}>{CRM_STATUS_LABELS[status]}</option>)}</select></label>
       <div className="flex gap-2"><button className={buttonClass("primary")}>Filter</button><Link href="/dashboard/talent" className={buttonClass("ghost")}>Reset</Link></div>
     </form>
 
@@ -51,10 +55,11 @@ export function TalentListView({ result, boards, search, canCreate, canExportPri
       rows={result.talent}
       rowKey={(row) => row.id}
       caption="Talent roster"
-      empty={{ title: "No talent found", body: search.q || search.status || search.board ? "Try different filters." : "Create the first talent record to get started." }}
+      empty={{ title: "No talent found", body: search.q || search.status || search.board || search.program || search.crm ? "Try different filters." : "Create the first talent record to get started." }}
       columns={[
         { key: "photo", header: "", className: "w-14", cell: (row) => <Thumb src={row.thumbnail} alt={row.display_name} /> },
         { key: "name", header: "Talent", cell: (row) => <Link href={`/dashboard/talent/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.display_name}</span><span className="block text-[11px] text-[#6b6d66]">{[row.talent_id, row.location, row.gender, row.age !== null ? `${row.age} yrs` : null].filter(Boolean).join(" · ")}</span></Link> },
+        { key: "program", header: "Program (GHL)", cell: (row) => <CrmBadges status={row.crm_status} programs={row.crm_programs} /> },
         { key: "boards", header: "Boards", cell: (row) => row.boards.length ? <span className="text-xs text-[#5f615b]">{row.boards.map((board) => board.name).join(", ")}</span> : <span className="text-xs text-[#717369]">Unassigned</span> },
         { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.publication_status} /> },
         { key: "website", header: "Website", cell: (row) => row.publication_status === "published" && row.show_on_website ? <Badge tone="public">Live</Badge> : <Badge tone="private">Hidden</Badge> },

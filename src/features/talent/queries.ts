@@ -7,13 +7,19 @@ import { PRIVATE_COLUMNS, TALENT_COLUMNS, type TalentCore, type TalentPrivate } 
 
 export const PAGE_SIZE = 40;
 
-export type TalentListFilters = { q?: string; status?: string; board?: string; page?: number };
+export type TalentListFilters = { q?: string; status?: string; board?: string; program?: string; crm?: string; page?: number };
 
 export type TalentListRow = TalentCore & { boards: { id: string; name: string }[]; age: number | null; thumbnail: string | null };
 
 // PostgREST `or` filters are comma/parenthesis delimited; strip those from input.
 function searchTerm(value: string) {
   return value.replace(/[,()%*\\]/g, " ").trim().slice(0, 80);
+}
+
+// Program tags in use, for the roster filter.
+export async function loadPrograms(supabase: SupabaseClient) {
+  const { data } = await supabase.from("talent").select("crm_programs").neq("crm_programs", "{}").limit(2000);
+  return [...new Set(((data ?? []) as { crm_programs: string[] }[]).flatMap((row) => row.crm_programs))].sort();
 }
 
 export async function loadBoards(supabase: SupabaseClient) {
@@ -34,6 +40,10 @@ export async function listTalent(supabase: SupabaseClient, permissions: Permissi
   else if (filters.status === "website") query = query.eq("publication_status", "published").eq("show_on_website", true);
   else if (filters.status !== "all") query = query.neq("publication_status", "archived");
   if (filters.board) query = query.eq("talent_board_assignments.board_id", filters.board);
+  // GHL program tag ("Model Expo") and CRM status filters.
+  const program = filters.program?.replace(/[{}",\\]/g, "").trim().slice(0, 30);
+  if (program) query = query.contains("crm_programs", [program]);
+  if (filters.crm && /^[a-z]{3,12}$/.test(filters.crm)) query = query.eq("crm_status", filters.crm);
 
   const { data, count, error } = await query
     .order("updated_at", { ascending: false })

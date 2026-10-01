@@ -1,5 +1,7 @@
 # GoHighLevel → 42 Model Management integration
 
+> This page covers **Join Us applications**. The full CRM sync (every contact and opportunity, statuses, talent records, photos and conflicts) is in [ghl-sync.md](ghl-sync.md).
+
 The "Join us" form stays on GoHighLevel at `https://funnel.modelluxemedia.com/registration-form`. The website's **Join us** link (and `/join`) points there.
 
 Every submission is copied into the agency system, where staff review it under **Dashboard → Applications** and convert it into a draft talent record with one click.

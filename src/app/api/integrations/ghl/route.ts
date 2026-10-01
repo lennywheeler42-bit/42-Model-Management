@@ -1,7 +1,9 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, after } from "next/server";
 import { mapGhlPayload } from "@/features/applications/ghl";
 import { storeApplicationPhotos, upsertApplication } from "@/features/applications/ingest";
+import { webhookSecretMatches } from "@/features/ghl/auth";
+import { ghlConfigured } from "@/features/ghl/client";
+import { drainQueue, enqueueContacts } from "@/features/ghl/engine";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { log } from "@/lib/log";
 
@@ -14,13 +16,7 @@ import { log } from "@/lib/log";
 export const maxDuration = 60;
 
 const MAX_BODY = 512 * 1024;
-
-function secretMatches(provided: string | null) {
-  const expected = process.env.GHL_WEBHOOK_SECRET;
-  if (!expected || expected.length < 24 || !provided) return false;
-  const digest = (value: string) => createHash("sha256").update(value).digest();
-  return timingSafeEqual(digest(provided), digest(expected));
-}
+const secretMatches = webhookSecretMatches;
 
 export async function POST(request: Request) {
   if (!process.env.GHL_WEBHOOK_SECRET) {
@@ -72,7 +68,18 @@ export async function POST(request: Request) {
   try {
     const admin = createAdminSupabaseClient();
     const result = await upsertApplication(admin, mapped, payload, { signedTalent });
-    after(() => storeApplicationPhotos(admin, result.id, result.photos));
+    after(async () => {
+      await storeApplicationPhotos(admin, result.id, result.photos);
+      // Also refresh the full CRM mirror (and the linked talent) for this contact.
+      if (mapped.externalId && ghlConfigured()) {
+        try {
+          await enqueueContacts([mapped.externalId], signedTalent ? "webhook: signed talent" : "webhook: form submission");
+          await drainQueue(Date.now() + 40_000);
+        } catch (error) {
+          log.error("ghl", "contact sync after submission failed", error);
+        }
+      }
+    });
     log.info("ghl", `application ${result.status}`, { application: result.id, photos: result.photos.length });
     return NextResponse.json({ ok: true, id: result.id, status: result.status, photos: result.photos.length }, { status: result.status === "created" ? 201 : 200 });
   } catch (error) {
