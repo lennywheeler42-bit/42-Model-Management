@@ -20,7 +20,39 @@ function allowedHost(url: URL) {
   return url.protocol === "https:" && hosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
 }
 
-export type IngestResult = { id: string; status: "created" | "updated"; photos: { url: string; kind: PhotoKind }[] };
+// Fetches a photo from GHL's file storage. Every redirect hop must stay on an
+// allowed host (an allowed host cannot bounce the server to an internal
+// address), and the body is read with a running size cap so a huge or endless
+// response is cut off rather than buffered.
+async function downloadPhoto(start: URL): Promise<Buffer> {
+  let url = start;
+  for (let hop = 0; hop <= 3; hop += 1) {
+    if (!allowedHost(url)) throw new Error(`host not allowed: ${url.hostname}`);
+    const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error(`redirect without a location (${response.status})`);
+      url = new URL(location, url);
+      continue;
+    }
+    if (!response.ok || !response.body) throw new Error(`download failed with ${response.status}`);
+    if (Number(response.headers.get("content-length") ?? 0) > MAX_BYTES) throw new Error("file too large");
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    const reader = response.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_BYTES) { await reader.cancel(); throw new Error("file too large"); }
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks);
+  }
+  throw new Error("too many redirects");
+}
+
+export type IngestResult ={ id: string; status: "created" | "updated"; photos: { url: string; kind: PhotoKind }[] };
 
 const SIGNED_NOTE = "Imported from GHL as a signed model (Talent Recruitment Pipeline → Active Talent). Approved automatically; ready to convert to talent.";
 
@@ -83,14 +115,7 @@ export async function storeApplicationPhotos(admin: SupabaseClient, applicationI
     if (already.has(photo.url)) continue;
     const record = { application_id: applicationId, kind: photo.kind, source_url: photo.url };
     try {
-      const url = new URL(photo.url);
-      if (!allowedHost(url)) throw new Error(`host not allowed: ${url.hostname}`);
-      const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(20_000) });
-      if (!response.ok) throw new Error(`download failed with ${response.status}`);
-      const declared = Number(response.headers.get("content-length") ?? 0);
-      if (declared > MAX_BYTES) throw new Error("file too large");
-      const bytes = Buffer.from(await response.arrayBuffer());
-      if (bytes.byteLength > MAX_BYTES) throw new Error("file too large");
+      const bytes = await downloadPhoto(new URL(photo.url));
       const jpeg = await sharp(bytes, { failOn: "error", limitInputPixels: 80_000_000 })
         .rotate()
         .resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true })

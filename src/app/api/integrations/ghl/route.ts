@@ -27,6 +27,14 @@ export async function POST(request: Request) {
     log.error("ghl", "webhook called but GHL_WEBHOOK_SECRET is not configured");
     return NextResponse.json({ error: "Integration not configured" }, { status: 503 });
   }
+  // Cheap checks first: a wrong header secret or an oversized body is refused
+  // before anything is read.
+  const headerSecret = request.headers.get("x-webhook-secret") ?? request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
+  if (headerSecret && !secretMatches(headerSecret)) {
+    log.warn("ghl", "webhook rejected: bad secret");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   const body = await request.text();
   if (body.length > MAX_BODY) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   let payload: unknown;
@@ -40,8 +48,7 @@ export async function POST(request: Request) {
   const record = payload as Record<string, unknown> & { customData?: Record<string, unknown> };
   const bodySecret = typeof record.webhook_secret === "string" ? record.webhook_secret
     : typeof record.customData?.webhook_secret === "string" ? record.customData.webhook_secret : null;
-  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? null;
-  if (!secretMatches(request.headers.get("x-webhook-secret") ?? bearer ?? bodySecret)) {
+  if (!secretMatches(headerSecret ?? bodySecret)) {
     log.warn("ghl", "webhook rejected: bad secret");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
