@@ -24,7 +24,7 @@ function allowedHost(url: URL) {
 // allowed host (an allowed host cannot bounce the server to an internal
 // address), and the body is read with a running size cap so a huge or endless
 // response is cut off rather than buffered.
-export async function downloadPhoto(start: URL): Promise<Buffer> {
+export async function downloadPhoto(start: URL, maxBytes = MAX_BYTES): Promise<Buffer> {
   let url = start;
   for (let hop = 0; hop <= 3; hop += 1) {
     if (!allowedHost(url)) throw new Error(`host not allowed: ${url.hostname}`);
@@ -36,7 +36,7 @@ export async function downloadPhoto(start: URL): Promise<Buffer> {
       continue;
     }
     if (!response.ok || !response.body) throw new Error(`download failed with ${response.status}`);
-    if (Number(response.headers.get("content-length") ?? 0) > MAX_BYTES) throw new Error("file too large");
+    if (Number(response.headers.get("content-length") ?? 0) > maxBytes) throw new Error("file too large");
     const chunks: Uint8Array[] = [];
     let size = 0;
     const reader = response.body.getReader();
@@ -44,7 +44,7 @@ export async function downloadPhoto(start: URL): Promise<Buffer> {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > MAX_BYTES) { await reader.cancel(); throw new Error("file too large"); }
+      if (size > maxBytes) { await reader.cancel(); throw new Error("file too large"); }
       chunks.push(value);
     }
     return Buffer.concat(chunks);

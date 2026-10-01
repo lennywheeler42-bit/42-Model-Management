@@ -417,7 +417,8 @@ async function storePhotos(db: Db, talentId: string, custom: Record<string, unkn
     if (done >= MAX_PHOTOS_PER_RUN) { bump(stats, "photos_deferred"); continue; }
     done += 1;
     try {
-      const bytes = await downloadPhoto(new URL(file.url));
+      // Original phone photos can exceed 15 MB; they are re-encoded to at most 2400px below.
+      const bytes = await downloadPhoto(new URL(file.url), 30 * 1024 * 1024);
       const sha = createHash("sha256").update(bytes).digest("hex");
       const duplicateOf = hashes.get(sha);
       if (duplicateOf) {
