@@ -23,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–025 applied; 026 (GHL sync) written and tested, waiting for `npx supabase db push`** |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–026 applied** (026 = GHL sync, first production sync verified 2026-10-01) |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |
@@ -51,7 +51,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
 
 **GHL sync (Phase 18)**, in order. Details are in `ghl-sync.md` → Setup.
-1. Apply migration 026: `npx supabase db push`.
+1. ~~Apply migration 026~~ (done 2026-10-01; first sync run and verified).
 2. Set `GHL_API_TOKEN`, `GHL_LOCATION_ID` and `CRON_SECRET` in Vercel, and `CRON_SECRET` as a GitHub Actions secret.
 3. Run `node --env-file=.env scripts/ghl-initial-mapping.mjs --apply`, then **Run sync now**.
 4. Create the "Sync to 42 Agency OS" GHL workflow pointing to `/api/integrations/ghl/events`.
