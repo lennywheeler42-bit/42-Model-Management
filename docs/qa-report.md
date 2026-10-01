@@ -74,7 +74,7 @@ Migration 026 applied. First reconciliation run on production, triggered through
 | Program tags | "Talent Recruitment" 47, "Model Expo" 10 (8 people have both) |
 | Join Us applications | All 27 marked converted and linked to the same talent; none duplicated |
 | Duplicate people | None. Talent names are unique; `ghl_contacts.talent_id` is unique. |
-| Photos | 126 stored: headshot 29, 3/4 29, full body 29 and gallery 45 (the role split was 29/24/26 on the first run, before the two retried photos; split after re-run not recounted). Duplicates: 0 by GHL file ID, 0 by content. The 2 photos over 15 MB were stored after the cap was raised to 30 MB. |
+| Photos | 126 stored: headshot 29, 3/4 25, full body 27, gallery 45. Duplicates: 0 by GHL file ID, 0 by content. The 2 photos over 15 MB were stored after the cap was raised to 30 MB. |
 | Second run (idempotency) | 0 new talent, measurements, social accounts, addresses, history rows or opportunity changes |
 | Sample comparison, GHL vs Supabase (4 models: Expo only, both programs, active, enrolled) | Name, email, phone, date of birth, gender, height/bust/waist/hips (converted to cm), hair, Instagram/TikTok, CRM status, tags and photo count all match |
 | Blank values | Missing GHL values stay blank (e.g. eye colour). Values typed as "N/A" in GHL are kept as typed in text fields and become blank in numeric fields. |
