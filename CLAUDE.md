@@ -109,6 +109,8 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 
 **Team accounts.** A temporary password set in Settings → Team access creates the account through the public sign-up API (`src/features/team/accounts.ts`), never the service role. The teammate confirms their email; `must_change_password` in their metadata sends them to `/login/reset` until they choose their own.
 
+**Two-step sign-in** (owner/administrator, `mfaRequiredRoles()`): accepted as an authenticator code (aal2), a Google sign-in within 30 days, or an emailed code (migration 028, `/api/auth/email-code`). The emailed code is a Supabase email OTP sign-in, so on its own it would bypass the password: it only counts when `start_email_mfa()` ran in a password session and `complete_email_mfa(nonce)` gets the nonce from that browser's httpOnly cookie. The Supabase "Magic link or OTP" email template must include `{{ .Token }}`.
+
 **Audit.**
 
 - `audit_logs` is written only by database triggers and by the `write_audit()` function (`writeAudit()` in `src/lib/api.ts`).

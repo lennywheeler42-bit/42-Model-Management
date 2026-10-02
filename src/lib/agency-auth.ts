@@ -46,10 +46,13 @@ export const getAgencyContext = cache(async () => {
   const permissionSet = toPermissionSet(permissions);
   const typedMembership = membership as AgencyMembership | null;
   // Owner/administrator sessions count only after a second step: an authenticator
-  // code (aal2), or a Google sign-in from the last 30 days (mfa-policy.ts).
+  // code (aal2), a Google sign-in from the last 30 days (mfa-policy.ts), or an
+  // emailed code entered after a password sign-in, trusted for 30 days (migration 028).
   const providers = (user.app_metadata?.providers as string[] | undefined) ?? [user.app_metadata?.provider as string];
-  const verified = assurance?.currentLevel === "aal2" || recentGoogleSignIn(assurance?.currentAuthenticationMethods, providers);
-  const needsMfa = Boolean(typedMembership && mfaRequiredRoles().has(typedMembership.role) && !verified);
+  const mfaRole = Boolean(typedMembership && mfaRequiredRoles().has(typedMembership.role));
+  let verified = assurance?.currentLevel === "aal2" || recentGoogleSignIn(assurance?.currentAuthenticationMethods, providers);
+  if (mfaRole && !verified) verified = (await supabase.rpc("email_mfa_verified")).data === true;
+  const needsMfa = mfaRole && !verified;
   const authorized = typedMembership?.status === "active" && permissionSet.has("dashboard.access") && !needsMfa;
 
   return { supabase, user, profile: profile as AgencyProfile | null, membership: typedMembership, permissions: permissionSet, authorized, needsMfa } as const;

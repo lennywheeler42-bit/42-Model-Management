@@ -17,3 +17,9 @@ test("Google pictures and other URLs are ignored (the CSP would block them)", ()
   assert.equal(profilePhotoUrl({ profile_photo_url: null }), null);
   assert.equal(profilePhotoUrl(undefined), null);
 });
+
+test("emailed-code confirmations show a masked address", async () => {
+  const { maskEmail } = await import("../../src/features/auth/email-code.ts");
+  assert.equal(maskEmail("marie@42modelmanagement.com"), "m•••e@42modelmanagement.com");
+  assert.equal(maskEmail("jo@example.com"), "j@example.com");
+});
