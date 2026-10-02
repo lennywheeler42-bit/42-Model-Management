@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { authButton, authError, authInput, authLabel } from "../AuthShell";
 
-export function ResetForm() {
+// firstSignIn: a teammate replacing the owner's temporary password; they stay
+// signed in. Otherwise (reset link) every session is signed out.
+export function ResetForm({ firstSignIn = false }: { firstSignIn?: boolean }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -18,10 +20,15 @@ export function ResetForm() {
     if (password !== confirm) return setError("The two passwords do not match.");
     setSaving(true); setError("");
     const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const { error: updateError } = await supabase.auth.updateUser({ password, data: { must_change_password: false } });
     if (updateError) {
       setSaving(false);
       setError(updateError.code === "weak_password" || updateError.code === "same_password" ? updateError.message : "The password could not be updated. Request a new reset link and try again.");
+      return;
+    }
+    if (firstSignIn) {
+      router.push("/dashboard");
+      router.refresh();
       return;
     }
     // Sign out everywhere so the new password is required on every device.

@@ -105,6 +105,9 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 - Uploads always go to the private `talent-private` bucket.
 - "Make public" copies the file into `talent-public` and records `public_storage_path`. Withdrawing removes the copy.
 - Documents live in `talent-documents` and are downloaded only through 60-second signed URLs, which are audited.
+- Team profile photos live in the public `team-avatars` bucket at `<auth user id>/…` (migration 027); the URL is kept in the user's own Auth metadata as `profile_photo_url` (`src/features/team/photo.ts`).
+
+**Team accounts.** A temporary password set in Settings → Team access creates the account through the public sign-up API (`src/features/team/accounts.ts`), never the service role. The teammate confirms their email; `must_change_password` in their metadata sends them to `/login/reset` until they choose their own.
 
 **Audit.**
 

@@ -63,12 +63,13 @@ export function DashboardFrame({ nav, viewer, children }: { nav: NavSection[]; v
         </div>)}
       </nav>
       <div className="mt-6 border-t border-white/10 pt-4">
-        <div className="flex items-center gap-3 px-2">
+        <Link href="/dashboard/profile" onClick={() => setOpen(false)} aria-current={pathname === "/dashboard/profile" ? "page" : undefined} title="My profile"
+          className={`flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white/10 ${pathname === "/dashboard/profile" ? "bg-white/10" : ""}`}>
           {viewer.avatarUrl
             ? <span className="h-8 w-8 shrink-0 rounded-full bg-cover bg-center" style={{ backgroundImage: `url(${viewer.avatarUrl})` }} aria-hidden />
             : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-800">{viewer.name.slice(0, 1).toUpperCase()}</span>}
-          <div className="min-w-0"><p className="truncate text-xs font-700">{viewer.name}</p><p className="truncate text-[10px] uppercase tracking-[.1em] text-white/60">{viewer.role.replace("_", " ")}</p></div>
-        </div>
+          <div className="min-w-0"><p className="truncate text-xs font-700">{viewer.name}</p><p className="truncate text-[10px] uppercase tracking-[.1em] text-white/60">{viewer.role.replace("_", " ")} · My profile</p></div>
+        </Link>
         <button type="button" onClick={signOut} className="mt-3 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] text-white/60 hover:bg-white/10 hover:text-white"><LogOut size={16} />Sign out</button>
       </div>
     </aside>

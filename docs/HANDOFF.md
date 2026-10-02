@@ -1,6 +1,6 @@
 # Project handoff — 42 Model Management
 
-_Last verified: 2026-10-01._
+_Last verified: 2026-10-02._
 
 This is the single place to pick the project up. Detail lives in:
 - `ROADMAP.md`: phases and production-readiness criteria
@@ -23,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–026 applied** (026 = GHL sync, first production sync verified 2026-10-01) |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–027 applied** (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos) |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |
@@ -45,6 +45,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | 16 Security | Schema-wide generated security tests, anon grant cleanup, CSP, MFA for owner/admin, permission-matrix editor, data-subject export/erase | 025 |
 | 17 QA | Contrast fixes, heading order, canonical URLs, QA report, launch checklist, RC tag | — |
 | 18 GHL sync | Mirror of all GHL contacts, opportunities, pipelines, stages and fields; configurable status mapping; one talent per GHL contact; program tags ("Model Expo", "Talent Recruitment"); photo import; webhooks, queue and hourly reconciliation; conflicts; optional write-back; GHL Sync dashboard and CRM tab | 026 |
+| 19 Team accounts | Optional temporary password when the owner approves a teammate (public sign-up API, no service role; they confirm their email and must choose their own password at first sign-in); My profile page with profile photo (team-avatars bucket) and password change | 027 |
 
 ## 3. What to do next (owner)
 

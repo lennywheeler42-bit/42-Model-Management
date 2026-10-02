@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, UserPlus } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Pencil, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -29,12 +29,17 @@ const roleLabel = (role: string) => ROLE_OPTIONS.find((option) => option.value =
 export function TeamPanel({ members }: { members: Member[] }) {
   const { run, pending } = useMutation();
   const [editing, setEditing] = useState<Member | null>(null);
+  const [passwordKey, setPasswordKey] = useState(0);
 
   async function approve(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const values = readForm(form);
-    if (await run("/api/dashboard/team", { body: { email: values.email, fullName: values.fullName, role: values.role, status: "active" }, success: `${values.email} approved` })) form.reset();
+    const saved = await run<{ confirmation_sent?: boolean }>("/api/dashboard/team", {
+      body: { email: values.email, fullName: values.fullName, role: values.role, status: "active", password: values.password || undefined },
+      success: values.password ? `${values.email} approved. Send them the temporary password privately.` : `${values.email} approved`,
+    });
+    if (saved) { form.reset(); setPasswordKey((key) => key + 1); }
   }
 
   async function update(event: React.FormEvent<HTMLFormElement>) {
@@ -47,10 +52,11 @@ export function TeamPanel({ members }: { members: Member[] }) {
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
     <form onSubmit={approve} className="min-w-0 space-y-4 rounded-xl border border-[#e7e7e3] bg-white p-5">
       <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3da] text-[#a4502f]"><UserPlus size={17} /></span>
-        <div><h2 className="text-sm font-800">Approve an email</h2><p className="text-[11px] text-[#6b6d66]">They can sign in once their email is confirmed.</p></div></div>
+        <div><h2 className="text-sm font-800">Approve an email</h2><p className="text-[11px] text-[#6b6d66]">They sign in with Google, or with a temporary password you set.</p></div></div>
       <TextField label="Work email" name="email" type="email" required autoComplete="off" />
       <TextField label="Full name" name="fullName" />
       <SelectField label="Role" name="role" defaultValue="read_only" options={ROLE_OPTIONS} hint="Start with the least access needed." />
+      <TemporaryPassword key={passwordKey} />
       <Button type="submit" disabled={pending} className="w-full">{pending ? "Saving…" : "Approve access"}</Button>
     </form>
 
@@ -76,5 +82,34 @@ export function TeamPanel({ members }: { members: Member[] }) {
         <div className="flex justify-end gap-2 border-t border-[#efefeb] pt-4"><Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button><Button type="submit" disabled={pending}>Save</Button></div>
       </form>}
     </Dialog>
+  </div>;
+}
+
+// Optional temporary password: the teammate confirms their email, signs in with it,
+// and is asked to choose their own straight away.
+function TemporaryPassword() {
+  const [value, setValue] = useState("");
+  const [visible, setVisible] = useState(false);
+
+  function generate() {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+    const bytes = crypto.getRandomValues(new Uint32Array(14));
+    setValue(Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join(""));
+    setVisible(true);
+  }
+
+  return <div>
+    <label htmlFor="temporary-password" className="block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Temporary password <span className="font-600 normal-case tracking-normal">(optional)</span></label>
+    <div className="mt-2 flex gap-2">
+      <div className="relative min-w-0 flex-1">
+        <input id="temporary-password" name="password" type={visible ? "text" : "password"} value={value} onChange={(event) => setValue(event.target.value)}
+          minLength={10} maxLength={72} autoComplete="new-password" aria-describedby="temporary-password-hint"
+          className="w-full rounded-md border border-[#dcdcd6] bg-white py-2.5 pl-3 pr-10 font-mono text-sm text-[#20211f] outline-none focus:border-[#a4502f] focus-visible:ring-2 focus-visible:ring-[#a4502f]/20" />
+        <button type="button" onClick={() => setVisible((shown) => !shown)} aria-label={visible ? "Hide password" : "Show password"}
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[#6b6d66] hover:text-[#20211f]">{visible ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+      </div>
+      <Button type="button" variant="secondary" onClick={generate} className="shrink-0"><KeyRound size={14} /> Generate</Button>
+    </div>
+    <p id="temporary-password-hint" className="mt-1.5 text-[11px] text-[#6b6d66]">Leave blank if they use Google. Otherwise they confirm their email, sign in with this password, and must choose their own.</p>
   </div>;
 }
