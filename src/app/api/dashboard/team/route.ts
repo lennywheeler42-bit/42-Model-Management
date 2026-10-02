@@ -60,3 +60,24 @@ export async function POST(request: Request) {
   }
   return NextResponse.json(member, { status: existing ? 200 : 201 });
 }
+
+// Removes a teammate's access. The database suspends their profile, clears their
+// role mirror and writes the audit event (migration 009); owners cannot be removed.
+// Their sign-in account remains but grants nothing without a membership.
+export async function DELETE(request: Request) {
+  const auth = await requireApi("team.manage");
+  if ("response" in auth) return auth.response;
+  const { supabase, user } = auth.context;
+
+  const id = new URL(request.url).searchParams.get("id") ?? "";
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { data: member, error: loadError } = await supabase.from("agency_members").select("id,role,user_id").eq("id", id).maybeSingle();
+  if (loadError) return databaseError(loadError, "load the team");
+  if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (member.role === "owner") return NextResponse.json({ error: "Owner access cannot be removed here" }, { status: 400 });
+  if (member.user_id === user.id) return NextResponse.json({ error: "You cannot remove your own access" }, { status: 400 });
+
+  const { error } = await supabase.from("agency_members").delete().eq("id", id);
+  if (error) return databaseError(error, "remove this team member");
+  return new NextResponse(null, { status: 204 });
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Eye, EyeOff, KeyRound, Pencil, UserPlus } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Pencil, Trash2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -53,6 +53,11 @@ export function TeamPanel({ members }: { members: Member[] }) {
     })) setEditing(null);
   }
 
+  async function removeAccess() {
+    if (!editing || !window.confirm(`Remove ${editing.email} from the team? They lose dashboard access immediately. You can approve the email again later.`)) return;
+    if (await run(`/api/dashboard/team?id=${editing.id}`, { method: "DELETE", success: `${editing.email} removed` })) setEditing(null);
+  }
+
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
     <form onSubmit={approve} className="min-w-0 space-y-4 rounded-xl border border-[#e7e7e3] bg-white p-5">
       <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4e3da] text-[#a4502f]"><UserPlus size={17} /></span>
@@ -86,7 +91,11 @@ export function TeamPanel({ members }: { members: Member[] }) {
         {editing.user_id
           ? <p className="rounded-md bg-[#f3f3f0] px-3 py-2.5 text-[11px] text-[#6b6d66]">This person already has an account. They change their password in My profile, or with “Forgot password” on the sign-in page.</p>
           : <TemporaryPassword />}
-        <div className="flex justify-end gap-2 border-t border-[#efefeb] pt-4"><Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button><Button type="submit" disabled={pending}>Save</Button></div>
+        <div className="flex flex-wrap items-center gap-2 border-t border-[#efefeb] pt-4">
+          <Button variant="danger" onClick={removeAccess} disabled={pending}><Trash2 size={14} /> Remove</Button>
+          <span className="flex-1" />
+          <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button><Button type="submit" disabled={pending}>Save</Button>
+        </div>
       </form>}
     </Dialog>
   </div>;

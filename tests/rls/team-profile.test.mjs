@@ -2,7 +2,7 @@
 // Run: node --test tests/rls/team-profile.test.mjs
 import { before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { as, createDatabase, rejects, rowsAs, users } from "./harness.mjs";
+import { addMember, as, createDatabase, newUser, rejects, rowsAs, users } from "./harness.mjs";
 
 let db;
 const su = async (sql, params) => (await db.query(sql, params)).rows;
@@ -35,5 +35,23 @@ describe("phase 19: team profile photos", () => {
   test("people without an active membership cannot upload", async () => {
     assert.ok(await rejects(db, users.outsider, "insert into storage.objects (bucket_id, name) values ('team-avatars', $1)", [`${users.outsider.id}/photo.jpg`]));
     assert.ok(await rejects(db, "anon", "insert into storage.objects (bucket_id, name) values ('team-avatars', 'x/photo.jpg')"));
+  });
+});
+
+describe("phase 19: removing a teammate", () => {
+  test("the owner removes a member; their profile is suspended and the removal audited", async () => {
+    const member = await addMember(db, newUser("leaver"), "booker");
+    await as(db, users.owner, "delete from public.agency_members where lower(email) = $1", [member.email]);
+    assert.deepEqual(await su("select id from public.agency_members where lower(email) = $1", [member.email]), []);
+    const [profile] = await su("select status from public.profiles where id = $1", [member.id]);
+    assert.equal(profile.status, "suspended");
+    assert.equal((await su("select count(*)::int as n from public.audit_logs where action = 'agency_member.delete' and before_data->>'email' = $1", [member.email]))[0].n, 1);
+  });
+
+  test("only team managers can remove members, and never the owner", async () => {
+    const member = await addMember(db, newUser("stayer"), "booker");
+    await as(db, users.talentManager, "delete from public.agency_members where lower(email) = $1", [member.email]);
+    assert.equal((await su("select count(*)::int as n from public.agency_members where lower(email) = $1", [member.email]))[0].n, 1);
+    assert.ok(await rejects(db, users.owner, "delete from public.agency_members where email = $1", [users.owner.email]));
   });
 });
