@@ -16,7 +16,14 @@ test("site origin adds https:// when the scheme is missing", () => {
 });
 
 test("an unset or invalid address is ignored instead of throwing", () => {
-  assert.equal(siteOrigin(undefined), null);
+  // With no argument it reads NEXT_PUBLIC_SITE_URL, which CI sets; clear it here.
+  const saved = process.env.NEXT_PUBLIC_SITE_URL;
+  delete process.env.NEXT_PUBLIC_SITE_URL;
+  try {
+    assert.equal(siteOrigin(), null);
+  } finally {
+    if (saved !== undefined) process.env.NEXT_PUBLIC_SITE_URL = saved;
+  }
   assert.equal(siteOrigin(""), null);
   assert.equal(siteOrigin("   "), null);
   assert.equal(siteOrigin("https://<your-domain>"), null);
