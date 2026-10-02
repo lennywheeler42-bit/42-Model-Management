@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { AuthShell } from "../AuthShell";
+import { SignOutLink } from "../SignOutLink";
 import { ResetForm } from "./ResetForm";
 
 export const metadata = { title: "Choose a new password", robots: { index: false } };
@@ -15,5 +16,6 @@ export default async function ResetPasswordPage() {
   return <AuthShell eyebrow={firstSignIn ? "Welcome" : "Account recovery"} title={firstSignIn ? "Choose your own password." : "Choose a new password."}
     intro={`For ${user.email ?? "your account"}. ${firstSignIn ? "Replace the temporary password you were given. " : ""}Use at least 10 characters; a passphrase is easiest to remember.`}>
     <ResetForm firstSignIn={firstSignIn} />
+    <SignOutLink />
   </AuthShell>;
 }
