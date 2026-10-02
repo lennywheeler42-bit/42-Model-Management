@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Eye, EyeOff, KeyRound, Pencil, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -46,7 +46,11 @@ export function TeamPanel({ members }: { members: Member[] }) {
     event.preventDefault();
     if (!editing) return;
     const values = readForm(event.currentTarget);
-    if (await run("/api/dashboard/team", { body: { email: editing.email, fullName: values.fullName, role: values.role, status: values.status }, success: "Access updated" })) setEditing(null);
+    const password = values.password || undefined;
+    if (await run("/api/dashboard/team", {
+      body: { email: editing.email, fullName: values.fullName, role: values.role, status: values.status, password },
+      success: password ? "Access updated. They will get an email to confirm, then sign in with the temporary password." : "Access updated",
+    })) setEditing(null);
   }
 
   return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[340px_1fr]">
@@ -79,6 +83,9 @@ export function TeamPanel({ members }: { members: Member[] }) {
         <TextField label="Full name" name="fullName" defaultValue={editing.full_name} />
         <SelectField label="Role" name="role" defaultValue={editing.role} options={ROLE_OPTIONS} />
         <SelectField label="Status" name="status" defaultValue={editing.status} options={STATUS_OPTIONS} hint="Suspended members lose access immediately." />
+        {editing.user_id
+          ? <p className="rounded-md bg-[#f3f3f0] px-3 py-2.5 text-[11px] text-[#6b6d66]">This person already has an account. They change their password in My profile, or with “Forgot password” on the sign-in page.</p>
+          : <TemporaryPassword />}
         <div className="flex justify-end gap-2 border-t border-[#efefeb] pt-4"><Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button><Button type="submit" disabled={pending}>Save</Button></div>
       </form>}
     </Dialog>
@@ -88,6 +95,7 @@ export function TeamPanel({ members }: { members: Member[] }) {
 // Optional temporary password: the teammate confirms their email, signs in with it,
 // and is asked to choose their own straight away.
 function TemporaryPassword() {
+  const id = useId();
   const [value, setValue] = useState("");
   const [visible, setVisible] = useState(false);
 
@@ -99,17 +107,17 @@ function TemporaryPassword() {
   }
 
   return <div>
-    <label htmlFor="temporary-password" className="block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Temporary password <span className="font-600 normal-case tracking-normal">(optional)</span></label>
+    <label htmlFor={id} className="block text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Temporary password <span className="font-600 normal-case tracking-normal">(optional)</span></label>
     <div className="mt-2 flex gap-2">
       <div className="relative min-w-0 flex-1">
-        <input id="temporary-password" name="password" type={visible ? "text" : "password"} value={value} onChange={(event) => setValue(event.target.value)}
-          minLength={10} maxLength={72} autoComplete="new-password" aria-describedby="temporary-password-hint"
+        <input id={id} name="password" type={visible ? "text" : "password"} value={value} onChange={(event) => setValue(event.target.value)}
+          minLength={10} maxLength={72} autoComplete="new-password" aria-describedby={`${id}-hint`}
           className="w-full rounded-md border border-[#dcdcd6] bg-white py-2.5 pl-3 pr-10 font-mono text-sm text-[#20211f] outline-none focus:border-[#a4502f] focus-visible:ring-2 focus-visible:ring-[#a4502f]/20" />
         <button type="button" onClick={() => setVisible((shown) => !shown)} aria-label={visible ? "Hide password" : "Show password"}
           className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[#6b6d66] hover:text-[#20211f]">{visible ? <EyeOff size={15} /> : <Eye size={15} />}</button>
       </div>
       <Button type="button" variant="secondary" onClick={generate} className="shrink-0"><KeyRound size={14} /> Generate</Button>
     </div>
-    <p id="temporary-password-hint" className="mt-1.5 text-[11px] text-[#6b6d66]">Leave blank if they use Google. Otherwise they confirm their email, sign in with this password, and must choose their own.</p>
+    <p id={`${id}-hint`} className="mt-1.5 text-[11px] text-[#6b6d66]">Leave blank if they use Google. Otherwise they confirm their email, sign in with this password, and must choose their own.</p>
   </div>;
 }
