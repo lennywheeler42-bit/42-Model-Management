@@ -11,6 +11,21 @@
   const DASHBOARD = "https://42-model-management-kappa.vercel.app";
   const state = (window.__cdsImport = { phase: "starting", listed: 0, read: 0, sent: 0, unmatched: [], errors: [] });
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // Background tabs throttle timers, so a wait is tied to the request the page
+  // itself starts (jQuery "ajaxComplete"). The page keeps one long request open,
+  // so "all requests finished" never happens; returns false if none started.
+  const whenLoaded = async (win, trigger) => {
+    const $ = win.jQuery;
+    if (!$) { trigger(); await sleep(1500); return true; }
+    const before = $.active;
+    const done = new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), 30000);
+      $(win.document).one("ajaxComplete", () => { clearTimeout(timer); resolve(true); });
+    });
+    trigger();
+    if ($.active <= before) return false;
+    return done;
+  };
   const parse = (html) => new DOMParser().parseFromString(html, "text/html");
   const get = (path) => fetch(path, { credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest" } })
     .then((r) => { if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`); return r; });
@@ -31,13 +46,15 @@
 
   // Talent search lists 15 at a time as you scroll; scroll until all are shown.
   async function talentIds() {
-    const total = Number((document.body.innerText.match(/(\d+)\s+results?/i) || [])[1] || 0);
+    const count = () => Number((document.body.innerText.match(/(\d+)\s+results?/i) || [])[1] || 0);
+    for (let wait = 0; wait < 30 && !count(); wait += 1) await sleep(1000);
+    const total = count();
+    if (!total) throw new Error("The talent list did not load; reload this window and run again");
     const collect = () => [...new Set([...document.querySelectorAll("a[href]")]
       .map((a) => (a.getAttribute("href").match(/^(?:https:\/\/app\.webforfashion\.com)?\/(?:imaging\/talent|talent\/edit)\/(\d+)$/) || [])[1]).filter(Boolean))];
     let ids = collect();
     for (let round = 0, still = 0; round < 60 && ids.length < total && still < 4; round += 1) {
-      window.scrollTo(0, document.body.scrollHeight);
-      await sleep(1500);
+      await whenLoaded(window, () => { window.scrollTo(0, document.body.scrollHeight); window.jQuery?.(window).trigger("scroll"); });
       const next = collect();
       still = next.length === ids.length ? still + 1 : 0;
       ids = next;
@@ -56,15 +73,13 @@
     document.body.appendChild(frame);
     try {
       await loaded;
-      await sleep(800);
       const win = frame.contentWindow;
       const doc = frame.contentDocument;
       const ids = () => new Set([...doc.querySelectorAll("[data-media-id]")].map((e) => e.getAttribute("data-media-id"))).size;
       const total = () => Number((doc.body.innerText.match(/\(\s*\d+\s*\/\s*(\d+)\s*(images?|digitals?|videos?|photos?)\)/i) || [])[1] || 0);
       for (let round = 0, still = 0; round < 200 && typeof win.loadMorePhotos === "function" && still < 3 && (!total() || ids() < total()); round += 1) {
         const before = ids();
-        win.loadMorePhotos();
-        await sleep(1500);
+        if (!(await whenLoaded(win, () => win.loadMorePhotos()))) break;
         still = ids() === before ? still + 1 : 0;
       }
       const seen = new Set();
@@ -103,9 +118,10 @@
       const status = byName(label.name.replace("[label]", "[status]"));
       if (status && status !== "...") stats[`characteristic_${label.value.toLowerCase().replace(/\W+/g, "_")}`] = status.slice(0, 120);
     }
+    // The skill field is a list: keep the option's name, not its id.
     const skills = [...doc.querySelectorAll('[name^="talent_form[talent_skills]"][name$="[skill]"]')].map((el) => ({
-      skill: el.value.trim(), level: byName(el.name.replace("[skill]", "[level]")) || null,
-    })).filter((s) => s.skill);
+      skill: el.tagName === "SELECT" ? (el.selectedOptions[0]?.textContent || "").trim() : el.value.trim(), level: byName(el.name.replace("[skill]", "[level]")) || null,
+    })).filter((s) => s.skill && !/^\d+$/.test(s.skill));
     const month = byName("talent_form[birthdate][month]"), day = byName("talent_form[birthdate][day]"), year = byName("talent_form[birthdate][year]");
     return {
       first_name: byName("talent_form[firstname]"),
@@ -129,7 +145,6 @@
       const html = parse(body.html || "");
       const media = [...new Set([...html.querySelectorAll("[data-media-id]")].map((e) => e.getAttribute("data-media-id")).filter((m) => /^\d+$/.test(m)))];
       result.push({ id: portfolioId, name: name.slice(0, 120), website: /Website Available since/i.test(body.html || "") || /Website Available since/i.test(item.parentElement?.textContent || ""), media });
-      await sleep(200);
     }
     return result;
   }
@@ -139,9 +154,11 @@
     const images = await galleryItems(`/imaging/talent/${id}`);
     const digitals = await galleryItems(`/imaging/talent/${id}/digitals`);
     const videos = await galleryItems(`/imaging/talent/${id}/videos`);
+    // Digitals are also in the full image list: keep one entry, marked digital.
+    const digitalIds = new Set(digitals.map((m) => m.id));
     const media = [
-      ...images.map((m, i) => ({ id: m.id, kind: "image", position: i, metadata: { web: m.web, primary: m.primary } })),
-      ...digitals.map((m, i) => ({ id: m.id, kind: "digital", position: i, metadata: {} })),
+      ...images.map((m, i) => ({ id: m.id, kind: digitalIds.has(m.id) ? "digital" : "image", position: i, metadata: { web: m.web, primary: m.primary } })),
+      ...digitals.filter((m) => !images.some((i) => i.id === m.id)).map((m, i) => ({ id: m.id, kind: "digital", position: images.length + i, metadata: {} })),
       ...videos.map((m, i) => ({ id: m.id, kind: "video", position: i, metadata: {} })),
     ];
     return { wff_id: id, ...profile, portfolios: await portfolios(id), media };
@@ -149,7 +166,8 @@
 
   (async () => {
     if (!window.opener) throw new Error("Open this window from Dashboard → CDS Import");
-    const ids = await talentIds();
+    // window.__cdsOnly = ["138421"] limits a run to chosen talents (pilot).
+    const ids = Array.isArray(window.__cdsOnly) ? window.__cdsOnly : await talentIds();
     state.listed = ids.length;
     state.phase = "reading";
     for (const id of ids) {
@@ -160,7 +178,6 @@
         if (ack.unmatched?.length) state.unmatched.push(...ack.unmatched);
       } catch (error) { state.errors.push(`${id}: ${error.message}`); }
       state.read += 1;
-      await sleep(400);
     }
     state.phase = "done";
   })().catch((error) => { state.phase = "failed"; state.errors.push(String(error?.message || error)); });

@@ -48,7 +48,7 @@ test("CDS portfolios map to existing website boards, or plan a new one", () => {
 });
 
 test("measurements are read from CDS text values", () => {
-  assert.deepEqual(measurementRow({ height_cm: "175 cm", bust_cm: "81 cm", waist_cm: "61 cm", hips_cm: "90 cm", shoe_us: "8.5", hair_color: "Dark Brown", eyes_color: "Brown", dress_us: "0-2", head_cm: "..." }), {
+  assert.deepEqual(measurementRow({ height_cm: "175 cm", bust_cm: "81 cm", waist_cm: "61 cm", hips_cm: "90 cm", shoe_us: "8.5", hair_color: "Dark Brown", eyes_color: "Brown", dress_size_us: "0-2", head_cm: "..." }), {
     height_cm: 175, bust_chest_cm: 81, waist_cm: 61, hips_cm: 90, shoe_size_us: "8.5", hair_color: "Dark Brown", hair_length: null, hair_type: null,
     eye_color: "Brown", body_type: null, dress_size: "0-2", collar_cm: null, head_cm: null,
   });

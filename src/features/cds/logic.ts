@@ -123,7 +123,7 @@ export function measurementRow(stats: Record<string, string>) {
     hair_type: text(stats.hair_type),
     eye_color: text(stats.eyes_color),
     body_type: text(stats.body_type),
-    dress_size: text(stats.dress_us),
+    dress_size: text(stats.dress_size_us),
     collar_cm: number(stats.collar_cm),
     head_cm: number(stats.head_cm),
   };
