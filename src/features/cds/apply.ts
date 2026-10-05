@@ -25,8 +25,11 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
     .order("last_name").order("first_name").limit(limit);
   if (error) throw error;
   const batch = (pending ?? []) as StagedTalent[];
-  const result = { matched: 0, created: 0, review: 0, boardsCreated: 0 };
-  if (!batch.length) return { ...result, remaining: 0 };
+  const result = { matched: 0, created: 0, review: 0, boardsCreated: 0, repaired: 0 };
+  if (!batch.length) {
+    result.repaired = await repairMeasurements(supabase);
+    return { ...result, remaining: 0 };
+  }
 
   const boardFor = await ensurePortfolioBoards(supabase, [...new Set(batch.flatMap((t) => t.portfolios.map((p) => p.name)))], result);
   const candidates = await loadCandidates(supabase);
@@ -54,6 +57,27 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
   const { count } = await supabase.from("cds_talents").select("cds_id", { count: "exact", head: true })
     .eq("match_status", "pending").eq("excluded", false).is("talent_id", null).not("wff_id", "is", null);
   return { ...result, remaining: count ?? 0 };
+}
+
+// Talents created while a step failed ("Created; missing measurements") get the
+// missing measurements on the next run, once; nothing else is touched.
+async function repairMeasurements(supabase: SupabaseClient) {
+  const { data, error } = await supabase.from("cds_talents").select("cds_id,talent_id,profile,match_reason")
+    .eq("match_status", "created").ilike("match_reason", "%missing%measurements%").not("talent_id", "is", null).limit(50);
+  if (error) throw error;
+  let repaired = 0;
+  for (const row of data ?? []) {
+    const { count } = await supabase.from("talent_measurements").select("id", { count: "exact", head: true }).eq("talent_id", row.talent_id).eq("source", "cds");
+    const measurements = measurementRow((row.profile as StagedProfile).stats ?? {});
+    if (!count && measurements) {
+      const { error: insertError } = await supabase.from("talent_measurements").insert({ ...measurements, talent_id: row.talent_id, is_official: true, source: "cds" });
+      if (insertError) { log.error("cds", "measurements repair failed", insertError, { cds: row.cds_id }); continue; }
+    }
+    const rest = (row.match_reason as string).replace(/^Created; missing /, "").split(", ").filter((step) => step !== "measurements");
+    await stage(supabase, row.cds_id, { match_reason: rest.length ? `Created; missing ${rest.join(", ")}` : "Created from CDS" });
+    repaired += 1;
+  }
+  return repaired;
 }
 
 async function stage(supabase: SupabaseClient, cdsId: string, values: Record<string, unknown>) {

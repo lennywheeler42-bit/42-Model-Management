@@ -36,6 +36,12 @@ describe("phase 20: CDS import staging", () => {
     assert.ok(await rejects(db, users.owner, "update public.cds_talents set talent_id = $1 where cds_id = '1403614'", [ids.draftTalent]));
   });
 
+  test("imported measurements and photos may be marked as coming from CDS", async () => {
+    await as(db, users.owner, "insert into public.talent_measurements (talent_id, height_cm, is_official, source) values ($1, 175, true, 'cds')", [ids.draftTalent]);
+    await as(db, users.owner, "insert into public.talent_photos (talent_id, storage_path, source, external_id) values ($1, 'x/cds.jpg', 'cds', 'cds-1')", [ids.draftTalent]);
+    assert.ok(await rejects(db, users.owner, "insert into public.talent_measurements (talent_id, source) values ($1, 'elsewhere')", [ids.draftTalent]));
+  });
+
   test("statuses and media kinds are constrained", async () => {
     assert.ok(await rejects(db, users.owner, "update public.cds_talents set match_status = 'merged' where cds_id = '1429427'"));
     assert.ok(await rejects(db, users.owner, "insert into public.cds_media (wff_media_id, cds_id, kind) values ('x3', '1429427', 'pdf')"));

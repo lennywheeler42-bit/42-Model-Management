@@ -73,7 +73,7 @@ export function CdsImportPanel({ pending }: { pending: number }) {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) { toast.error(payload.error ?? "The import stopped. Try again."); break; }
         totals = { matched: totals.matched + payload.matched, created: totals.created + payload.created, review: totals.review + payload.review, boardsCreated: totals.boardsCreated + payload.boardsCreated };
-        note(`Added ${payload.created}, already in dashboard ${payload.matched}, to review ${payload.review}; ${payload.remaining} left`, "ok");
+        note(`Added ${payload.created}, already in dashboard ${payload.matched}, to review ${payload.review}${payload.repaired ? `, completed ${payload.repaired}` : ""}; ${payload.remaining} left`, "ok");
         if (!payload.remaining) break;
       }
       toast.success(`${totals.created} new talents added as drafts; ${totals.matched} were already in the dashboard${totals.review ? `; ${totals.review} need review` : ""}.`);
@@ -87,7 +87,7 @@ export function CdsImportPanel({ pending }: { pending: number }) {
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => open("cds")}><ExternalLink size={14} /> 1. Open CDS</Button>
       <Button onClick={() => open("wff")}><ExternalLink size={14} /> 2. Open WebForFashion</Button>
-      <Button variant="secondary" onClick={addNewTalents} disabled={applying || (pending === 0 && received === 0)}><UserPlus size={14} /> {applying ? "Adding…" : `3. Add new talents${pending ? ` (${pending} ready)` : ""}`}</Button>
+      <Button variant="secondary" onClick={addNewTalents} disabled={applying}><UserPlus size={14} /> {applying ? "Adding…" : `3. Add new talents${pending ? ` (${pending} ready)` : ""}`}</Button>
       {received > 0 && <Button variant="ghost" onClick={() => router.refresh()}>Refresh totals ({received} received)</Button>}
     </div>
     {lines.length > 0 && <ol className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-[#efefeb] bg-[#fafaf8] p-3 font-mono text-[11px]" aria-live="polite">
