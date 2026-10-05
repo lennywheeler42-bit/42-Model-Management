@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { writeAudit } from "@/lib/api";
 import { log } from "@/lib/log";
 import { slugify } from "@/lib/validation";
-import { matchTalent, measurementRow, planPortfolioBoard, type BoardRef, type MatchCandidate } from "./logic";
+import { matchTalent, measurementRow, normalizeLocation, planPortfolioBoard, type BoardRef, type MatchCandidate } from "./logic";
 import type { StagedPortfolio, StagedProfile } from "./schema";
 
 type StagedTalent = {
@@ -27,7 +27,7 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
   const batch = (pending ?? []) as StagedTalent[];
   const result = { matched: 0, created: 0, review: 0, boardsCreated: 0, repaired: 0 };
   if (!batch.length) {
-    result.repaired = await repairMeasurements(supabase);
+    result.repaired = await repairMeasurements(supabase) + await repairLocations(supabase);
     return { ...result, remaining: 0 };
   }
 
@@ -75,6 +75,29 @@ async function repairMeasurements(supabase: SupabaseClient) {
     }
     const rest = (row.match_reason as string).replace(/^Created; missing /, "").split(", ").filter((step) => step !== "measurements");
     await stage(supabase, row.cds_id, { match_reason: rest.length ? `Created; missing ${rest.join(", ")}` : "Created from CDS" });
+    repaired += 1;
+  }
+  return repaired;
+}
+
+// Talents created before locations were normalised keep the raw CDS text
+// ("Fort worth"). Tidy it only while the talent still holds exactly that text,
+// so a location staff have since edited is never overwritten.
+async function repairLocations(supabase: SupabaseClient) {
+  const { data: staged, error } = await supabase.from("cds_talents").select("talent_id,location")
+    .eq("match_status", "created").not("talent_id", "is", null).not("location", "is", null).limit(500);
+  if (error) throw error;
+  const raw = new Map((staged ?? []).map((row) => [row.talent_id as string, row.location as string]));
+  if (!raw.size) return 0;
+  const { data: talents, error: talentError } = await supabase.from("talent").select("id,location").in("id", [...raw.keys()]);
+  if (talentError) throw talentError;
+  let repaired = 0;
+  for (const talent of talents ?? []) {
+    const original = raw.get(talent.id);
+    const tidy = normalizeLocation(original);
+    if (talent.location !== original || tidy === original) continue;
+    const { error: updateError } = await supabase.from("talent").update({ location: tidy }).eq("id", talent.id);
+    if (updateError) { log.error("cds", "location repair failed", updateError, { talent: talent.id }); continue; }
     repaired += 1;
   }
   return repaired;
@@ -178,7 +201,7 @@ async function createTalent(supabase: SupabaseClient, staged: StagedTalent, boar
     last_name: staged.last_name ?? "",
     display_name: name,
     gender: staged.gender,
-    location: staged.location,
+    location: normalizeLocation(staged.location),
     date_joined: staged.profile.date_joined,
     is_minor: minor,
     guardian_required: minor,

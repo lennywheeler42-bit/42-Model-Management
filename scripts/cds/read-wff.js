@@ -5,7 +5,8 @@
 // page ("All active"). It runs in the background; read window.__cdsImport.
 //
 // Read-only: GET requests and the gallery's own "load more" only. Photo files
-// are not downloaded here (they are copied later, server-side). Ethnicity, rates,
+// are never downloaded here: in photo mode (window.__cdsMode = "photos") the
+// signed links are handed to the dashboard, whose server copies the files. Ethnicity, rates,
 // commission, billing and documents are never read.
 (() => {
   const DASHBOARD = "https://42-model-management-kappa.vercel.app";
@@ -88,7 +89,7 @@
         if (!/^\d+$/.test(id) || seen.has(id)) return null;
         seen.add(id);
         const card = el.closest(".imaging-widget-media") || el.parentElement;
-        return { id, web: /\bWEB\b/.test(card?.innerText || ""), primary: Boolean(card?.querySelector(".fa-star")) };
+        return { id, web: /\bWEB\b/.test(card?.innerText || ""), primary: Boolean(card?.querySelector(".fa-star")), big: el.getAttribute("data-src-big") || "" };
       }).filter(Boolean);
     } finally {
       frame.remove();
@@ -164,8 +165,42 @@
     return { wff_id: id, ...profile, portfolios: await portfolios(id), media };
   }
 
+  // Photo mode (window.__cdsMode = "photos"): asks the dashboard which photos to
+  // copy, reads each one's signed full-size link from the gallery, and hands the
+  // links over a few at a time; the dashboard's server copies the files. Nothing
+  // is downloaded in this browser.
+  async function copyPhotos() {
+    const plan = (await send({ plan: true })).result;
+    const only = Array.isArray(window.__cdsOnly) ? new Set(window.__cdsOnly) : null;
+    const talents = plan.talents.filter((t) => !only || only.has(t.wff_id));
+    Object.assign(state, { phase: "copying", listed: talents.length, photos: 0, failed: 0, missing: [] });
+    for (const talent of talents) {
+      try {
+        if (talent.media.length) {
+          const wanted = new Set(talent.media);
+          const found = new Map();
+          for (const path of [`/imaging/talent/${talent.wff_id}`, `/imaging/talent/${talent.wff_id}/digitals`]) {
+            for (const item of await galleryItems(path)) if (wanted.has(item.id) && item.big && !found.has(item.id)) found.set(item.id, item.big);
+          }
+          if (found.size < wanted.size) state.missing.push(`${talent.name}: ${wanted.size - found.size} not found`);
+          const items = [...found].map(([id, url]) => ({ id, url }));
+          for (let start = 0; start < items.length; start += 6) {
+            const result = (await send({ photos: items.slice(start, start + 6) })).result;
+            state.photos += result.imported + result.duplicate;
+            state.failed += result.failed;
+          }
+        }
+        await send({ finish: talent.wff_id, name: talent.name });
+        state.sent += 1;
+      } catch (error) { state.errors.push(`${talent.name}: ${error.message}`); }
+      state.read += 1;
+    }
+    state.phase = "done";
+  }
+
   (async () => {
     if (!window.opener) throw new Error("Open this window from Dashboard → CDS Import");
+    if (window.__cdsMode === "photos") return copyPhotos();
     // window.__cdsOnly = ["138421"] limits a run to chosen talents (pilot).
     const ids = Array.isArray(window.__cdsOnly) ? window.__cdsOnly : await talentIds();
     state.listed = ids.length;

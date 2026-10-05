@@ -21,29 +21,40 @@ export default async function CdsImportPage() {
 
   let data;
   try {
-    const [talents, pending, images, digitals, videos, imported, mappings] = await Promise.all([
+    const [talents, pending, images, digitals, videos, imported, failed, skipped, mappings] = await Promise.all([
       supabase.from("cds_talents").select("cds_id,first_name,last_name,match_status,match_reason,talent_id,portfolios,cds_boards").eq("excluded", false).order("last_name").order("first_name").limit(1000),
       count(supabase.from("cds_talents").select("cds_id", head).eq("match_status", "pending").eq("excluded", false).not("wff_id", "is", null)),
       count(supabase.from("cds_media").select("wff_media_id", head).eq("kind", "image")),
       count(supabase.from("cds_media").select("wff_media_id", head).eq("kind", "digital")),
       count(supabase.from("cds_media").select("wff_media_id", head).eq("kind", "video")),
       count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "imported")),
+      count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "failed")),
+      count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "skipped")),
       supabase.from("cds_portfolio_boards").select("portfolio_name,mapping_source,board:board_id(name,publish_to_website)").order("portfolio_name"),
     ]);
-    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, mappings: mappings.data ?? [] };
+    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, mappings: mappings.data ?? [] };
   } catch (error) {
     log.error("cds", "overview failed", error);
     return <ErrorState title="The CDS import status could not be loaded" />;
   }
   const by = (status: string) => data.talents.filter((t) => t.match_status === status).length;
+  const listed = data.images + data.digitals + data.videos;
+  const skipped = data.skipped;
+  const selected = listed - skipped;
   const tiles: [string, number, string][] = [
     ["Talents read from CDS", data.talents.length, "Model Luxe Media and 42 Model Management are skipped"],
     ["Added as new drafts", by("created"), "Not published; review, then publish"],
     ["Already in the dashboard", by("matched"), "Linked; existing details unchanged"],
     ["Need review", by("review"), "Possible duplicates; not added"],
-    ["Photos listed", data.images + data.digitals + data.videos, `${data.images} photos · ${data.digitals} digitals · ${data.videos} videos`],
-    ["Photos copied", data.imported, "Waits for the Supabase Pro upgrade"],
+    ["Photos listed", listed, `${data.images} photos · ${data.digitals} digitals · ${data.videos} videos`],
+    ["Photos copied", data.imported, skipped ? `of ${selected} selected${data.failed ? ` · ${data.failed} failed` : ""}` : "Not started"],
   ];
+  const status = !data.talents.length ? "Not started"
+    : data.pending ? `In progress: ${data.pending} talents still to add (step 3)`
+    : !skipped ? "Talents added; photos not copied yet (step 4)"
+    : data.imported + data.failed < selected ? `In progress: ${selected - data.imported - data.failed} photos still to copy (step 4)`
+    : data.failed ? `Finished, with ${data.failed} photos that could not be copied (run step 4 again to retry)`
+    : "Import finished: talents added and photos copied";
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Administration" title="CDS Import" description="Bring talents, boards and the photo list over from CDS / WebForFashion, using your own CDS sign-in in this browser. Nothing is published automatically." />
@@ -51,7 +62,9 @@ export default async function CdsImportPage() {
       <p className="text-[10px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">{label}</p><p className="mt-2 text-2xl font-800">{value}</p><p className="mt-1 text-[11px] text-[#6b6d66]">{hint}</p>
     </div>)}</div>
 
-    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. Photos are copied later.">
+    <p className="rounded-lg border border-[#e7e7e3] bg-white px-4 py-3 text-sm"><span className="font-800">Status:</span> {status}</p>
+
+    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. 4 copies their photos (portfolios, digitals and the cover, resized) from the WebForFashion window and sets each profile picture.">
       <CdsImportPanel pending={data.pending} />
     </Card>
 

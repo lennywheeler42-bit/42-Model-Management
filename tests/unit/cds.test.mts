@@ -1,7 +1,8 @@
 // CDS import rules. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isExcludedName, matchTalent, measurementRow, planPortfolioBoard, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { isCdsMediaUrl, isExcludedName, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { talentSummary } from "../../src/features/talent/summary.ts";
 
 test("agency placeholder records are excluded", () => {
   assert.equal(isExcludedName("***MODEL LUXE", "MEDIA"), true);
@@ -53,4 +54,37 @@ test("measurements are read from CDS text values", () => {
     eye_color: "Brown", body_type: null, dress_size: "0-2", collar_cm: null, head_cm: null,
   });
   assert.equal(measurementRow({ height_cm: "...", hair_color: "" }), null);
+});
+
+test("CDS locations are tidied, placeholders become Location TBA", () => {
+  assert.equal(normalizeLocation("Fort worth"), "Fort Worth");
+  assert.equal(normalizeLocation("  DALLAS, tx "), "Dallas, TX");
+  assert.equal(normalizeLocation("..."), null);
+  assert.equal(normalizeLocation("CDS"), null);
+  assert.equal(normalizeLocation(null), null);
+  assert.equal(talentSummary(null, "Female", 22), "Location TBA · Female · 22 yrs");
+  assert.equal(talentSummary("Dallas", "Female", 37), "Dallas · Female · 37 yrs");
+  assert.equal(talentSummary("", null, null), "Location TBA");
+});
+
+test("photo copy takes portfolios, digitals and the cover, not the whole library", () => {
+  const media = [
+    { id: "1", kind: "image" as const, position: 0, metadata: { web: true } },
+    { id: "2", kind: "image" as const, position: 1, metadata: { primary: true } },
+    { id: "3", kind: "image" as const, position: 2, metadata: {} },
+    { id: "4", kind: "digital" as const, position: 3, metadata: {} },
+    { id: "5", kind: "video" as const, position: 0, metadata: {} },
+  ];
+  assert.deepEqual(selectPhotos(media, [{ name: "Fashion-Women", media: ["3"] }]), ["2", "3", "4"]);
+  // No portfolio: the WEB-marked photos keep the talent from having no pictures.
+  assert.deepEqual(selectPhotos(media, []), ["1", "2", "4"]);
+  assert.equal(pickCover(media, [{ name: "A", media: ["3"] }], new Set(["2", "3"])), "2");
+  assert.equal(pickCover(media, [{ name: "A", media: ["3"] }], new Set(["3"])), "3");
+});
+
+test("only the CDS media bucket is fetched", () => {
+  assert.equal(isCdsMediaUrl(new URL("https://cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com/uploads/x.jpg?X-Amz-Expires=1")), true);
+  assert.equal(isCdsMediaUrl(new URL("https://evil.s3.eu-west-1.amazonaws.com/x.jpg")), false);
+  assert.equal(isCdsMediaUrl(new URL("http://cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com/x.jpg")), false);
+  assert.equal(isCdsMediaUrl(new URL("https://169.254.169.254/latest")), false);
 });

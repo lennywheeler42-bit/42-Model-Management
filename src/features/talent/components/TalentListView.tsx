@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/format";
 import type { listTalent, loadBoards, TalentListRow } from "@/features/talent/queries";
 import { CrmBadges } from "@/features/ghl/components/CrmBadges";
 import { CRM_STATUSES, CRM_STATUS_LABELS } from "@/features/ghl/status";
+import { talentSummary } from "@/features/talent/summary";
 
 export type TalentSearch = { q?: string; status?: string; board?: string; program?: string; crm?: string; page?: string };
 
@@ -58,7 +59,7 @@ export function TalentListView({ result, boards, programs = [], search, canCreat
       empty={{ title: "No talent found", body: search.q || search.status || search.board || search.program || search.crm ? "Try different filters." : "Create the first talent record to get started." }}
       columns={[
         { key: "photo", header: "", className: "w-14", cell: (row) => <Thumb src={row.thumbnail} alt={row.display_name} /> },
-        { key: "name", header: "Talent", cell: (row) => <Link href={`/dashboard/talent/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.display_name}</span><span className="block text-[11px] text-[#6b6d66]">{[row.talent_id, row.location, row.gender, row.age !== null ? `${row.age} yrs` : null].filter(Boolean).join(" · ")}</span></Link> },
+        { key: "name", header: "Talent", cell: (row) => <Link href={`/dashboard/talent/${row.id}`} className="block"><span className="font-700 hover:text-[#a4502f]">{row.display_name}</span><span className="block text-[11px] text-[#6b6d66]">{talentSummary(row.location, row.gender, row.age)}</span>{row.talent_id && <span className="block text-[10px] uppercase tracking-[.08em] text-[#8a8c84]">{row.talent_id}</span>}</Link> },
         { key: "program", header: "Program (GHL)", cell: (row) => <CrmBadges status={row.crm_status} programs={row.crm_programs} /> },
         { key: "boards", header: "Boards", cell: (row) => row.boards.length ? <span className="text-xs text-[#5f615b]">{row.boards.map((board) => board.name).join(", ")}</span> : <span className="text-xs text-[#717369]">Unassigned</span> },
         { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.publication_status} /> },

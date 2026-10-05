@@ -7,6 +7,7 @@ import { Thumb } from "@/components/ui/Thumb";
 import { useMutation } from "@/lib/use-mutation";
 import { CrmBadges } from "@/features/ghl/components/CrmBadges";
 import type { TalentCore } from "../types";
+import { talentSummary } from "../summary";
 
 export function TalentHeader({ talent, age, thumbnail, canPublish, canArchive, boardCount, photos }: {
   talent: TalentCore; age: number | null; thumbnail: string | null; canPublish: boolean; canArchive: boolean; boardCount: number;
@@ -49,7 +50,7 @@ Cancel: go back without publishing.`)) {
           {talent.featured && <Badge tone="review">Featured</Badge>}
           {talent.is_minor && <Badge tone="internal">Minor</Badge>}
           <CrmBadges status={talent.crm_status} programs={talent.crm_programs} />
-          <span>{[talent.location, talent.gender, age !== null ? `${age} yrs` : null].filter(Boolean).join(" · ")}</span>
+          <span>{talentSummary(talent.location, talent.gender, age)}</span>
         </div>
       </div>
     </div>

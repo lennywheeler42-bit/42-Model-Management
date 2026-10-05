@@ -20,14 +20,15 @@ function allowedHost(url: URL) {
   return url.protocol === "https:" && hosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
 }
 
-// Fetches a photo from GHL's file storage. Every redirect hop must stay on an
+// Fetches a photo from GHL's file storage (or the hosts `isAllowed` accepts,
+// e.g. the CDS media bucket). Every redirect hop must stay on an
 // allowed host (an allowed host cannot bounce the server to an internal
 // address), and the body is read with a running size cap so a huge or endless
 // response is cut off rather than buffered.
-export async function downloadPhoto(start: URL, maxBytes = MAX_BYTES): Promise<Buffer> {
+export async function downloadPhoto(start: URL, maxBytes = MAX_BYTES, isAllowed: (url: URL) => boolean = allowedHost): Promise<Buffer> {
   let url = start;
   for (let hop = 0; hop <= 3; hop += 1) {
-    if (!allowedHost(url)) throw new Error(`host not allowed: ${url.hostname}`);
+    if (!isAllowed(url)) throw new Error(`host not allowed: ${url.hostname}`);
     const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");

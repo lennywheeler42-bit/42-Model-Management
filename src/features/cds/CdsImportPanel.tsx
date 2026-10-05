@@ -19,7 +19,8 @@ type Line = { at: string; text: string; tone: "ok" | "error" | "info" };
 // Steps 1 and 2 receive data from CDS and WebForFashion windows opened from here,
 // by postMessage (no files are downloaded): { type: "cds-import/batch",
 // requestId, payload: { talents?, wff? } } — the body of /api/dashboard/cds/ingest.
-// Step 3 adds the talents not yet in the dashboard.
+// Step 3 adds the talents not yet in the dashboard. Step 4 (photos) runs from the
+// WebForFashion window too: { plan | photos | finish } go to /api/dashboard/cds/photos.
 export function CdsImportPanel({ pending }: { pending: number }) {
   const router = useRouter();
   const toast = useToast();
@@ -37,9 +38,25 @@ export function CdsImportPanel({ pending }: { pending: number }) {
       const reply = (message: Record<string, unknown>) => (event.source as Window | null)?.postMessage(message, event.origin);
       if (event.data.type === "cds-import/hello") { reply({ type: "cds-import/ready" }); return; }
       if (event.data.type !== "cds-import/batch" || typeof event.data.payload !== "object" || !event.data.payload) return;
-      const payload = event.data.payload as { talents?: { first_name?: string; last_name?: string }[]; wff?: { first_name?: string; last_name?: string }[] };
+      const payload = event.data.payload as { talents?: { first_name?: string; last_name?: string }[]; wff?: { first_name?: string; last_name?: string }[]; plan?: true; photos?: unknown[]; finish?: string; name?: string };
       const talents = [...(payload.talents ?? []), ...(payload.wff ?? [])];
       const requestId = event.data.requestId;
+      // Photo copy (step 4): plan, copy a few photos, or finish one talent.
+      if (payload.plan || payload.photos || payload.finish) {
+        queue.current = queue.current.then(async () => {
+          const body = payload.plan ? { plan: true } : payload.photos ? { photos: payload.photos } : { finish: payload.finish };
+          const response = await fetch("/api/dashboard/cds/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+          const result = response ? await response.json().catch(() => ({})) : { error: "Network error" };
+          if (!response?.ok) note(`Photo copy: ${result.error ?? "error"}`, "error");
+          else if (payload.plan) note(`Photo copy: ${result.selected} photos selected for ${result.talents.length} talents; ${result.imported} already copied`, "ok");
+          else if (payload.photos) {
+            setReceived((count) => count + (result.imported ?? 0));
+            if (result.failed) note(`Photo copy: ${result.failed} could not be copied (${(result.errors ?? []).slice(0, 2).join("; ")})`, "error");
+          } else note(`Photos ready for ${payload.name ?? payload.finish}: ${result.cover ? "profile picture set, " : ""}${result.portfolios} portfolios`, "ok");
+          reply({ type: "cds-import/ack", requestId, ok: Boolean(response?.ok), error: response?.ok ? null : result.error ?? "error", result });
+        });
+        return;
+      }
       // One batch at a time, in arrival order.
       queue.current = queue.current.then(async () => {
         const response = await fetch("/api/dashboard/cds/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).catch(() => null);

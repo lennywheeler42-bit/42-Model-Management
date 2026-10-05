@@ -9,6 +9,16 @@ export function isExcludedName(firstName: string, lastName: string) {
   return EXCLUDED.has(letters(`${firstName}${lastName}`));
 }
 
+// CDS locations are typed by hand ("Fort worth", "DALLAS", "..."): title-case
+// real places, and drop placeholders so the dashboard shows "Location TBA".
+const NO_LOCATION = new Set(["", "na", "none", "tba", "tbd", "unknown", "other", "cds"]);
+export function normalizeLocation(value: string | null | undefined) {
+  const text = (value ?? "").replace(/\s+/g, " ").trim();
+  if (NO_LOCATION.has(letters(text))) return null;
+  return text.toLowerCase().replace(/(^|[\s\-/(])([a-z])/g, (_, before: string, first: string) => before + first.toUpperCase())
+    .replace(/\b(Tx|Ny|Ca|Fl|Usa|Uk)\b/g, (code) => code.toUpperCase());
+}
+
 // ---------------------------------------------------------------------------
 // Matching a CDS talent to an existing dashboard talent (never create twice)
 // ---------------------------------------------------------------------------
@@ -128,4 +138,51 @@ export function measurementRow(stats: Record<string, string>) {
     head_cm: number(stats.head_cm),
   };
   return Object.values(row).some((value) => value !== null) ? row : null;
+}
+
+// ---------------------------------------------------------------------------
+// Photo copy (WebForFashion → Supabase): which media to copy, and from where
+// ---------------------------------------------------------------------------
+
+// WebForFashion serves originals from one private S3 bucket through signed
+// links. Only that bucket is fetched, so a posted URL cannot point the server
+// at any other host.
+const CDS_MEDIA_HOSTS = new Set([
+  "cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com",
+  "cds-ob-619779309805-private-bucket.s3-eu-west-1.amazonaws.com",
+]);
+export function isCdsMediaUrl(url: URL) {
+  return url.protocol === "https:" && CDS_MEDIA_HOSTS.has(url.hostname.toLowerCase()) && !url.port;
+}
+
+export type MediaItem = { id: string; kind: "image" | "digital" | "video"; position: number; metadata: Record<string, unknown> };
+export type PortfolioRef = { name: string; website?: boolean; media: string[] };
+
+// Not the whole library (owner, 2026-10-06: keep storage small): the photos in
+// each CDS portfolio (these drive board placement), every digital, and the
+// starred cover. A talent with no portfolios gets the photos marked WEB, or
+// failing that the first 12 images, so every talent has pictures.
+export const FALLBACK_PHOTOS = 12;
+export function selectPhotos(media: MediaItem[], portfolios: PortfolioRef[]) {
+  const images = media.filter((m) => m.kind !== "video");
+  const inPortfolio = new Set(portfolios.flatMap((p) => p.media));
+  let chosen = images.filter((m) => inPortfolio.has(m.id) || m.kind === "digital" || m.metadata.primary === true);
+  if (!images.some((m) => inPortfolio.has(m.id))) {
+    const web = images.filter((m) => m.kind === "image" && m.metadata.web === true);
+    const extra = web.length ? web : images.filter((m) => m.kind === "image").sort((a, b) => a.position - b.position).slice(0, FALLBACK_PHOTOS);
+    chosen = [...chosen, ...extra.filter((m) => !chosen.includes(m))];
+  }
+  return chosen.sort((a, b) => a.position - b.position).map((m) => m.id);
+}
+
+// The cover (profile picture): the photo starred in WebForFashion, else the
+// first photo of the first portfolio, else the first copied image.
+export function pickCover(media: MediaItem[], portfolios: PortfolioRef[], copied: Set<string>) {
+  const starred = media.find((m) => m.metadata.primary === true && copied.has(m.id));
+  if (starred) return starred.id;
+  for (const portfolio of portfolios) {
+    const first = portfolio.media.find((id) => copied.has(id));
+    if (first) return first;
+  }
+  return media.filter((m) => m.kind === "image" && copied.has(m.id)).sort((a, b) => a.position - b.position)[0]?.id ?? null;
 }
