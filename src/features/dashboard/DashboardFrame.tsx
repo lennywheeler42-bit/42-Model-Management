@@ -5,14 +5,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   BriefcaseBusiness, CalendarCheck, CalendarDays, ContactRound, Globe2, Grid2X2, Inbox, LayoutDashboard, ListTodo, LogOut, Menu, MessageSquareDiff,
-  Package, RefreshCcwDot, Search, Settings2, UsersRound, Wallet, X,
+  Import, Package, RefreshCcwDot, Search, Settings2, UsersRound, Wallet, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { NavIcon, NavSection } from "./nav";
 
 const icons: Record<NavIcon, typeof LayoutDashboard> = {
   dashboard: LayoutDashboard, talent: UsersRound, applications: Inbox, bookings: CalendarCheck, requests: MessageSquareDiff, boards: Grid2X2, search: Search, calendar: CalendarDays, tasks: ListTodo,
-  companies: BriefcaseBusiness, contacts: ContactRound, packages: Package, finance: Wallet, website: Globe2, settings: Settings2, ghl: RefreshCcwDot,
+  companies: BriefcaseBusiness, contacts: ContactRound, packages: Package, finance: Wallet, website: Globe2, settings: Settings2, ghl: RefreshCcwDot, import: Import,
 };
 
 type Viewer = { name: string; email: string; role: string; avatarUrl: string | null };

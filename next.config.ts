@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Signed-in pages must never be stored by shared caches.
       { source: "/(dashboard|portal|preview|login)/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      // CDS Import opens CDS / WebForFashion in a popup and receives data from it
+      // by postMessage, so it keeps its opener link to popups (later rule wins).
+      { source: "/dashboard/cds", headers: [{ key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" }] },
       // Client package links: private, never indexed or cached.
       { source: "/p/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
     ];
