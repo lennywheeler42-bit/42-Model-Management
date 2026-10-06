@@ -41,7 +41,7 @@ export function ProfileHero({ images, name, categories, location, hasVideo, back
     <div className={`absolute inset-0 hidden gap-[2px] md:grid ${spread.length >= 3 ? "grid-cols-3" : spread.length === 2 ? "grid-cols-[1.1fr_1fr_1fr]" : "grid-cols-[1.4fr_1fr]"}`}>
       {spread.length < 3 && <div className="bg-[var(--ink)]" />}
       {spread.map((image, position) => <div key={`${image.src}-spread-${position}`} className="relative min-w-0 overflow-hidden">
-        <Image src={image.src} alt={image.alt} fill priority={position === 0} quality={PHOTO_QUALITY}
+        <Image src={image.src} alt={image.alt} fill priority quality={PHOTO_QUALITY}
           sizes={spread.length >= 3 ? "34vw" : spread.length === 2 ? "33vw" : "42vw"} className="object-cover object-[center_20%]" />
       </div>)}
     </div>
