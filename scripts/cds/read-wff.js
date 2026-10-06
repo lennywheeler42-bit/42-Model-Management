@@ -83,13 +83,14 @@
         if (!(await whenLoaded(win, () => win.loadMorePhotos()))) break;
         still = ids() === before ? still + 1 : 0;
       }
+      // On the Digitals page the id is on the <li> and the signed link on its <img>.
       const seen = new Set();
       return [...doc.querySelectorAll("[data-media-id]")].map((el) => {
         const id = el.getAttribute("data-media-id");
         if (!/^\d+$/.test(id) || seen.has(id)) return null;
         seen.add(id);
         const card = el.closest(".imaging-widget-media") || el.parentElement;
-        return { id, web: /\bWEB\b/.test(card?.innerText || ""), primary: Boolean(card?.querySelector(".fa-star")), big: el.getAttribute("data-src-big") || "" };
+        return { id, web: /\bWEB\b/.test(card?.innerText || ""), primary: Boolean(card?.querySelector(".fa-star")), big: el.getAttribute("data-src-big") || el.querySelector("[data-src-big]")?.getAttribute("data-src-big") || "" };
       }).filter(Boolean);
     } finally {
       frame.remove();

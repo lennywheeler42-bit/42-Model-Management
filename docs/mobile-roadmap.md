@@ -1,6 +1,6 @@
 # Talent mobile portal: architecture and roadmap
 
-Status: **plan only.** This work starts after the GHL sync is live and verified (see [ghl-sync.md](ghl-sync.md)). Nothing here changes the CRM sync.
+Status: **Mobile 2 (memberships) built; the rest is plan only.** This work starts after the GHL sync is live and verified (see [ghl-sync.md](ghl-sync.md)). Nothing here changes the CRM sync.
 
 ## What already exists
 
@@ -89,7 +89,7 @@ Today's flow is upload → `review_status = 'pending'` → staff approve → sta
 | Phase | Scope | Notes |
 |---|---|---|
 | **Mobile 1: polish what exists** | Web app manifest and icons; mobile layout pass on `/portal`; "Add to Home Screen" prompt; show CRM program tags and approved photos on the portal home; magic-link deep links | No schema change |
-| **Mobile 2: entitlements and billing** | Migration: plans, plan_features, subscriptions, billing_events, `has_entitlement()`; RLS on change requests, digitals and storage; billing webhook; upgrade page | Needs a payment provider decision and the paid feature list |
+| **Mobile 2: entitlements and billing** | **Built (migration 031):** plans, plan_features, talent_subscriptions, billing_events, `has_entitlement()`, RLS on change requests, availability, digitals and storage; `/portal/subscribe`; Dashboard → Memberships (require switch, free access). **Left:** Stripe Checkout route and verified webhook writing 'stripe' rows | Provider: Stripe on the web (avoids store fees); keys in Vercel (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) |
 | **Mobile 3: paid photo management** | Paid upload limits; status flow above; talent-suggested photo roles; staff moderation queue improvements | Builds on Phase 2 entitlements |
 | **Mobile 4: native app (if justified)** | Expo app reusing Supabase Auth and `/api/portal/*`; push notifications (Expo push, with tokens stored per device); store listings; privacy labels | Decide on store billing first |
 | **Mobile 5: bookings, castings and training** | Casting calls, booking confirmations, training schedule (from the GHL custom values already mirrored), attendance | Extends the operations module |

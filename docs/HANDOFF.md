@@ -23,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–030 applied** (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–030 applied; 031 (talent memberships) written, apply with `npx supabase db push`** (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |
@@ -45,7 +45,8 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | 16 Security | Schema-wide generated security tests, anon grant cleanup, CSP, MFA for owner/admin, permission-matrix editor, data-subject export/erase | 025 |
 | 17 QA | Contrast fixes, heading order, canonical URLs, QA report, launch checklist, RC tag | — |
 | 18 GHL sync | Mirror of all GHL contacts, opportunities, pipelines, stages and fields; configurable status mapping; one talent per GHL contact; program tags ("Model Expo", "Talent Recruitment"); photo import; webhooks, queue and hourly reconciliation; conflicts; optional write-back; GHL Sync dashboard and CRM tab | 026 |
-| 20 CDS import | Dashboard → CDS Import reads talents from CDS and their boards, stats, portfolios and photo list from WebForFashion in the owner's browser (no downloads), stages them (029), and adds talents not yet in the dashboard as drafts; CDS portfolios map to website boards (missing boards created unpublished). Photo copying waits for the Supabase Pro upgrade | 029 |
+| 20 CDS import | Dashboard → CDS Import reads talents from CDS and their boards, stats, portfolios and photo list from WebForFashion in the owner's browser (no downloads), stages them (029), and adds talents not yet in the dashboard as drafts; CDS portfolios map to website boards (missing boards created unpublished). On Pro: photos copied (portfolios, digitals, starred cover; resized), profile pictures and portfolios set; roster reads "City · Gender · Age" / Location TBA | 029–030 |
+| 21 Memberships | Talent must subscribe to use the portal once the owner turns it on (Dashboard → Memberships); enforced in RLS via `has_entitlement()`; staff grant free access; Membership page in the portal. Stripe checkout and webhook not connected yet | 031 |
 | 19 Team accounts | Second sign-in step for owner/administrators is now a 6-digit code emailed to their work address (028; authenticator app and Google still accepted); remove team members; optional temporary password when the owner approves a teammate (public sign-up API, no service role; they confirm their email and must choose their own password at first sign-in); My profile page with profile photo (team-avatars bucket) and password change | 027 |
 
 ## 3. What to do next (owner)
