@@ -5,6 +5,7 @@ import { feetInches, heightLabel, lengthLabel } from "@/lib/format";
 import { PLACEHOLDER_IMAGE, type PublicBoard, type PublicProfile, type TalentCardData } from "./types";
 import { log } from "@/lib/log";
 import { publicCache } from "./cache";
+import { boardAndDescendantPaths, cardBoard } from "./board-paths";
 
 // Public website reads. Always the anonymous role through the public-safe views, so
 // drafts, archived, internal-only, and private fields can never be returned.
@@ -25,7 +26,7 @@ export function publicImageUrl(supabase: SupabaseClient, path: string | null) {
 
 export function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "display_name" | "location" | "featured" | "primary_image_path" | "primary_image_alt" | "height_cm" | "boards" | "board_paths">, boardPath?: string): TalentCardData {
   const boards = row.boards ?? [];
-  const board = (boardPath && boards.find((item) => item.path === boardPath)) || boards[0];
+  const board = cardBoard(boards, boardPath);
   return {
     id: row.id,
     slug: row.slug,
@@ -60,16 +61,17 @@ type RosterOptions = { boardPath?: string; featuredOnly?: boolean; limit?: numbe
 const cachedRoster = publicCache(async ({ boardPath, featuredOnly = false, limit }: RosterOptions) => {
   const supabase = createPublicSupabaseClient();
   let query = supabase.from("public_talents_view").select(CARD_COLUMNS).neq("board_paths", "{}");
-  if (boardPath) query = query.contains("board_paths", [boardPath]);
+  if (boardPath) query = query.overlaps("board_paths", boardAndDescendantPaths(await cachedBoards(), boardPath));
   if (featuredOnly) query = query.eq("featured", true);
   query = query.order("featured", { ascending: false }).order("display_name");
   if (limit) query = query.limit(limit);
   const { data, error } = await query;
   if (error) throw error;
   const rows = (data ?? []) as unknown as TalentRow[];
-  // Board pages follow the order staff set on the assignment, then name.
+  // Board pages follow the order staff set on the assignment, then name; talent
+  // who are only on a sub-board come after those placed on the board itself.
   if (boardPath) {
-    const position = (row: TalentRow) => row.boards?.find((board) => board.path === boardPath)?.sort_order ?? 0;
+    const position = (row: TalentRow) => row.boards?.find((board) => board.path === boardPath)?.sort_order ?? 100_000;
     rows.sort((a, b) => position(a) - position(b) || a.display_name.localeCompare(b.display_name));
   }
   return rows.map((row) => toCard(supabase, row, boardPath));
