@@ -110,15 +110,21 @@ const cachedProfile = publicCache(async (slug: string): Promise<PublicProfile | 
   if (!data) return null;
   const row = data as TalentRow;
   const [media, portfolios, skills] = await Promise.all([
-    supabase.from("public_talent_media_view").select("id,media_type,image_path,title,alt_text,provider,external_id,video_path,display_order").eq("talent_id", row.id).order("display_order"),
+    supabase.from("public_talent_media_view").select("id,media_type,image_path,title,alt_text,provider,external_id,video_path,display_order,image_type").eq("talent_id", row.id).order("display_order"),
     supabase.from("public_talent_portfolios_view").select("id,kind,name,is_default,display_order,images").eq("talent_id", row.id).order("is_default", { ascending: false }).order("display_order"),
     supabase.from("public_talent_skills_view").select("category,skill,level").eq("talent_id", row.id).order("category"),
   ]);
 
-  type Media = { id: string; media_type: string; image_path: string | null; title: string | null; alt_text: string | null; provider: string | null; external_id: string | null; video_path: string | null };
+  type Media = { id: string; media_type: string; image_path: string | null; title: string | null; alt_text: string | null; provider: string | null; external_id: string | null; video_path: string | null; image_type: string | null };
   const items = (media.data ?? []) as Media[];
   const [firstName, ...rest] = row.display_name.split(" ");
   const alt = (value: string | null) => value || `${row.display_name} — 42 Model Management`;
+  const images = items.filter((item) => item.media_type === "image" && item.image_path);
+  const toImage = (item: { image_path: string | null; alt_text: string | null }) => ({ src: publicImageUrl(supabase, item.image_path), alt: alt(item.alt_text) });
+  const looseDigitals = images.filter((item) => item.image_type === "digital");
+  const collections = ((portfolios.data ?? []) as { id: string; kind: "portfolio" | "digitals"; name: string; images: { image_path: string; alt_text: string | null }[] }[])
+    .filter((portfolio) => portfolio.images.length)
+    .map((portfolio) => ({ id: portfolio.id, name: portfolio.name, kind: portfolio.kind, images: portfolio.images.map(toImage) }));
 
   return {
     id: row.id,
@@ -134,10 +140,13 @@ const cachedProfile = publicCache(async (slug: string): Promise<PublicProfile | 
     imageAlt: alt(row.primary_image_alt),
     boards: (row.boards ?? []).map((board) => ({ name: board.name, path: board.path })),
     stats: statsFor(row, row.gender),
-    gallery: items.filter((item) => item.media_type === "image" && item.image_path).map((item) => ({ src: publicImageUrl(supabase, item.image_path), alt: alt(item.alt_text) })),
-    portfolios: ((portfolios.data ?? []) as { id: string; kind: "portfolio" | "digitals"; name: string; images: { image_path: string; alt_text: string | null }[] }[])
-      .filter((portfolio) => portfolio.images.length)
-      .map((portfolio) => ({ id: portfolio.id, name: portfolio.name, kind: portfolio.kind, images: portfolio.images.map((image) => ({ src: publicImageUrl(supabase, image.image_path), alt: alt(image.alt_text) })) })),
+    // Digitals (casting snapshots) get their own section, never the portfolio grid.
+    gallery: images.filter((item) => item.image_type !== "digital").map(toImage),
+    portfolios: [
+      ...collections,
+      ...(!collections.some((collection) => collection.kind === "digitals") && looseDigitals.length
+        ? [{ id: "digitals", name: "Digitals", kind: "digitals" as const, images: looseDigitals.map(toImage) }] : []),
+    ],
     videos: items.filter((item) => item.media_type === "video").map((item) => ({
       id: item.id, title: item.title ?? "", provider: item.provider ?? "", externalId: item.external_id, src: item.video_path ? publicImageUrl(supabase, item.video_path) : null,
     })),

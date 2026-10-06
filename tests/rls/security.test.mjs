@@ -36,6 +36,8 @@ describe("anonymous visitors", () => {
   test("public media view exposes only promoted public images", async () => {
     const rows = await rowsAs(db, "anon", "select * from public.public_talent_media_view where talent_id = $1", [ids.publishedTalent]);
     assert.deepEqual(rows.map((row) => row.image_path), [`talent/${ids.publishedTalent}/approved.jpg`]);
+    assert.ok("image_type" in rows[0], "the photo type is public so digitals get their own section (034)");
+    for (const column of ["storage_path", "source_url", "content_sha256", "original_file_name"]) assert.ok(!(column in rows[0]), `${column} exposed`);
     assert.equal((await rowsAs(db, "anon", "select * from public.public_talents_view where slug = 'draft-test'")).length, 0);
   });
 
