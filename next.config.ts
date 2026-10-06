@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
   // Rendered in Node route handlers (PDF comp cards); not bundled.
   serverExternalPackages: ["@react-pdf/renderer"],
   images: {
+    // 90 for talent photos (PHOTO_QUALITY): they are already compressed once.
+    qualities: [75, 90],
     remotePatterns: [
       ...(supabaseHost ? [{ protocol: "https" as const, hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }] : []),
     ],

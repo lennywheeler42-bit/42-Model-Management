@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ArrowRight, ChevronLeft, ChevronRight, X } from "lucide-react";
-import type { ProfileImage } from "../types";
+import { PHOTO_QUALITY, type ProfileImage } from "../types";
 
 type Photo = ProfileImage & { caption?: string | null };
 
@@ -27,7 +27,7 @@ export function PhotoGallery({ id, photos, variant = "portfolio", label }: { id:
       {photos.map((photo, index) => <li key={`${photo.src}-${index}`} className={`shrink-0 snap-start ${digitals ? "w-[42%]" : "w-[62%]"} sm:w-auto`}>
         <button type="button" onClick={() => setOpen(index)} className="group block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ink)]" aria-label={`Open photo ${index + 1} of ${photos.length}`}>
           <span className={`image-hover relative block bg-[#e4e1db] ${digitals ? "aspect-[4/5]" : "aspect-[3/4]"}`}>
-            <Image src={photo.src} alt={photo.alt} fill sizes={digitals ? "(max-width: 640px) 42vw, (max-width: 1024px) 33vw, 16vw" : "(max-width: 640px) 62vw, (max-width: 1024px) 33vw, 22vw"} className="object-cover" />
+            <Image src={photo.src} alt={photo.alt} fill quality={PHOTO_QUALITY} sizes={digitals ? "(max-width: 640px) 42vw, (max-width: 1024px) 33vw, 16vw" : "(max-width: 640px) 62vw, (max-width: 1024px) 33vw, 22vw"} className="object-cover" />
           </span>
           {photo.caption && <span className="label-sm mt-3 block text-center !text-[9px] text-[var(--muted)]">{photo.caption}</span>}
         </button>
@@ -68,7 +68,7 @@ function Lightbox({ photos, start, onClose }: { photos: Photo[]; start: number; 
       <button ref={close} type="button" onClick={onClose} aria-label="Close photo viewer" className="flex h-10 w-10 items-center justify-center hover:opacity-70"><X size={24} strokeWidth={1.25} aria-hidden /></button>
     </div>
     <div className="relative flex-1">
-      <Image key={photo.src} src={photo.src} alt={photo.alt} fill sizes="100vw" className="object-contain" />
+      <Image key={photo.src} src={photo.src} alt={photo.alt} fill quality={PHOTO_QUALITY} sizes="100vw" className="object-contain" />
       {photos.length > 1 && <>
         <button type="button" onClick={() => step(-1)} aria-label="Previous photo" className="absolute left-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 hover:bg-black/60 sm:left-6"><ChevronLeft size={26} strokeWidth={1.25} aria-hidden /></button>
         <button type="button" onClick={() => step(1)} aria-label="Next photo" className="absolute right-2 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 hover:bg-black/60 sm:right-6"><ChevronRight size={26} strokeWidth={1.25} aria-hidden /></button>

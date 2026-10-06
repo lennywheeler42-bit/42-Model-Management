@@ -49,3 +49,6 @@ export type PublicProfile = {
 };
 
 export const PLACEHOLDER_IMAGE = "/placeholder-talent.svg";
+// Talent photos are already compressed once, so the site re-encodes them at high
+// quality (next.config.ts allows 75 and 90).
+export const PHOTO_QUALITY = 90;
