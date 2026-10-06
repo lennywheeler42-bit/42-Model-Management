@@ -23,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–030 applied; 031 (talent memberships) written, apply with `npx supabase db push`** (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–033 applied** (031 = talent memberships; 032 = auth.uid() evaluated once per query in 8 policies; 033 = GHL queueing without duplicate-key errors) (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | 209 database/unit tests, 64 browser tests (desktop + mobile), axe WCAG AA, Lighthouse. All green (`qa-report.md`) |

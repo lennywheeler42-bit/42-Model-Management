@@ -61,6 +61,7 @@ test("CDS locations are tidied, placeholders become Location TBA", () => {
   assert.equal(normalizeLocation("  DALLAS, tx "), "Dallas, TX");
   assert.equal(normalizeLocation("..."), null);
   assert.equal(normalizeLocation("CDS"), null);
+  assert.equal(normalizeLocation("In Town"), "Dallas");
   assert.equal(normalizeLocation(null), null);
   assert.equal(talentSummary(null, "Female", 22), "Location TBA · Female · 22 yrs");
   assert.equal(talentSummary("Dallas", "Female", 37), "Dallas · Female · 37 yrs");

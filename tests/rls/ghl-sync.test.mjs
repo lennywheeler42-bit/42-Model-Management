@@ -162,3 +162,17 @@ describe("ghl sync: write-back queue", () => {
     assert.deepEqual(stale, { external_id: "c-1", attempts: 2 });
   });
 });
+
+describe("migration 033: queueing GHL contacts", () => {
+  test("queueing an already-queued contact is skipped, not an error; staff cannot call it", async () => {
+    const [{ n: first }] = await su("select public.ghl_enqueue_jobs('contact', array['q-1', 'q-2', 'q-1'], 'test') as n");
+    assert.equal(first, 2);
+    const [{ n: again }] = await su("select public.ghl_enqueue_jobs('contact', array['q-1', 'q-3'], 'test') as n");
+    assert.equal(again, 1, "q-1 is already open, only q-3 is new");
+    await su("update public.ghl_sync_jobs set status = 'failed', next_attempt_at = now() + interval '1 hour' where external_id = 'q-2'");
+    await su("select public.ghl_enqueue_jobs('contact', array['q-2'], 'test')");
+    const [due] = await su("select next_attempt_at <= now() as due from public.ghl_sync_jobs where external_id = 'q-2'");
+    assert.equal(due.due, true, "a failed job queued again is due now");
+    assert.ok(await rejects(db, people.admin, "select public.ghl_enqueue_jobs('contact', array['x'], null)"));
+  });
+});

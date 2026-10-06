@@ -21,22 +21,12 @@ export async function enqueueContacts(ids: Iterable<string>, reason: string) {
   const db = createAdminSupabaseClient();
   let queued = 0;
   for (const batch of chunks(rows, 200)) {
-    // One open job per contact (partial unique index): skip ids already queued.
-    const { data: open } = await db.from("ghl_sync_jobs").select("external_id").eq("kind", "contact").in("status", ["pending", "running", "failed"]).in("external_id", batch.map((row) => row.external_id));
-    const openIds = new Set((open ?? []).map((row) => row.external_id));
-    // A failed job that is queued again becomes due now.
-    if (openIds.size) await db.from("ghl_sync_jobs").update({ next_attempt_at: new Date().toISOString() }).eq("kind", "contact").eq("status", "failed").in("external_id", [...openIds]);
-    const fresh = batch.filter((row) => !openIds.has(row.external_id));
-    if (!fresh.length) continue;
-    const { error } = await db.from("ghl_sync_jobs").insert(fresh);
-    if (!error) { queued += fresh.length; continue; }
-    if (error.code !== "23505") throw error;
-    // Raced with another enqueue: insert one by one, ignoring duplicates.
-    for (const row of fresh) {
-      const single = await db.from("ghl_sync_jobs").insert(row);
-      if (!single.error) queued += 1;
-      else if (single.error.code !== "23505") throw single.error;
-    }
+    // One open job per contact: ids already queued are skipped in the database
+    // (migration 033), so a webhook racing the hourly sync is not an error, and
+    // a failed job that is queued again becomes due now.
+    const { data, error } = await db.rpc("ghl_enqueue_jobs", { p_kind: "contact", p_ids: batch.map((row) => row.external_id), p_reason: reason });
+    if (error) throw error;
+    queued += Number(data ?? 0);
   }
   return queued;
 }

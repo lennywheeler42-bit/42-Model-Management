@@ -15,6 +15,8 @@ const NO_LOCATION = new Set(["", "na", "none", "tba", "tbd", "unknown", "other",
 export function normalizeLocation(value: string | null | undefined) {
   const text = (value ?? "").replace(/\s+/g, " ").trim();
   if (NO_LOCATION.has(letters(text))) return null;
+  // "In Town" in CDS means in or near Dallas, the agency's home (owner, 2026-10-06).
+  if (letters(text) === "intown") return "Dallas";
   return text.toLowerCase().replace(/(^|[\s\-/(])([a-z])/g, (_, before: string, first: string) => before + first.toUpperCase())
     .replace(/\b(Tx|Ny|Ca|Fl|Usa|Uk)\b/g, (code) => code.toUpperCase());
 }
