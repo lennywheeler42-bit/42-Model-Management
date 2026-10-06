@@ -95,7 +95,8 @@ async function repairLocations(supabase: SupabaseClient) {
   for (const talent of talents ?? []) {
     const original = raw.get(talent.id);
     const tidy = normalizeLocation(original);
-    if (talent.location !== original || tidy === original) continue;
+    // Same text apart from capitals (an earlier tidy-up) still counts as untouched.
+    if ((talent.location ?? "").toLowerCase() !== (original ?? "").toLowerCase() || tidy === talent.location) continue;
     const { error: updateError } = await supabase.from("talent").update({ location: tidy }).eq("id", talent.id);
     if (updateError) { log.error("cds", "location repair failed", updateError, { talent: talent.id }); continue; }
     repaired += 1;
