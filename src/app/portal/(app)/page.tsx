@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatDate, formatDateTime } from "@/lib/format";
-import { requirePortal } from "@/features/portal/context";
+import { getSubscription, requirePortal } from "@/features/portal/context";
 
 export const metadata = { title: "Home" };
 
@@ -13,8 +13,13 @@ export default async function PortalHome() {
     supabase.from("talent_photos").select("id", { count: "exact", head: true }).eq("uploaded_by_talent", true).eq("review_status", "pending"),
   ]);
   const card = "rounded-xl border border-[var(--line)] bg-white p-5";
+  const subscription = await getSubscription();
 
   return <div className="space-y-8">
+    {subscription && !subscription.entitled && <Link href="/portal/subscribe" className="block rounded-xl border border-[var(--accent)] bg-white p-5 hover:border-[var(--ink)]">
+      <p className="text-[10px] font-800 uppercase tracking-[.14em] text-[var(--accent)]">Membership</p>
+      <p className="mt-2 text-sm">Subscribe to unlock bookings, availability, digitals, documents and profile updates.</p>
+    </Link>}
     <div>
       <p className="eyebrow text-[var(--accent)]">Welcome</p>
       <h1 className="display mt-2 text-5xl leading-none">Hi, {profile.first_name || profile.display_name}.</h1>

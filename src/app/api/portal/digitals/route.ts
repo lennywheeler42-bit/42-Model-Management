@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { databaseError, writeAudit } from "@/lib/api";
 import { firstIssue } from "@/lib/validation";
-import { requirePortalApi } from "@/features/portal/context";
+import { requireEntitledPortalApi } from "@/features/portal/context";
 
 const schema = z.object({
   storage_path: z.string().trim().max(300),
@@ -14,7 +14,7 @@ const schema = z.object({
 // Records a digital the talent uploaded to their portal folder. It waits for
 // staff review and can never be made public before approval (database rule).
 export async function POST(request: Request) {
-  const auth = await requirePortalApi();
+  const auth = await requireEntitledPortalApi();
   if ("response" in auth) return auth.response;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });

@@ -34,6 +34,7 @@ export const dashboardNav: NavSection[] = [
     title: "Administration",
     items: [
       { href: "/dashboard/finance", label: "Finance", icon: "finance", anyOf: ["finance.view"] },
+      { href: "/dashboard/memberships", label: "Memberships", icon: "packages", anyOf: ["billing.view"] },
       { href: "/dashboard/website", label: "Website", icon: "website", anyOf: ["website.manage"] },
       { href: "/dashboard/ghl", label: "GHL Sync", icon: "ghl", anyOf: ["integrations.view"] },
       { href: "/dashboard/cds", label: "CDS Import", icon: "import", anyOf: ["integrations.manage"] },

@@ -1,12 +1,12 @@
 import { formatDateTime } from "@/lib/format";
-import { requirePortal } from "@/features/portal/context";
+import { requireEntitledPortal } from "@/features/portal/context";
 
 export const metadata = { title: "Bookings" };
 
 // Confirmed and completed bookings plus appointments. Fees and client contacts
 // are never visible here (database rules).
 export default async function PortalBookings() {
-  const { supabase, profile } = await requirePortal();
+  const { supabase, profile } = await requireEntitledPortal();
   const now = new Date().toISOString();
   const [upcoming, past, appointments] = await Promise.all([
     supabase.from("bookings").select("id,reference,title,start_at,end_at,location,status").gte("end_at", now).order("start_at").limit(50),

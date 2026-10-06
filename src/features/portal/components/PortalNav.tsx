@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/portal/availability", label: "Availability" },
   { href: "/portal/digitals", label: "Digitals" },
   { href: "/portal/documents", label: "Documents" },
+  { href: "/portal/subscribe", label: "Membership" },
 ];
 
 export function PortalNav() {

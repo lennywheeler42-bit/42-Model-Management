@@ -1,11 +1,11 @@
 import { FileText } from "lucide-react";
 import { formatDate } from "@/lib/format";
-import { requirePortal } from "@/features/portal/context";
+import { requireEntitledPortal } from "@/features/portal/context";
 
 export const metadata = { title: "Documents" };
 
 export default async function PortalDocuments() {
-  const { supabase } = await requirePortal();
+  const { supabase } = await requireEntitledPortal();
   const { data } = await supabase.from("talent_documents").select("id,file_name,description,category,created_at").order("created_at", { ascending: false });
   return <div className="space-y-6">
     <div><h1 className="display text-5xl leading-none">Documents</h1><p className="mt-2 text-sm text-[var(--muted)]">Documents your agent has shared with you, such as contracts and call sheets.</p></div>

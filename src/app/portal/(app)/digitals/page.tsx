@@ -1,11 +1,11 @@
 import { formatDate } from "@/lib/format";
-import { requirePortal } from "@/features/portal/context";
+import { requireEntitledPortal } from "@/features/portal/context";
 import { DigitalsUploader } from "@/features/portal/components/PortalForms";
 
 export const metadata = { title: "Digitals" };
 
 export default async function PortalDigitals() {
-  const { supabase, profile } = await requirePortal();
+  const { supabase, profile } = await requireEntitledPortal();
   const { data: photos } = await supabase.from("talent_photos").select("id,storage_path,review_status,created_at").eq("uploaded_by_talent", true).is("archived_at", null).order("created_at", { ascending: false }).limit(60);
   const paths = (photos ?? []).map((photo) => photo.storage_path);
   const { data: signed } = paths.length ? await supabase.storage.from("talent-private").createSignedUrls(paths, 600) : { data: [] };

@@ -32,7 +32,10 @@ export default async function CdsImportPage() {
       count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "skipped")),
       supabase.from("cds_portfolio_boards").select("portfolio_name,mapping_source,board:board_id(name,publish_to_website)").order("portfolio_name"),
     ]);
-    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, mappings: mappings.data ?? [] };
+    // Photos still waiting to be copied, counted only for talents in the dashboard.
+    const linked = ((talents.data ?? []) as Staged[]).filter((t) => t.talent_id && ["created", "matched"].includes(t.match_status)).map((t) => t.cds_id);
+    const waiting = skipped && linked.length ? await count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "listed").in("cds_id", linked)) : 0;
+    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, waiting, mappings: mappings.data ?? [] };
   } catch (error) {
     log.error("cds", "overview failed", error);
     return <ErrorState title="The CDS import status could not be loaded" />;
@@ -40,7 +43,7 @@ export default async function CdsImportPage() {
   const by = (status: string) => data.talents.filter((t) => t.match_status === status).length;
   const listed = data.images + data.digitals + data.videos;
   const skipped = data.skipped;
-  const selected = listed - skipped;
+  const selected = data.imported + data.failed + data.waiting;
   const tiles: [string, number, string][] = [
     ["Talents read from CDS", data.talents.length, "Model Luxe Media and 42 Model Management are skipped"],
     ["Added as new drafts", by("created"), "Not published; review, then publish"],
@@ -52,7 +55,7 @@ export default async function CdsImportPage() {
   const status = !data.talents.length ? "Not started"
     : data.pending ? `In progress: ${data.pending} talents still to add (step 3)`
     : !skipped ? "Talents added; photos not copied yet (step 4)"
-    : data.imported + data.failed < selected ? `In progress: ${selected - data.imported - data.failed} photos still to copy (step 4)`
+    : data.waiting ? `In progress: ${data.waiting} photos still to copy (step 4)`
     : data.failed ? `Finished, with ${data.failed} photos that could not be copied (run step 4 again to retry)`
     : "Import finished: talents added and photos copied";
 

@@ -1,5 +1,5 @@
 import { formatDate } from "@/lib/format";
-import { requirePortal } from "@/features/portal/context";
+import { requireEntitledPortal } from "@/features/portal/context";
 import { AvailabilityForm, RemoveAvailabilityButton } from "@/features/portal/components/PortalForms";
 
 export const metadata = { title: "Availability" };
@@ -7,7 +7,7 @@ export const metadata = { title: "Availability" };
 const LABELS: Record<string, string> = { unavailable: "Not available", holiday: "Holiday", available: "Extra availability" };
 
 export default async function PortalAvailability() {
-  const { supabase } = await requirePortal();
+  const { supabase } = await requireEntitledPortal();
   const today = new Date().toISOString().slice(0, 10);
   const { data } = await supabase.from("talent_availability").select("id,kind,start_on,end_on,note").gte("end_on", today).order("start_on");
   return <div className="space-y-6">

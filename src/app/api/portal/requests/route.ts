@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { databaseError } from "@/lib/api";
 import { firstIssue } from "@/lib/validation";
-import { requirePortalApi } from "@/features/portal/context";
+import { requireEntitledPortalApi } from "@/features/portal/context";
 
 const text = (max: number) => z.string().trim().max(max).optional();
 const cm = z.coerce.number().min(20).max(250).optional();
@@ -16,7 +16,7 @@ const schema = z.object({ field_group: z.enum(["contact", "address", "measuremen
 
 // Talent ask for a change; staff review it. Nothing changes until approved.
 export async function POST(request: Request) {
-  const auth = await requirePortalApi();
+  const auth = await requireEntitledPortalApi();
   if ("response" in auth) return auth.response;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { databaseError } from "@/lib/api";
-import { requirePortalApi } from "@/features/portal/context";
+import { requireEntitledPortalApi } from "@/features/portal/context";
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requirePortalApi();
+  const auth = await requireEntitledPortalApi();
   if ("response" in auth) return auth.response;
   const { supabase, profile } = auth.portal;
   const { error } = await supabase.from("talent_availability").delete().eq("id", id).eq("talent_id", profile.id);
