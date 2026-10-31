@@ -20,12 +20,16 @@ export function StageStatusSelect({ id, value, canEdit }: { id: string; value: s
   </select>;
 }
 
-export function PipelineControls({ id, purpose, badge, canEdit }: { id: string; purpose: string | null; badge: string | null; canEdit: boolean }) {
+export function PipelineControls({ id, purpose, badge, watched, canEdit }: { id: string; purpose: string | null; badge: string | null; watched: boolean; canEdit: boolean }) {
   const { run, pending } = useMutation();
   const [label, setLabel] = useState(badge ?? "");
   const [kind, setKind] = useState(purpose ?? "");
   const submit = (nextPurpose: string, nextBadge: string) => run(save, { method: "PATCH", body: { type: "pipeline", id, purpose: nextPurpose || null, badge_label: nextBadge.trim() || null }, success: "Pipeline saved" });
   return <div className="flex flex-wrap items-end gap-2">
+    <label className="flex items-center gap-1.5 pb-1.5 text-[9px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">
+      <input type="checkbox" className="accent-[#a4502f]" defaultChecked={watched} disabled={!canEdit || pending}
+        onChange={(event) => { if (event.target.checked && !kind) setKind("talent"); void run(save, { method: "PATCH", body: { type: "pipeline_watch", id, watched: event.target.checked }, success: event.target.checked ? "Sync now watches this pipeline" : "Pipeline no longer watched" }); }} />
+      Watch</label>
     <label className="text-[9px] font-800 uppercase tracking-[.12em] text-[#6b6d66]">Purpose
       <select className={`${selectClass} mt-1 w-40`} value={kind} disabled={!canEdit || pending} onChange={(event) => { setKind(event.target.value); void submit(event.target.value, label); }}>
         <option value="">Needs review</option><option value="talent">Talent pipeline</option><option value="client">Client / sales</option><option value="ignore">Ignore</option>

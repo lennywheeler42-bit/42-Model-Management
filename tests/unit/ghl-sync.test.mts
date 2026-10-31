@@ -2,7 +2,7 @@
 // Run: npm run test:unit
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { deriveCrmStatus, type CrmStatus, type StatusPipeline, type StatusStage } from "../../src/features/ghl/status.ts";
+import { deriveCrmStatus, inWatchedScope, type CrmStatus, type StatusPipeline, type StatusStage } from "../../src/features/ghl/status.ts";
 import { displayValue, filesIn, ghlFormat, instagramHandle, normalizeValue, parseWeight } from "../../src/features/ghl/fields.ts";
 import { decideInbound, shouldPush } from "../../src/features/ghl/merge.ts";
 
@@ -140,5 +140,16 @@ describe("three-way merge", () => {
     assert.equal(shouldPush("bidirectional", "175", null), false);
     assert.equal(shouldPush("ghl_only", "175", "180"), false);
     assert.equal(shouldPush("bidirectional", undefined, "180"), true);
+  });
+});
+
+describe("watched pipelines", () => {
+  test("with none watched nothing is followed, never everyone", () => {
+    assert.equal(inWatchedScope(new Set(), "p-any"), false);
+  });
+  test("with one watched only that pipeline is followed", () => {
+    const watched = new Set(["p-onboarded"]);
+    assert.equal(inWatchedScope(watched, "p-onboarded"), true);
+    assert.equal(inWatchedScope(watched, "p-expo"), false);
   });
 });

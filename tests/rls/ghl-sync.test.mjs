@@ -176,3 +176,27 @@ describe("migration 033: queueing GHL contacts", () => {
     assert.ok(await rejects(db, people.admin, "select public.ghl_enqueue_jobs('contact', array['x'], null)"));
   });
 });
+
+describe("migration 035: watched pipelines", () => {
+  test("integration managers toggle watched; others cannot", async () => {
+    await as(db, users.talentManager, "update public.ghl_pipelines set watched = true where id = 'p-expo'").catch(() => null);
+    assert.equal((await su("select watched from public.ghl_pipelines where id = 'p-expo'"))[0].watched, false);
+    await as(db, people.admin, "update public.ghl_pipelines set watched = true where id = 'p-expo'");
+    assert.deepEqual(await rowsAs(db, users.talentManager, "select watched from public.ghl_pipelines where id = 'p-expo'"), [{ watched: true }]);
+    await as(db, people.admin, "update public.ghl_pipelines set watched = false where id = 'p-expo'");
+  });
+});
+
+describe("migration 037: the sync watches one pipeline", () => {
+  test("only the owner's pipeline is watched and its stage counts as active", async () => {
+    assert.deepEqual(await su("select id, purpose from public.ghl_pipelines where watched"), [{ id: "yrD3eOpwL09Cvpaul4d5", purpose: "talent" }]);
+    assert.deepEqual(await su("select pipeline_id, normalized_status from public.ghl_pipeline_stages where id = '8814e6fa-dde1-4135-9cbb-02c1d9314978'"), [{ pipeline_id: "yrD3eOpwL09Cvpaul4d5", normalized_status: "active" }]);
+  });
+
+  test("discovery refreshing the pipeline keeps the watch and the stage mapping", async () => {
+    await su("insert into public.ghl_pipelines (id, name, raw, last_seen_at, removed_at) values ('yrD3eOpwL09Cvpaul4d5', 'Renamed in GHL', '{}', now(), null) on conflict (id) do update set name = excluded.name, raw = excluded.raw, last_seen_at = excluded.last_seen_at, removed_at = excluded.removed_at");
+    await su("insert into public.ghl_pipeline_stages (id, pipeline_id, name, position, last_seen_at, removed_at) values ('8814e6fa-dde1-4135-9cbb-02c1d9314978', 'yrD3eOpwL09Cvpaul4d5', 'Active Models', 0, now(), null) on conflict (id) do update set name = excluded.name, position = excluded.position, last_seen_at = excluded.last_seen_at, removed_at = excluded.removed_at");
+    assert.deepEqual(await su("select watched, purpose from public.ghl_pipelines where id = 'yrD3eOpwL09Cvpaul4d5'"), [{ watched: true, purpose: "talent" }]);
+    assert.deepEqual(await su("select normalized_status from public.ghl_pipeline_stages where id = '8814e6fa-dde1-4135-9cbb-02c1d9314978'"), [{ normalized_status: "active" }]);
+  });
+});

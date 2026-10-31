@@ -23,7 +23,7 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 | Item | State |
 |---|---|
 | Roadmap phases | **0–17 built and live.** Everything is on `main` (tag `v1.0.0-rc.1` marks the Phase 17 release candidate) |
-| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–034 and 036 applied.** 035 (GHL watched pipelines) is on the local branch `hold/hero-film-and-ghl-watch`, not pushed, awaiting an owner decision (that branch's hero commit is superseded: the film hero is live from `main`); once merged, apply it with `npx supabase db push --remote --include-all`, because it is older than 036 (036 = model-photos library; 031 = talent memberships; 032 = auth.uid() evaluated once per query in 8 policies; 033 = GHL queueing without duplicate-key errors; 034 = photo type in the public media view, so digitals have their own section) (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
+| Supabase | One project only (owner decision): `dvpockrupiovuxcenuiy`. **Migrations 001–037 applied** (037 = the sync watches the one pipeline the owner chose; 036 = model-photos library; 035 = GHL watched pipelines; 031 = talent memberships; 032 = auth.uid() evaluated once per query in 8 policies; 033 = GHL queueing without duplicate-key errors; 034 = photo type in the public media view, so digitals have their own section) (026 = GHL sync, first production sync verified 2026-10-01; 027 = team profile photos; 028 = emailed sign-in codes; 029 = CDS import staging; 030 = "cds" source for measurements and photos) |
 | GitHub | `lennywheeler42-bit/42-Model-Management`. Work goes straight to `main`. The old `release/phases-11-17` branch is fully merged and no longer used |
 | Hosting | Vercel (team `model-luxe-media`) builds `main`. Live at `https://42-model-management-kappa.vercel.app` until the custom domain is attached |
 | Tests | `npm test`: 305 database, acceptance and unit tests, all green on 2026-11-03. Browser tests (desktop + mobile), axe WCAG AA and Lighthouse: see the last run in `qa-report.md` |
@@ -53,6 +53,8 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 ## 3. What to do next (owner)
 
 Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
+
+**GHL sync is down since 2026-10-08 04:34 UTC:** every run fails with `401 Invalid Private Integration token`. Create a new Private Integration token in GHL (Settings → Private Integrations) and replace `GHL_API_TOKEN` in Vercel (Production), then redeploy and **Run sync now**. The sync follows only "Onboarded/Active Models" (owner decision, 2026-10-31 and 2026-11-03): migration 037 already ticks **Watch** on it and maps its stage to Active, so nothing else is needed under Mapping (see `ghl-sync.md`).
 
 **GHL sync (Phase 18)**, in order. Details are in `ghl-sync.md` → Setup.
 1. ~~Apply migration 026~~ (done 2026-10-01; first sync run and verified).

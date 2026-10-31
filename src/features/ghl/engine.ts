@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { log } from "@/lib/log";
 import { ghl, ghlConfigured } from "./client";
+import { inWatchedScope } from "./status";
 import { bump, chunks, discover, loadConfig, loadDashboard, pushContact, saveOpportunities, syncContact, writeDashboard, type SyncConfig, type SyncStats } from "./sync";
 
 // Orchestration for the GHL sync. The only GHL module that creates the
@@ -80,7 +81,8 @@ export async function drainQueue(deadline: number, stats: SyncStats = {}, config
 // queued for a full fetch) → drain the queue → mark what GHL no longer has.
 // One run at a time; a run continues across invocations through its cursor.
 // ---------------------------------------------------------------------------
-type Cursor = { phase: "discovery" | "opportunities" | "contacts" | "jobs" | "cleanup"; page?: number; searchAfter?: unknown[]; full?: boolean };
+// `pipeline` indexes the sorted watched pipelines while reading opportunities.
+type Cursor = { phase: "discovery" | "opportunities" | "contacts" | "jobs" | "cleanup"; page?: number; pipeline?: number; searchAfter?: unknown[]; full?: boolean };
 type Run = { id: string; cursor: Cursor; stats: SyncStats; started_at: string };
 
 // `continuation` marks a run calling itself to carry on: it must not be turned
@@ -113,18 +115,34 @@ export async function reconcile(trigger: "cron" | "dashboard" | "script", deadli
         await discover(db, stats);
         cursor = { phase: "opportunities", page: 1 };
       } else if (cursor.phase === "opportunities") {
+        // Each watched pipeline is read in turn; with none watched there is nothing to read.
+        config ??= await loadConfig(db);
+        const watched = [...config.watched].sort();
+        if (!watched.length) {
+          cursor = { phase: "contacts" };
+          continue;
+        }
+        const index = cursor.pipeline ?? 0;
         const page = cursor.page ?? 1;
-        const result = await ghl.opportunitiesPage(page);
+        const result = await ghl.opportunitiesPage(page, { pipelineId: watched[index] });
         const items = result.opportunities ?? [];
-        const changed = await saveOpportunities(db, items, stats);
+        const changed = await saveOpportunities(db, items.filter((item) => inWatchedScope(config!.watched, item.pipelineId)), stats);
         if (changed.size) bump(stats, "contacts_queued", await enqueueContacts(changed, "opportunity changed"));
-        cursor = items.length < 100 ? { phase: "contacts" } : { phase: "opportunities", page: page + 1 };
+        if (items.length === 100) cursor = { phase: "opportunities", page: page + 1, pipeline: index };
+        else if (index + 1 < watched.length) cursor = { phase: "opportunities", page: 1, pipeline: index + 1 };
+        else cursor = { phase: "contacts" };
       } else if (cursor.phase === "contacts") {
+        config ??= await loadConfig(db);
         const result = await ghl.searchContacts(cursor.searchAfter);
         const contacts = result.contacts ?? [];
         const ids = contacts.map((contact) => contact.id);
         const known = new Map(((await db.from("ghl_contacts").select("id,source_updated_at,full_fetched_at").in("id", ids)).data ?? []).map((row) => [row.id, row]));
+        // Only contacts with an opportunity in a watched pipeline are fetched in full.
+        const inPipeline = new Set(config.watched.size && ids.length
+          ? ((await db.from("ghl_opportunities").select("contact_id").in("contact_id", ids).in("pipeline_id", [...config.watched]).is("removed_at", null)).data ?? []).map((row) => row.contact_id)
+          : []);
         const stale = contacts.filter((contact) => {
+          if (!inPipeline.has(contact.id)) return false;
           const row = known.get(contact.id);
           return !row?.full_fetched_at || (contact.dateUpdated && new Date(contact.dateUpdated) > new Date(row.source_updated_at ?? 0));
         }).map((contact) => contact.id);
@@ -145,7 +163,11 @@ export async function reconcile(trigger: "cron" | "dashboard" | "script", deadli
         if (cursor.full) {
           const removedAt = new Date().toISOString();
           const contacts = await db.from("ghl_contacts").update({ removed_at: removedAt }).lt("synced_at", run.started_at).is("removed_at", null).select("id");
-          const opportunities = await db.from("ghl_opportunities").update({ removed_at: removedAt }).lt("synced_at", run.started_at).is("removed_at", null).select("id,contact_id");
+          // Only pipelines that were read this run can have missing opportunities.
+          config ??= await loadConfig(db);
+          const opportunities = config.watched.size
+            ? await db.from("ghl_opportunities").update({ removed_at: removedAt }).lt("synced_at", run.started_at).is("removed_at", null).in("pipeline_id", [...config.watched]).select("id,contact_id")
+            : { data: [] };
           bump(stats, "contacts_removed", contacts.data?.length ?? 0);
           bump(stats, "opportunities_removed", opportunities.data?.length ?? 0);
           if (opportunities.data?.length) await enqueueContacts(opportunities.data.map((row) => row.contact_id), "opportunity removed");

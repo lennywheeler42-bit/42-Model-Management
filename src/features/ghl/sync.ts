@@ -10,7 +10,7 @@ import {
   type CustomTarget, type NativeTarget, type Ownership,
 } from "./fields";
 import { decideInbound, shouldPush } from "./merge";
-import { deriveCrmStatus, isCrmStatus, type CrmStatus, type StatusPipeline, type StatusRule, type StatusStage } from "./status";
+import { deriveCrmStatus, inWatchedScope, isCrmStatus, type CrmStatus, type StatusPipeline, type StatusRule, type StatusStage } from "./status";
 
 // The sync itself. Every function takes the secret-key client from engine.ts;
 // none of them is reachable from the browser. Writes are idempotent upserts keyed
@@ -32,6 +32,8 @@ const must = <T>(result: { data: T | null; error: { message: string; code?: stri
 export type FieldMapping = { id: string; name: string; target: CustomTarget; ownership: Ownership };
 export type SyncConfig = {
   pipelines: Map<string, StatusPipeline>;
+  // The only pipelines the sync follows; empty means none (see inWatchedScope).
+  watched: Set<string>;
   stages: Map<string, StatusStage>;
   rules: StatusRule[];
   talentStatuses: CrmStatus[];
@@ -41,7 +43,7 @@ export type SyncConfig = {
 
 export async function loadConfig(db: Db): Promise<SyncConfig> {
   const [pipelines, stages, rules, settings, fields] = await Promise.all([
-    db.from("ghl_pipelines").select("id,name,purpose,badge_label").is("removed_at", null),
+    db.from("ghl_pipelines").select("id,name,purpose,badge_label,watched").is("removed_at", null),
     db.from("ghl_pipeline_stages").select("id,name,normalized_status"),
     db.from("ghl_status_rules").select("kind,field_id,match_value,normalized_status"),
     db.from("ghl_settings").select("talent_statuses,writeback_enabled").maybeSingle(),
@@ -49,6 +51,7 @@ export async function loadConfig(db: Db): Promise<SyncConfig> {
   ]);
   return {
     pipelines: new Map(must(pipelines, "pipelines").map((row) => [row.id, row as StatusPipeline])),
+    watched: new Set(must(pipelines, "pipelines").filter((row) => row.watched).map((row) => row.id)),
     stages: new Map(must(stages, "stages").map((row) => [row.id, row as StatusStage])),
     rules: must(rules, "rules") as StatusRule[],
     talentStatuses: ((must(settings, "settings")?.talent_statuses ?? []) as string[]).filter(isCrmStatus),
@@ -168,7 +171,7 @@ export async function saveOpportunities(db: Db, opportunities: GhlOpportunity[],
 async function opportunitiesFor(contactId: string): Promise<GhlOpportunity[]> {
   const all: GhlOpportunity[] = [];
   for (let page = 1; page <= 50; page += 1) {
-    const result = await ghl.opportunitiesPage(page, contactId);
+    const result = await ghl.opportunitiesPage(page, { contactId });
     const items = (result.opportunities ?? []).filter((item) => item.contactId === contactId);
     all.push(...items);
     if ((result.opportunities ?? []).length < 100) break;
@@ -194,7 +197,13 @@ export async function syncContact(db: Db, contactId: string, config: SyncConfig,
     return;
   }
 
-  const opportunities = await opportunitiesFor(contactId);
+  const opportunities = (await opportunitiesFor(contactId)).filter((item) => inWatchedScope(config.watched, item.pipelineId));
+  if (!opportunities.length) {
+    // Not in a watched pipeline: not mirrored and no talent created or updated.
+    // Anything synced before the pipeline was watched stays as it is.
+    bump(stats, "contacts_outside_watched");
+    return;
+  }
   await saveOpportunities(db, opportunities, stats);
   const custom = customFieldMap(contact.customFields);
   const status = deriveCrmStatus({

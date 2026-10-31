@@ -33,6 +33,12 @@ export type StatusInput = {
   talentStatuses: CrmStatus[];
 };
 
+// Watched pipelines (Mapping, migrations 035 and 037): the sync follows only these.
+// With none watched it follows nothing: it must never fall back to every contact.
+export function inWatchedScope(watched: ReadonlySet<string>, pipelineId: string) {
+  return watched.has(pipelineId);
+}
+
 type Contribution = { status: CrmStatus; reason: string; at: string; badge: string | null };
 
 const fieldValues = (value: unknown): string[] =>

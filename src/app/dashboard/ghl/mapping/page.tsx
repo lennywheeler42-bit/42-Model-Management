@@ -10,7 +10,7 @@ import { DeleteRuleButton, FieldMappingControls, MarkReviewedButton, PipelineCon
 
 export const metadata = { title: "GHL mapping" };
 
-type Pipeline = { id: string; name: string; purpose: string | null; badge_label: string | null; removed_at: string | null; first_seen_at: string };
+type Pipeline = { id: string; name: string; purpose: string | null; badge_label: string | null; watched: boolean; removed_at: string | null; first_seen_at: string };
 type Stage = { id: string; pipeline_id: string; name: string; position: number; normalized_status: string | null; mapping_source: string | null; removed_at: string | null };
 type Field = { id: string; object_key: string; name: string; field_key: string | null; data_type: string | null; target: string | null; ownership: string; reviewed_at: string | null; removed_at: string | null };
 
@@ -26,7 +26,7 @@ export default async function GhlMappingPage() {
   let pipelines: Pipeline[], stages: Stage[], fields: Field[], settings: { talent_statuses: string[]; writeback_enabled: boolean } | null, rules: { id: string; kind: string; field_id: string | null; match_value: string; normalized_status: string }[], counts: Map<string, number>;
   try {
     const [p, s, f, st, r, o] = await Promise.all([
-      supabase.from("ghl_pipelines").select("id,name,purpose,badge_label,removed_at,first_seen_at").order("name"),
+      supabase.from("ghl_pipelines").select("id,name,purpose,badge_label,watched,removed_at,first_seen_at").order("name"),
       supabase.from("ghl_pipeline_stages").select("id,pipeline_id,name,position,normalized_status,mapping_source,removed_at").order("position"),
       supabase.from("ghl_field_definitions").select("id,object_key,name,field_key,data_type,target,ownership,reviewed_at,removed_at").order("object_key").order("name"),
       supabase.from("ghl_settings").select("talent_statuses,writeback_enabled").maybeSingle(),
@@ -62,11 +62,17 @@ export default async function GhlMappingPage() {
 
     <section id="pipelines" className="scroll-mt-6 space-y-4">
       <h2 className="text-sm font-800">Pipelines and stages</h2>
+      {(() => {
+        const watched = pipelines.filter((pipeline) => pipeline.watched && !pipeline.removed_at).map((pipeline) => pipeline.name);
+        return <p className="text-sm text-[#6b6d66]">{watched.length
+          ? <>The sync watches only <strong className="text-[#20211d]">{watched.join(", ")}</strong>: contacts without an opportunity there are not synced. Map each stage below so people get a status.</>
+          : "No pipeline is watched, so the sync follows nobody. Tick Watch on a pipeline to follow it."}</p>;
+      })()}
       {!pipelines.length && <p className="text-sm text-[#6b6d66]">No pipelines discovered yet. Run a sync.</p>}
       {pipelines.map((pipeline) => {
         const own = stages.filter((stage) => stage.pipeline_id === pipeline.id);
         return <Card key={pipeline.id} title={pipeline.name} description={pipeline.removed_at ? "Deleted in GHL" : pipeline.purpose ? undefined : "New pipeline: choose its purpose. Until then it does not affect anyone's status."}
-          actions={<PipelineControls id={pipeline.id} purpose={pipeline.purpose} badge={pipeline.badge_label} canEdit={canEdit} />}>
+          actions={<PipelineControls id={pipeline.id} purpose={pipeline.purpose} badge={pipeline.badge_label} watched={pipeline.watched} canEdit={canEdit} />}>
           {own.length ? <div className="relative overflow-x-auto"><table className="w-full min-w-[480px] text-left text-sm">
             <thead><tr className="text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="py-2 pr-3">GHL stage</th><th className="py-2 pr-3">Opportunities</th><th className="w-56 py-2">Means</th></tr></thead>
             <tbody>{own.map((stage) => <tr key={stage.id} className={`border-t border-[#f3f3f0] ${stage.removed_at ? "opacity-50" : ""}`}>

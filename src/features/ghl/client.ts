@@ -102,8 +102,8 @@ export const ghl = {
   searchContacts: (searchAfter?: unknown[]) => ghlRequest<{ contacts?: GhlContact[]; total?: number }>("POST", "/contacts/search", {
     body: { locationId: ghlLocationId(), pageLimit: 100, sort: [{ field: "dateUpdated", direction: "desc" }], ...(searchAfter ? { searchAfter } : { page: 1 }) },
   }),
-  opportunitiesPage: (page: number, contactId?: string) => ghlRequest<{ opportunities?: GhlOpportunity[]; meta?: { total?: number } }>("GET", "/opportunities/search", {
-    query: { location_id: ghlLocationId(), limit: 100, page, contact_id: contactId },
+  opportunitiesPage: (page: number, filter: { contactId?: string; pipelineId?: string } = {}) => ghlRequest<{ opportunities?: GhlOpportunity[]; meta?: { total?: number } }>("GET", "/opportunities/search", {
+    query: { location_id: ghlLocationId(), limit: 100, page, contact_id: filter.contactId, pipeline_id: filter.pipelineId },
   }),
   updateContact: (id: string, body: Record<string, unknown>) => ghlRequest<{ contact?: GhlContact }>("PUT", `/contacts/${encodeURIComponent(id)}`, { body }),
 };

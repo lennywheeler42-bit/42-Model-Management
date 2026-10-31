@@ -168,6 +168,13 @@ Starting mapping, seeded by `scripts/ghl-initial-mapping.mjs` and editable under
 
 **Talent records** are created for the statuses **enrolled, active, booked and graduated**. You can change this list under Mapping. Everyone else stays visible under GHL Sync → Contacts, with a **Create talent** button.
 
+**Watched pipelines** (migrations 035 and 037, owner decisions 2026-10-31 and 2026-11-03): the sync follows only pipelines with **Watch** ticked under Mapping. The owner chose **Onboarded/Active Models**; migration 037 ticks it and maps its one stage to Active.
+- Reconciliation reads opportunities only in watched pipelines (`pipeline_id` filter), fetches in full only contacts that have one, and marks missing opportunities removed only in watched pipelines.
+- Webhooks still queue any contact; a contact with no opportunity in a watched pipeline is skipped (`contacts_outside_watched` in the run stats). Its existing copy and talent are left unchanged.
+- CRM status comes only from watched-pipeline opportunities (plus tag/field rules). Ticking Watch on a pipeline still marked "Needs review" makes it a talent pipeline; **map its stages** (e.g. → Active) or nobody gets a talent record.
+- With nothing watched, the sync follows nobody. It never falls back to every pipeline, even if the watched pipeline is deleted in GHL.
+- The Join Us form webhook (`/api/integrations/ghl`) is separate: submissions still arrive as applications to review and create no talent by themselves.
+
 **New pipelines and stages** are discovered on every run. They appear as "Needs review" or "Unmapped" and affect nobody until mapped. Their opportunities are still stored and linked.
 
 ## Field mapping and source of truth

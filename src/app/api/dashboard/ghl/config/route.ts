@@ -14,6 +14,7 @@ const ghlId = z.string().min(1).max(100);
 
 const schema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("pipeline"), id: ghlId, purpose: z.enum(["talent", "client", "ignore"]).nullable(), badge_label: z.string().trim().max(30).nullable() }),
+  z.object({ type: z.literal("pipeline_watch"), id: ghlId, watched: z.boolean() }),
   z.object({ type: z.literal("stage"), id: ghlId, normalized_status: status.nullable() }),
   z.object({ type: z.literal("field"), id: ghlId, target: target.nullable(), ownership: z.enum(["ghl_only", "dashboard_only", "bidirectional"]) }),
   z.object({ type: z.literal("field_reviewed"), ids: z.array(ghlId).min(1).max(500) }),
@@ -35,6 +36,11 @@ export async function PATCH(request: Request) {
   switch (input.type) {
     case "pipeline":
       result = await supabase.from("ghl_pipelines").update({ purpose: input.purpose, badge_label: input.badge_label || null, updated_at: now }).eq("id", input.id).select("id");
+      break;
+    case "pipeline_watch":
+      result = await supabase.from("ghl_pipelines").update({ watched: input.watched, updated_at: now }).eq("id", input.id).select("id");
+      // A watched pipeline describes talent; left as "Needs review" it would affect no one.
+      if (!result.error && input.watched) await supabase.from("ghl_pipelines").update({ purpose: "talent", updated_at: now }).eq("id", input.id).is("purpose", null);
       break;
     case "stage":
       result = await supabase.from("ghl_pipeline_stages").update({ normalized_status: input.normalized_status, updated_at: now }).eq("id", input.id).select("id");
