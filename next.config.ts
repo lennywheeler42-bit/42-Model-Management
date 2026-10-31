@@ -16,7 +16,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
-  `media-src 'self' blob: ${supabaseOrigin}`.trim(),
+  // Vimeo: the home page hero film (HERO_VIDEO_URL in src/lib/site.ts) and its CDN redirect.
+  `media-src 'self' blob: ${supabaseOrigin} https://player.vimeo.com https://*.vimeocdn.com`.replace(/\s+/g, " ").trim(),
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace(/^https:/, "wss:")}${isDev ? " ws:" : ""}`.replace(/\s+/g, " ").trim(),
   "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com",

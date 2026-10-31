@@ -7,8 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
 import { cmsMediaUrl, getSiteSettings } from "@/features/cms/queries";
 import { getPublicBoards, getRoster } from "@/features/public/queries";
-import { PLACEHOLDER_IMAGE } from "@/features/public/types";
-import { siteOrigin } from "@/lib/site";
+import { HERO_VIDEO_URL, SITE_MEDIA, siteOrigin } from "@/lib/site";
 
 // Two-line display headings: the second line is set in italics.
 function Headline({ text }: { text?: string }) {
@@ -21,11 +20,10 @@ export default async function Home() {
   await connection();
   const [publicTalents, settings, boards] = await Promise.all([getRoster({ limit: 8 }), getSiteSettings(), getPublicBoards()]);
   // Hero and About images come from Dashboard → Website → Settings; until they are
-  // chosen, the first published talent photo is used, never stock photography.
-  const withPhotos = publicTalents.filter((talent) => talent.image !== PLACEHOLDER_IMAGE);
-  const talentImage = withPhotos[0]?.image ?? null;
-  const heroImage = cmsMediaUrl(settings.home_hero.image_path) ?? talentImage;
-  const aboutImage = cmsMediaUrl(settings.home_about.image_path) ?? withPhotos[1]?.image ?? talentImage;
+  // chosen, the agency's own B-roll is used (SITE_MEDIA), never stock photography.
+  // The hero film plays over the image, except for visitors who prefer less motion.
+  const heroImage = cmsMediaUrl(settings.home_hero.image_path) ?? SITE_MEDIA.hero;
+  const aboutImage = cmsMediaUrl(settings.home_about.image_path) ?? SITE_MEDIA.about;
   const topBoards = boards.filter((board) => board.depth === 0);
   const site = siteOrigin() ?? "";
   const organization = {
@@ -42,17 +40,22 @@ export default async function Home() {
   return (
     <main className="overflow-hidden">
       <section className="relative flex h-[100svh] min-h-[600px] max-h-[980px] items-end bg-[var(--ink)] text-white">
-        {heroImage && <Image src={heroImage} alt="" fill priority sizes="100vw" className="object-cover object-[center_25%]" />}
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/45 md:bg-gradient-to-r md:from-black/75 md:via-black/30 md:to-black/0" />
+        <Image src={heroImage} alt="" fill priority sizes="100vw" className="object-cover object-[center_30%] grayscale" />
+        <video aria-hidden autoPlay muted loop playsInline preload="auto" poster={heroImage} className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden">
+          <source src={HERO_VIDEO_URL} type="video/mp4" />
+        </video>
+        <div aria-hidden className="absolute inset-0 bg-black/45" />
+        <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 to-transparent" />
         <SiteHeader dark />
         <div className="container relative z-10 pb-12 sm:pb-16">
-          {settings.home_hero.eyebrow && <p className="label-sm mb-6 text-white/75">{settings.home_hero.eyebrow}</p>}
-          <h1 className="display max-w-5xl text-[clamp(58px,11vw,168px)] leading-[.84] tracking-[-.02em]"><Headline text={settings.home_hero.headline} /></h1>
-          {settings.home_hero.text && <p className="serif mt-7 max-w-lg text-[19px] leading-snug text-white/80">{settings.home_hero.text}</p>}
-          <div className="mt-10 flex flex-col gap-8 border-t border-white/20 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <Link href="/models" className="label group flex w-fit items-center gap-4">
-              Explore talent <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/60 transition-transform group-hover:translate-x-1"><ArrowRight size={16} aria-hidden /></span>
-            </Link>
+          {settings.home_hero.eyebrow && <p className="label-sm mb-6 text-white/70">{settings.home_hero.eyebrow}</p>}
+          <h1 className="display max-w-5xl text-[clamp(56px,10vw,152px)] leading-[.86] tracking-[-.02em]"><Headline text={settings.home_hero.headline} /></h1>
+          {settings.home_hero.text && <p className="serif mt-6 max-w-lg text-[19px] leading-snug text-white/80">{settings.home_hero.text}</p>}
+          <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-3">
+              <Link href="/models" className="label flex items-center gap-3 bg-white px-7 py-4 text-[var(--ink)] transition-colors hover:bg-white/85">Explore talent <ArrowRight size={14} aria-hidden /></Link>
+              <Link href="/join" prefetch={false} className="label flex items-center gap-3 border border-white/50 px-7 py-4 transition-colors hover:bg-white hover:text-[var(--ink)]">Apply to join</Link>
+            </div>
             <div className="label-sm flex items-center gap-6 text-white/60">
               {settings.location_line && <span>{settings.location_line}</span>}
               <a href="#roster" aria-label="Scroll to the roster" className="hidden hover:text-white sm:block"><ChevronDown size={22} strokeWidth={1} aria-hidden /></a>
@@ -83,21 +86,27 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="border-y border-[var(--line)] bg-[var(--paper)] py-20 sm:py-32">
-        <div className="container grid gap-10 lg:grid-cols-[240px_1fr] lg:gap-12">
-          <div><p className="label">Our view</p><span aria-hidden className="mt-4 hidden h-px w-7 bg-[var(--ink)]/40 lg:block" /></div>
-          <div>
-            <h2 className="display max-w-4xl text-[clamp(36px,5.6vw,80px)] leading-[.98] tracking-[-.01em]">We represent <em>distinctive</em> people with something to say.</h2>
-            <p className="serif mt-8 max-w-xl text-[19px] leading-[1.5] text-[var(--muted)]">42 is a full-service model management agency built around long-term relationships, sharp creative instinct, and a belief in the individual.</p>
+      <section aria-labelledby="studio-heading" className="border-t border-[var(--line)] bg-[var(--paper)] py-20 sm:py-28">
+        <div className="container">
+          <div className="mb-10 grid gap-6 border-b border-[var(--line)] pb-8 md:grid-cols-[1.6fr_1fr] md:items-end md:gap-12">
+            <div>
+              <p className="label-sm mb-3 text-[var(--muted)]">From the studio</p>
+              <h2 id="studio-heading" className="display text-[clamp(36px,5vw,68px)] leading-[.95] tracking-[-.01em]">We represent <em>distinctive</em> people with something to say.</h2>
+            </div>
+            <p className="serif max-w-md text-[19px] leading-[1.5] text-[var(--muted)] md:justify-self-end">42 is a full-service model management agency built around long-term relationships, sharp creative instinct, and a belief in the individual.</p>
+          </div>
+          {/* Agency B-roll (SITE_MEDIA): one tall image beside a grid of four. */}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:grid-rows-2 md:gap-4">
+            {SITE_MEDIA.editorial.map((src, index) => <div key={src} className={`image-hover relative min-w-0 overflow-hidden bg-[var(--cream)] ${index === 0 ? "col-span-2 row-span-2 aspect-[4/5] md:aspect-auto" : "aspect-[3/4]"}`}>
+              <Image src={src} alt="" fill sizes={index === 0 ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 25vw"} className="object-cover grayscale" />
+            </div>)}
           </div>
         </div>
       </section>
 
       <section id="about" className="container grid gap-12 py-20 sm:py-32 md:grid-cols-[1fr_1.15fr] md:items-center md:gap-20">
         <div className="relative aspect-[4/5] overflow-hidden bg-[#dcd7cf]">
-          {aboutImage
-            ? <Image src={aboutImage} alt="" fill sizes="(max-width: 768px) 100vw, 45vw" className="object-cover" />
-            : <div className="paper-grid h-full" aria-hidden="true" />}
+          <Image src={aboutImage} alt="" fill sizes="(max-width: 768px) 100vw, 45vw" className="object-cover grayscale" />
         </div>
         <div>
           {settings.home_about.eyebrow && <p className="label-sm mb-6 text-[var(--muted)]">{settings.home_about.eyebrow}</p>}
