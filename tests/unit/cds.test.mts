@@ -1,7 +1,7 @@
 // CDS import rules. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isCdsMediaUrl, isExcludedName, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { isCdsMediaUrl, isExcludedName, isResizedSource, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
 import { talentSummary } from "../../src/features/talent/summary.ts";
 
 test("agency placeholder records are excluded", () => {
@@ -81,9 +81,16 @@ test("photo copy takes the whole library: every photo and digital, not videos", 
   assert.equal(pickCover(media, [{ name: "A", media: ["3"] }], new Set(["3"])), "3");
 });
 
+test("resized WebForFashion copies are told apart from originals", () => {
+  for (const name of ["8844417-big.jpeg", "8844417-medium.jpeg", "8844417-small.jpg", "8844417-mini.png"]) assert.equal(isResizedSource(`/uploads/content/a/8/8/${name}`), true, name);
+  for (const name of ["8844417.jpeg", "8844417.png", "my-big-photo.jpeg"]) assert.equal(isResizedSource(`/uploads/content/a/8/8/${name}`), false, name);
+  assert.equal(isResizedSource("https://example.test/a/8844417-big.jpeg"), true);
+  assert.equal(isResizedSource(null), false);
+});
+
 test("the source file name comes from the link, without its signature", () => {
-  const url = new URL("https://cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com/uploads/content/a/talent/image/b/8/8/8844417-big.jpeg?X-Amz-Signature=secret");
-  assert.equal(sourceFileName(url), "8844417-big.jpeg");
+  const url = new URL("https://cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com/uploads/content/a/talent/image/b/8/8/8844417.jpeg?X-Amz-Signature=secret");
+  assert.equal(sourceFileName(url), "8844417.jpeg");
   assert.equal(sourceFileName(new URL("https://example.test/a/my%20photo%20(1).jpg")), "my-photo-1-.jpg");
 });
 

@@ -6,7 +6,7 @@ import { LIBRARY_BUCKET } from "@/features/media/urls";
 import { writeAudit } from "@/lib/api";
 import { log } from "@/lib/log";
 import { slugify } from "@/lib/validation";
-import { isCdsMediaUrl, pickCover, selectPhotos, sourceFileName, type MediaItem, type PortfolioRef } from "./logic";
+import { isCdsMediaUrl, isResizedSource, pickCover, selectPhotos, sourceFileName, type MediaItem, type PortfolioRef } from "./logic";
 
 // Photo copy for the CDS import ("4. Copy photos" in Dashboard → CDS Import).
 // The owner's WebForFashion window reads each talent's signed photo links and
@@ -40,14 +40,14 @@ async function mediaOf(supabase: SupabaseClient, cdsIds: string[]) {
   return rows;
 }
 
-// Photos already stored in the library. The first import kept resized copies in
-// talent-private; those are replaced by the full file on the next run.
-async function libraryPhotoIds(supabase: SupabaseClient, talentIds: string[]) {
+// Photos whose original is already in the library. The first import kept resized
+// copies in talent-private; those are replaced by the original on the next run.
+async function originalPhotoIds(supabase: SupabaseClient, talentIds: string[]) {
   const ids = new Set<string>();
   for (let start = 0; ; start += 1000) {
-    const { data, error } = await supabase.from("talent_photos").select("id").in("talent_id", talentIds).eq("storage_bucket", LIBRARY_BUCKET).order("id").range(start, start + 999);
+    const { data, error } = await supabase.from("talent_photos").select("id,source_url").in("talent_id", talentIds).eq("storage_bucket", LIBRARY_BUCKET).order("id").range(start, start + 999);
     if (error) throw error;
-    for (const row of data ?? []) ids.add(row.id);
+    for (const row of data ?? []) if (!isResizedSource(row.source_url)) ids.add(row.id);
     if ((data ?? []).length < 1000) break;
   }
   return ids;
@@ -59,7 +59,7 @@ export async function planPhotos(supabase: SupabaseClient) {
   const talents = await linkedTalents(supabase);
   if (!talents.length) return { talents: [], selected: 0, imported: 0, skipped: 0 };
   const media = await mediaOf(supabase, talents.map((t) => t.cds_id));
-  const inLibrary = await libraryPhotoIds(supabase, talents.map((t) => t.talent_id));
+  const inLibrary = await originalPhotoIds(supabase, talents.map((t) => t.talent_id));
   const { data: names } = await supabase.from("talent").select("id,display_name").in("id", talents.map((t) => t.talent_id));
   const nameOf = new Map((names ?? []).map((row) => [row.id, row.display_name as string]));
 
@@ -124,6 +124,7 @@ export async function copyPhotos(supabase: SupabaseClient, items: { id: string; 
     try {
       const url = new URL(item.url);
       if (!isCdsMediaUrl(url)) throw new Error("not a CDS media link");
+      if (isResizedSource(url.pathname)) throw new Error("this link is a resized copy, not the original");
       const bytes = await withRetry(() => downloadPhoto(url, MAX_FILE_BYTES, isCdsMediaUrl));
       return { item, url, row, talentId: owner.talent_id as string, matched: owner.match_status === "matched", bytes, image: await inspectImage(bytes) };
     } catch (failure) {
@@ -136,12 +137,12 @@ export async function copyPhotos(supabase: SupabaseClient, items: { id: string; 
   const store = async ({ item, url, row, talentId, matched, bytes, image }: Work) => {
     try {
       // This media id's own row if it has one, else any photo of this talent with the same bytes.
-      const columns = "id,talent_id,storage_bucket";
+      const columns = "id,talent_id,storage_bucket,source_url";
       const { data: linked } = row.photo_id ? await supabase.from("talent_photos").select(columns).eq("id", row.photo_id).maybeSingle() : { data: null };
       if (linked && linked.talent_id !== talentId) throw new Error("this photo is linked to another talent");
       const { data: same } = linked ? { data: null } : await supabase.from("talent_photos").select(columns).eq("talent_id", talentId).eq("content_sha256", image.sha256).limit(1).maybeSingle();
       const existing = linked ?? same;
-      if (existing?.storage_bucket === LIBRARY_BUCKET) {
+      if (existing?.storage_bucket === LIBRARY_BUCKET && !isResizedSource(existing.source_url)) {
         await mark(item.id, { status: "imported", photo_id: existing.id, error: same ? "Same file as another photo of this talent" : null });
         result.duplicate += 1;
         return;

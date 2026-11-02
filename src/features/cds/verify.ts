@@ -1,10 +1,12 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { LIBRARY_BUCKET } from "@/features/media/urls";
+import { isResizedSource } from "./logic";
 
 // Compares what WebForFashion listed against what is really stored, model by model:
 // each media row, its talent_photos row, and the file in model-photos. A photo only
-// counts as verified if its file exists at the recorded size and belongs to that talent.
+// counts as verified if it is the original, not a resized copy, its file exists at the
+// recorded size, and it belongs to that talent.
 
 export type VerifyRow = {
   cdsId: string; name: string; talentId: string | null; status: string; note: string | null;
@@ -36,7 +38,7 @@ export async function verifyMigration(supabase: SupabaseClient) {
   type Talent = { cds_id: string; first_name: string; last_name: string; talent_id: string | null; match_status: string; match_reason: string | null };
   const talents = await pages<Talent>((from, to) => supabase.from("cds_talents").select("cds_id,first_name,last_name,talent_id,match_status,match_reason").eq("excluded", false).order("cds_id").range(from, to));
   const media = await pages<{ wff_media_id: string; cds_id: string; status: string; photo_id: string | null }>((from, to) => supabase.from("cds_media").select("wff_media_id,cds_id,status,photo_id").neq("kind", "video").order("wff_media_id").range(from, to));
-  const photos = await pages<{ id: string; talent_id: string; storage_bucket: string; storage_path: string; thumbnail_path: string | null; file_size: number | null }>((from, to) => supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,thumbnail_path,file_size").eq("source", "cds").is("archived_at", null).order("id").range(from, to));
+  const photos = await pages<{ id: string; talent_id: string; storage_bucket: string; storage_path: string; thumbnail_path: string | null; file_size: number | null; source_url: string | null }>((from, to) => supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,thumbnail_path,file_size,source_url").eq("source", "cds").is("archived_at", null).order("id").range(from, to));
   const photoById = new Map(photos.map((photo) => [photo.id, photo]));
 
   const rows: VerifyRow[] = [];
@@ -54,8 +56,8 @@ export async function verifyMigration(supabase: SupabaseClient) {
       for (const item of own) {
         if (item.status === "failed") { row.failed += 1; continue; }
         const photo = item.status === "imported" && item.photo_id ? photoById.get(item.photo_id) : null;
-        // Listed, or still the resized copy from the first import.
-        if (!photo || photo.storage_bucket !== LIBRARY_BUCKET) { row.waiting += 1; continue; }
+        // Listed, or still a resized copy.
+        if (!photo || photo.storage_bucket !== LIBRARY_BUCKET || isResizedSource(photo.source_url)) { row.waiting += 1; continue; }
         if (photo.talent_id !== talent.talent_id || !photo.storage_path.startsWith(`${talent.talent_id}/`)) { row.wrongTalent += 1; continue; }
         const size = originals.get(photo.storage_path);
         if (size === undefined || (photo.file_size && size !== photo.file_size)) { row.missingFile += 1; continue; }

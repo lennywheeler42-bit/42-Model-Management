@@ -78,11 +78,14 @@
       const doc = frame.contentDocument;
       const ids = () => new Set([...doc.querySelectorAll("[data-media-id]")].map((e) => e.getAttribute("data-media-id"))).size;
       const total = () => Number((doc.body.innerText.match(/\(\s*\d+\s*\/\s*(\d+)\s*(images?|digitals?|videos?|photos?)\)/i) || [])[1] || 0);
-      for (let round = 0, still = 0; round < 200 && typeof win.loadMorePhotos === "function" && still < 3 && (!total() || ids() < total()); round += 1) {
+      // loadMorePhotos does nothing while another request is pending, so a call that
+      // starts no request means "try again shortly", not "no more photos".
+      for (let round = 0, still = 0; round < 400 && typeof win.loadMorePhotos === "function" && still < 8 && (!total() || ids() < total()); round += 1) {
         const before = ids();
-        if (!(await whenLoaded(win, () => win.loadMorePhotos()))) break;
+        if (!(await whenLoaded(win, () => win.loadMorePhotos()))) await sleep(750);
         still = ids() === before ? still + 1 : 0;
       }
+      if (total() && ids() < total()) state.short = [...(state.short ?? []), `${path}: ${ids()} of ${total()}`];
       // On the Digitals page the id is on the <li> and the signed link on its <img>.
       const seen = new Set();
       return [...doc.querySelectorAll("[data-media-id]")].map((el) => {
@@ -166,11 +169,29 @@
     return { wff_id: id, ...profile, portfolios: await portfolios(id), media };
   }
 
+  // The gallery's own "load more" call lists every photo with signed links to all its
+  // versions. urls._default is the original file; the "big" link on the page is a
+  // resized copy of at most about 950 px.
+  async function originalLinks(wffId) {
+    const doc = parse(await (await get(`/imaging/talent/${wffId}`)).text());
+    const endpoint = doc.querySelector("[data-load-more-talents]")?.getAttribute("data-load-more-talents");
+    if (!endpoint) throw new Error("the gallery did not load");
+    const links = new Map();
+    for (let offset = 0; ;) {
+      const response = await fetch(endpoint, { method: "POST", credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ limit: "500", offset: String(offset) }) });
+      if (!response.ok) throw new Error(`photo list: HTTP ${response.status}`);
+      const { photos = [] } = await response.json();
+      for (const photo of photos) if (photo.urls?._default) links.set(String(photo.id), photo.urls._default);
+      if (photos.length < 500) return links;
+      offset += photos.length;
+    }
+  }
+
   // Photo mode (window.__cdsMode = "photos"): asks the dashboard which photos to
-  // copy, reads each one's signed full-size link from the gallery, and hands the
-  // links over a few at a time; the dashboard's server copies the files. Nothing
-  // is downloaded in this browser. Safe to stop and run again: only photos not yet
-  // copied are planned. window.__cdsOnly = ["138421"] limits it to chosen talents.
+  // copy, reads each one's signed link to the original, and hands the links over a
+  // few at a time; the dashboard's server copies the files. Nothing is downloaded in
+  // this browser. Safe to stop and run again: only photos not yet copied are planned.
+  // window.__cdsOnly = ["138421"] limits it to chosen talents.
   async function copyPhotos() {
     const plan = (await send({ plan: true })).result;
     const only = Array.isArray(window.__cdsOnly) ? new Set(window.__cdsOnly) : null;
@@ -200,13 +221,9 @@
       state.current = talent.name;
       try {
         if (talent.media.length) {
-          const wanted = new Set(talent.media);
-          const found = new Map();
-          for (const path of [`/imaging/talent/${talent.wff_id}`, `/imaging/talent/${talent.wff_id}/digitals`]) {
-            for (const item of await galleryItems(path)) if (wanted.has(item.id) && item.big && !found.has(item.id)) found.set(item.id, item.big);
-          }
-          if (found.size < wanted.size) state.missing.push(`${talent.name}: ${wanted.size - found.size} not found`);
-          const items = [...found].map(([id, url]) => ({ id, url }));
+          const links = await originalLinks(talent.wff_id);
+          const items = talent.media.filter((id) => links.has(id)).map((id) => ({ id, url: links.get(id) }));
+          if (items.length < talent.media.length) state.missing.push(`${talent.name}: ${talent.media.length - items.length} not found: ${talent.media.filter((id) => !links.has(id)).slice(0, 20).join(" ")}`);
           for (let start = 0; start < items.length; start += 6) await copy(items.slice(start, start + 6));
         }
         await send({ finish: talent.wff_id, name: talent.name });

@@ -166,8 +166,14 @@ export function selectPhotos(media: MediaItem[]) {
   return media.filter((m) => m.kind !== "video").sort((a, b) => a.position - b.position).map((m) => m.id);
 }
 
-// The name WebForFashion stores the file under ("8844417-big.jpeg"), from a signed
-// link. The name the file had when first uploaded is not kept by WebForFashion.
+// WebForFashion keeps resized versions beside each original: "8844417-big.jpeg" (at
+// most about 950 px) next to "8844417.jpeg". Only originals count as migrated.
+export function isResizedSource(pathOrUrl: string | null | undefined) {
+  return /-(big|medium|small|mini)\.[a-z0-9]+$/i.test(pathOrUrl ?? "");
+}
+
+// The name WebForFashion stores the file under ("8844417.jpeg"), from a signed link.
+// The name the file had when first uploaded is not kept by WebForFashion.
 export function sourceFileName(url: URL) {
   const name = decodeURIComponent(url.pathname.split("/").pop() ?? "");
   return name.replace(/[^\w.-]+/g, "-").slice(-160) || null;
