@@ -6,7 +6,7 @@ import { renderCompCard } from "@/features/compcard/build";
 
 export const maxDuration = 60;
 
-// GET ?photos=<id>,<id>…&measurements=1 → PDF comp card (approved material only).
+// GET ?photos=<id>,<id>…&measurements=1 → PDF comp card from the talent's gallery.
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await requireApi(["talent.view", "media.view"]);

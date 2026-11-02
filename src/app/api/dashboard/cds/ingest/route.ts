@@ -41,8 +41,20 @@ export async function POST(request: Request) {
   }
 
   for (const wff of parsed.data.wff ?? []) {
-    const target = await findCdsRecord(supabase, wff);
-    if (!target) { result.unmatched.push(`${wff.first_name} ${wff.last_name}`.trim()); continue; }
+    let target = await findCdsRecord(supabase, wff);
+    // In WebForFashion but not in the CDS talent list: staged under its WebForFashion
+    // id, so "Add new talents" can link or add them and their photos are not left behind.
+    if (!target) {
+      result.unmatched.push(`${wff.first_name} ${wff.last_name}`.trim());
+      const cdsId = `wff-${wff.wff_id}`;
+      const excluded = isExcludedName(wff.first_name, wff.last_name);
+      const { error: stageError } = await supabase.from("cds_talents").upsert({
+        cds_id: cdsId, first_name: wff.first_name, last_name: wff.last_name, email: wff.emails[0] ?? null, phone: wff.phones[0] ?? null,
+        profile: { date_of_birth: wff.profile.date_of_birth }, excluded, match_status: excluded ? "skipped" : "pending", extracted_at: now, updated_at: now,
+      }, { onConflict: "cds_id", ignoreDuplicates: true });
+      if (stageError) return databaseError(stageError, "stage the WebForFashion talent");
+      target = { cds_id: cdsId, email: wff.emails[0] ?? null, phone: wff.phones[0] ?? null, excluded, profile: { date_of_birth: wff.profile.date_of_birth } };
+    }
     const { error } = await supabase.from("cds_talents").update({
       wff_id: wff.wff_id,
       cds_boards: wff.cds_boards,

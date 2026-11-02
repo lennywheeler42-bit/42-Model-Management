@@ -160,21 +160,17 @@ export function isCdsMediaUrl(url: URL) {
 export type MediaItem = { id: string; kind: "image" | "digital" | "video"; position: number; metadata: Record<string, unknown> };
 export type PortfolioRef = { name: string; website?: boolean; media: string[] };
 
-// Not the whole library (owner, 2026-10-06: keep storage small): the photos in
-// each CDS portfolio (these drive board placement), every digital, and the
-// starred cover. A talent with no portfolios gets the photos marked WEB, or
-// failing that the first 12 images, so every talent has pictures.
-export const FALLBACK_PHOTOS = 12;
-export function selectPhotos(media: MediaItem[], portfolios: PortfolioRef[]) {
-  const images = media.filter((m) => m.kind !== "video");
-  const inPortfolio = new Set(portfolios.flatMap((p) => p.media));
-  let chosen = images.filter((m) => inPortfolio.has(m.id) || m.kind === "digital" || m.metadata.primary === true);
-  if (!images.some((m) => inPortfolio.has(m.id))) {
-    const web = images.filter((m) => m.kind === "image" && m.metadata.web === true);
-    const extra = web.length ? web : images.filter((m) => m.kind === "image").sort((a, b) => a.position - b.position).slice(0, FALLBACK_PHOTOS);
-    chosen = [...chosen, ...extra.filter((m) => !chosen.includes(m))];
-  }
-  return chosen.sort((a, b) => a.position - b.position).map((m) => m.id);
+// The whole library, every photo and digital (owner, 2026-11-03, replacing the
+// earlier "portfolios and digitals only"): 42MM replaces CDS for photo management.
+export function selectPhotos(media: MediaItem[]) {
+  return media.filter((m) => m.kind !== "video").sort((a, b) => a.position - b.position).map((m) => m.id);
+}
+
+// The name WebForFashion stores the file under ("8844417-big.jpeg"), from a signed
+// link. The name the file had when first uploaded is not kept by WebForFashion.
+export function sourceFileName(url: URL) {
+  const name = decodeURIComponent(url.pathname.split("/").pop() ?? "");
+  return name.replace(/[^\w.-]+/g, "-").slice(-160) || null;
 }
 
 // The cover (profile picture): the photo starred in WebForFashion, else the

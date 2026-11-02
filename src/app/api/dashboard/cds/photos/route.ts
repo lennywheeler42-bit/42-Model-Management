@@ -7,9 +7,9 @@ import { copyPhotos, finishTalentPhotos, planPhotos } from "@/features/cds/photo
 import { refreshPublicSite } from "@/features/public/cache";
 
 // "4. Copy photos" in Dashboard → CDS Import (see features/cds/photos.ts):
-//   { plan: true }                  → what to copy per talent (and mark the rest skipped)
+//   { plan: true }                  → what is still to copy per talent
 //   { photos: [{ id, url }] }       → copy these (signed CDS bucket links, max 6)
-//   { finish: wffId }               → cover, portfolios, digitals, public copies
+//   { finish: wffId }               → missing cover, portfolios and digitals book
 export const maxDuration = 60;
 
 const id = z.string().regex(/^\d{1,15}$/);
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if ("plan" in parsed.data) return NextResponse.json(await planPhotos(supabase));
     if ("photos" in parsed.data) return NextResponse.json(await copyPhotos(supabase, parsed.data.photos));
     const result = await finishTalentPhotos(supabase, parsed.data.finish);
-    if (result.published) refreshPublicSite();
+    refreshPublicSite();
     return NextResponse.json(result);
   } catch (error) {
     return databaseError(error as { message?: string }, "copy the CDS photos");

@@ -34,7 +34,7 @@ export default async function CdsImportPage() {
     ]);
     // Photos still waiting to be copied, counted only for talents in the dashboard.
     const linked = ((talents.data ?? []) as Staged[]).filter((t) => t.talent_id && ["created", "matched"].includes(t.match_status)).map((t) => t.cds_id);
-    const waiting = skipped && linked.length ? await count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "listed").in("cds_id", linked)) : 0;
+    const waiting = imported && linked.length ? await count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "listed").in("cds_id", linked)) : 0;
     data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, waiting, mappings: mappings.data ?? [] };
   } catch (error) {
     log.error("cds", "overview failed", error);
@@ -42,22 +42,21 @@ export default async function CdsImportPage() {
   }
   const by = (status: string) => data.talents.filter((t) => t.match_status === status).length;
   const listed = data.images + data.digitals + data.videos;
-  const skipped = data.skipped;
-  const selected = data.imported + data.failed + data.waiting;
+  const selected = data.imported + data.failed + data.waiting + data.skipped;
   const tiles: [string, number, string][] = [
     ["Talents read from CDS", data.talents.length, "Model Luxe Media and 42 Model Management are skipped"],
     ["Added as new drafts", by("created"), "Not published; review, then publish"],
     ["Already in the dashboard", by("matched"), "Linked; existing details unchanged"],
     ["Need review", by("review"), "Possible duplicates; not added"],
     ["Photos listed", listed, `${data.images} photos · ${data.digitals} digitals · ${data.videos} videos`],
-    ["Photos copied", data.imported, skipped ? `of ${selected} selected${data.failed ? ` · ${data.failed} failed` : ""}` : "Not started"],
+    ["Photos copied", data.imported, data.imported ? `of ${selected} for linked talents${data.failed ? ` · ${data.failed} failed` : ""}` : "Not started"],
   ];
   const status = !data.talents.length ? "Not started"
     : data.pending ? `In progress: ${data.pending} talents still to add (step 3)`
-    : !skipped ? "Talents added; photos not copied yet (step 4)"
-    : data.waiting ? `In progress: ${data.waiting} photos still to copy (step 4)`
+    : !data.imported ? "Talents added; photos not copied yet (step 4)"
+    : data.waiting || data.skipped ? `In progress: ${data.waiting + data.skipped} photos still to copy (step 4)`
     : data.failed ? `Finished, with ${data.failed} photos that could not be copied (run step 4 again to retry)`
-    : "Import finished: talents added and photos copied";
+    : "Import finished: talents added and photos copied. Run step 5 to check every file.";
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Administration" title="CDS Import" description="Bring talents, boards and the photo list over from CDS / WebForFashion, using your own CDS sign-in in this browser. Nothing is published automatically." />
@@ -67,7 +66,7 @@ export default async function CdsImportPage() {
 
     <p className="rounded-lg border border-[#e7e7e3] bg-white px-4 py-3 text-sm"><span className="font-800">Status:</span> {status}</p>
 
-    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. 4 copies their photos (portfolios, digitals and the cover, resized) from the WebForFashion window and sets each profile picture.">
+    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. 4 copies every photo, unchanged, directly into cloud storage (nothing passes through this computer) from the WebForFashion window. New photos stay private until staff put them on the website. 5 checks each file against the CDS list, model by model. Runs can be repeated: finished photos are never copied twice.">
       <CdsImportPanel pending={data.pending} />
     </Card>
 

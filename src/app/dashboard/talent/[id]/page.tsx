@@ -36,7 +36,7 @@ export default async function TalentDetailPage({ params, searchParams }: { param
   const [privateDetails, cover, boardCount] = await Promise.all([
     permissions.has("talent.private.view") ? getPrivateDetails(supabase, id).catch(() => null) : null,
     permissions.has("media.view")
-      ? supabase.from("talent_photos").select("id,storage_bucket,storage_path,public_storage_path").eq("talent_id", id).is("archived_at", null).order("featured", { ascending: false }).order("display_order").limit(1).maybeSingle<StoredPhoto>()
+      ? supabase.from("talent_photos").select("id,storage_bucket,storage_path,public_storage_path,thumbnail_path").eq("talent_id", id).is("archived_at", null).order("featured", { ascending: false }).order("display_order").limit(1).maybeSingle<StoredPhoto>()
       : Promise.resolve({ data: null }),
     supabase.from("talent_board_assignments").select("board_id", { count: "exact", head: true }).eq("talent_id", id).then((result) => result.count ?? 0),
   ]);

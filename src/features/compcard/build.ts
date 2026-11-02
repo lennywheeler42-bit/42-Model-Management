@@ -5,20 +5,24 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { feetInches, lengthLabel } from "@/lib/format";
 import { siteOrigin } from "@/lib/site";
 import { getSiteSettings } from "@/features/cms/queries";
+import { readStored } from "@/features/media/library";
+import { LIBRARY_BUCKET, type StoredPhoto } from "@/features/media/urls";
 import { CompCardDocument, type CompCardData } from "./CompCardDocument";
 
-// Builds a comp card from APPROVED material only: photos marked public (served
-// from talent-public) and measurements the talent allows to be public. Private
-// contact, legal and unapproved photos are never read.
+// Builds a comp card from the talent's whole gallery, with no second upload: staff
+// choose any photo, cropped versions are used as framed, and photos a talent sent
+// that are still in review or were rejected are left out. Runs as the signed-in staff
+// member, so RLS decides what can be read. Measurements print only if the talent
+// allows them to be public. Private contact and legal details are never read.
 
-export type CompCardPhoto = { id: string; public_storage_path: string; alt_text: string | null; featured: boolean };
+export type CompCardPhoto = StoredPhoto & { cropped_path: string | null; alt_text: string | null; featured: boolean; public: boolean };
 
-export async function approvedPhotos(supabase: SupabaseClient, talentId: string) {
-  const { data, error } = await supabase.from("talent_photos").select("id,public_storage_path,alt_text,featured")
-    .eq("talent_id", talentId).eq("public", true).not("public_storage_path", "is", null).is("archived_at", null)
-    .order("featured", { ascending: false }).order("display_order");
+export async function galleryPhotos(supabase: SupabaseClient, talentId: string) {
+  const { data, error } = await supabase.from("talent_photos").select("id,storage_bucket,storage_path,public_storage_path,thumbnail_path,cropped_path,alt_text,featured,public,review_status")
+    .eq("talent_id", talentId).is("archived_at", null)
+    .order("featured", { ascending: false }).order("public", { ascending: false }).order("display_order").limit(5000);
   if (error) throw error;
-  return (data ?? []) as CompCardPhoto[];
+  return (data ?? []).filter((photo) => (photo.review_status ?? "approved") === "approved") as (CompCardPhoto & { review_status: string | null })[];
 }
 
 export async function publicStats(supabase: SupabaseClient, talentId: string, gender: string | null) {
@@ -34,25 +38,26 @@ export async function publicStats(supabase: SupabaseClient, talentId: string, ge
   ] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => ({ label, value: value as string }));
 }
 
-// Fetches a public image and re-encodes it as JPEG (react-pdf does not read WebP).
-async function jpeg(url: string, width: number) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!response.ok) throw new Error(`image fetch failed (${response.status})`);
-  return sharp(Buffer.from(await response.arrayBuffer())).rotate().resize({ width, withoutEnlargement: true }).jpeg({ quality: 88 }).toBuffer();
+// Reads the photo as staff framed it (crop, else website copy, else original) and
+// re-encodes it as JPEG (react-pdf does not read WebP).
+async function jpeg(supabase: SupabaseClient, photo: CompCardPhoto, width: number) {
+  const bytes = photo.cropped_path ? await readStored(supabase, LIBRARY_BUCKET, photo.cropped_path)
+    : photo.public_storage_path ? await readStored(supabase, "talent-public", photo.public_storage_path)
+    : await readStored(supabase, photo.storage_bucket, photo.storage_path);
+  return sharp(bytes).rotate().resize({ width, withoutEnlargement: true }).jpeg({ quality: 88 }).toBuffer();
 }
 
 export async function renderCompCard(supabase: SupabaseClient, talentId: string, options: { photoIds: string[]; measurements: boolean }) {
   const { data: talent, error } = await supabase.from("talent").select("id,display_name,location,gender,show_measurements").eq("id", talentId).maybeSingle();
   if (error) throw error;
   if (!talent) return null;
-  const photos = await approvedPhotos(supabase, talentId);
+  const photos = await galleryPhotos(supabase, talentId);
   const byId = new Map(photos.map((photo) => [photo.id, photo]));
   const chosen = options.photoIds.map((id) => byId.get(id)).filter(Boolean) as CompCardPhoto[];
   const selection = chosen.length ? chosen : photos.slice(0, 5);
-  if (!selection.length) return { error: "This talent has no photos approved for public use. Make at least one photo public first." } as const;
+  if (!selection.length) return { error: "This talent has no photos yet. Add at least one in the Media tab first." } as const;
 
-  const url = (path: string) => supabase.storage.from("talent-public").getPublicUrl(path).data.publicUrl;
-  const [primary, ...supporting] = await Promise.all(selection.slice(0, 5).map((photo, index) => jpeg(url(photo.public_storage_path), index === 0 ? 1400 : 800)));
+  const [primary, ...supporting] = await Promise.all(selection.slice(0, 5).map((photo, index) => jpeg(supabase, photo, index === 0 ? 1400 : 800)));
   const settings = await getSiteSettings();
   const card: CompCardData = {
     name: talent.display_name,

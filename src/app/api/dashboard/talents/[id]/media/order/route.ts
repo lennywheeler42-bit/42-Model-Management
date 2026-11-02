@@ -5,7 +5,7 @@ import { requireApi } from "@/lib/agency-auth";
 import { firstIssue } from "@/lib/validation";
 import { refreshPublicSite } from "@/features/public/cache";
 
-const schema = z.object({ photo_ids: z.array(z.string().uuid()).max(500) });
+const schema = z.object({ photo_ids: z.array(z.string().uuid()).max(5000) });
 
 // Persists image order: display_order follows the array (reorder_talent_photos, migration 015).
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {

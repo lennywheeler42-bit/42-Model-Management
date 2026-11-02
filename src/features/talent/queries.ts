@@ -58,7 +58,7 @@ export async function listTalent(supabase: SupabaseClient, permissions: Permissi
       ? supabase.from("talent_private_details").select("talent_id,date_of_birth").in("talent_id", ids)
       : Promise.resolve({ data: [] as { talent_id: string; date_of_birth: string | null }[] }),
     permissions.has("media.view") && ids.length
-      ? supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,public_storage_path,featured,display_order").in("talent_id", ids).is("archived_at", null).order("featured", { ascending: false }).order("display_order")
+      ? supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,public_storage_path,thumbnail_path,featured,display_order").in("talent_id", ids).is("archived_at", null).order("featured", { ascending: false }).order("display_order")
       : Promise.resolve({ data: [] as (StoredPhoto & { talent_id: string })[] }),
   ]);
 

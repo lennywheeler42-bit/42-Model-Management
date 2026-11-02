@@ -11,7 +11,7 @@ export async function loadMedia(supabase: SupabaseClient, talentId: string) {
   ]);
   for (const result of [photos, videos, portfolios, books]) if (result.error) throw result.error;
 
-  const photoRows = (photos.data ?? []) as unknown as (StoredPhoto & Omit<MediaPhoto, "url">)[];
+  const photoRows = (photos.data ?? []) as unknown as (StoredPhoto & Omit<MediaPhoto, "url"> & { cropped_path: string | null })[];
   const urls = await photoUrls(supabase, photoRows);
   const ordered = (items: { photo_id: string; display_order: number }[]) => [...items].sort((a, b) => a.display_order - b.display_order).map((item) => item.photo_id);
 
@@ -21,6 +21,7 @@ export async function loadMedia(supabase: SupabaseClient, talentId: string) {
       type_of_work: photo.type_of_work, support_name: photo.support_name, country_of_publication: photo.country_of_publication,
       image_type: photo.image_type, display_order: photo.display_order, featured: photo.featured, public: photo.public,
       archived_at: photo.archived_at, focal_point: photo.focal_point, review_status: photo.review_status, uploaded_by_talent: photo.uploaded_by_talent,
+      cropped: Boolean(photo.cropped_path), source: photo.source,
     })),
     videos: (videos.data ?? []) as MediaVideo[],
     portfolios: (portfolios.data ?? []).map((row): MediaCollection => ({

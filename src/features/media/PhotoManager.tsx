@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowDown, ArrowUp, Globe2, GripVertical, Lock, Pencil, Star, Upload } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, Crop, Globe2, GripVertical, Lock, Pencil, Star, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
@@ -12,7 +12,18 @@ import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/client";
 import { readForm } from "@/lib/read-form";
 import { useMutation } from "@/lib/use-mutation";
+import { PhotoCropDialog } from "./PhotoCropDialog";
 import { IMAGE_MIME_TYPES, IMAGE_TYPES, MAX_IMAGE_BYTES, type MediaPhoto } from "./types";
+import { LIBRARY_BUCKET } from "./urls";
+
+const PAGE_SIZE = 48;
+const FILTERS = [
+  { key: "all", label: "All", matches: () => true },
+  { key: "website", label: "On website", matches: (photo: MediaPhoto) => photo.public },
+  { key: "private", label: "Private", matches: (photo: MediaPhoto) => !photo.public },
+  { key: "digital", label: "Digitals", matches: (photo: MediaPhoto) => photo.image_type === "digital" },
+  { key: "cds", label: "From CDS", matches: (photo: MediaPhoto) => photo.source === "cds" },
+] as const;
 
 export function PhotoManager({ talentId, photos, canManage }: { talentId: string; photos: MediaPhoto[]; canManage: boolean }) {
   const { run, pending } = useMutation();
@@ -23,8 +34,13 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
   const [dragging, setDragging] = useState<string | null>(null);
   const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
   const [editing, setEditing] = useState<MediaPhoto | null>(null);
+  const [cropping, setCropping] = useState<string | null>(null);
   const [dropActive, setDropActive] = useState(false);
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
+  const [shown, setShown] = useState(PAGE_SIZE);
+  const [publishing, setPublishing] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const closeCrop = useCallback(() => setCropping(null), []);
   const base = `/api/dashboard/talents/${talentId}/media`;
 
   // Fresh server data (after router.refresh) replaces any local ordering.
@@ -41,8 +57,8 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
     setUploading({ done: 0, total: valid.length });
     let failed = 0;
     for (const [index, file] of valid.entries()) {
-      const path = `talent/${talentId}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80)}`;
-      const stored = await client.storage.from("talent-private").upload(path, file, { contentType: file.type });
+      const path = `${talentId}/originals/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(-80)}`;
+      const stored = await client.storage.from(LIBRARY_BUCKET).upload(path, file, { contentType: file.type });
       const saved = stored.error ? null : await run(base, {
         body: { storage_path: path, title: file.name.replace(/\.[^.]+$/, ""), alt_text: "", original_file_name: file.name, mime_type: file.type, file_size: file.size },
         refresh: false,
@@ -61,12 +77,33 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
     await run(`${base}/order`, { body: { photo_ids: next.map((photo) => photo.id) }, success: "Order saved" });
   }
 
+  // Order is always the whole gallery's. While a filter is on, a photo swaps with the
+  // next one showing, and the rest keep their places.
+  const visible = order.filter(FILTERS.find((item) => item.key === filter)!.matches);
   function move(index: number, delta: number) {
-    const target = index + delta;
-    if (target < 0 || target >= order.length) return;
+    const neighbour = visible[index + delta];
+    if (!neighbour) return;
+    const from = order.indexOf(visible[index]);
+    const to = order.indexOf(neighbour);
     const next = [...order];
-    [next[index], next[target]] = [next[target], next[index]];
+    [next[from], next[to]] = [next[to], next[from]];
     void saveOrder(next);
+  }
+
+  async function publishAll() {
+    setPublishing(true);
+    let published = 0, failed = 0;
+    // A large book takes several calls; each saves what it finished.
+    for (let round = 0; round < 40; round += 1) {
+      const result = await run<{ published: number; failed: number; remaining: number }>(`${base}/publish-all`, { refresh: false });
+      if (!result) break;
+      published += result.published;
+      failed += result.failed;
+      if (!result.remaining || !result.published) break;
+    }
+    setPublishing(false);
+    toast.success(`${published} photo${published === 1 ? "" : "s"} now on the website${failed ? ` (${failed} failed)` : ""}`);
+    router.refresh();
   }
 
   function drop(targetId: string) {
@@ -86,7 +123,7 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
 
   return <section className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#6b6d66]">New uploads are private. Click <strong>Show on website</strong> on a photo (or <strong>Show all on website</strong>) to put it on the public profile; the <strong>★ primary</strong> photo is the cover. Drag to reorder.</p></div>
+      <div><h3 className="text-sm font-800">Images</h3><p className="mt-1 text-xs text-[#6b6d66]">{order.length} photo{order.length === 1 ? "" : "s"} in this gallery. New uploads are private. Click <strong>Show on website</strong> on a photo (or <strong>Show all on website</strong>) to put it on the public profile; the <strong>★ primary</strong> photo is the cover. Drag to reorder.</p></div>
       {canManage && <>
         <input ref={input} type="file" accept={IMAGE_MIME_TYPES.join(",")} multiple className="sr-only" aria-label="Upload images" onChange={(event) => { void upload(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
         <Button size="sm" icon={<Upload size={13} />} disabled={Boolean(uploading)} onClick={() => input.current?.click()}>{uploading ? `Uploading ${uploading.done}/${uploading.total}…` : "Upload images"}</Button>
@@ -98,11 +135,8 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
       const ready = order.filter((photo) => !photo.public && (photo.review_status ?? "approved") === "approved").length;
       return <div className={`flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs ${onSite ? "bg-[#e4eee5] text-[#3f6a45]" : "bg-[#f7ecd8] text-[#7a5520]"}`}>
         <span><strong>{onSite} of {order.length}</strong> photo{order.length === 1 ? "" : "s"} {onSite === 1 ? "is" : "are"} on the website.{!onSite && " The website shows only photos marked “On website”, so this profile will have no pictures until you add some."}</span>
-        {ready > 0 && <Button size="sm" variant={onSite ? "secondary" : "primary"} icon={<Globe2 size={13} />} disabled={pending}
-          onClick={async () => {
-            const result = await run<{ published: number; failed: number }>(`${base}/publish-all`, {});
-            if (result) toast.success(`${result.published} photo${result.published === 1 ? "" : "s"} now on the website${result.failed ? ` (${result.failed} failed)` : ""}`);
-          }}>Show all on website ({ready})</Button>}
+        {ready > 0 && <Button size="sm" variant={onSite ? "secondary" : "primary"} icon={<Globe2 size={13} />} disabled={pending || publishing}
+          onClick={() => { if (ready < 25 || window.confirm(`Put all ${ready} private photos on the public website?`)) void publishAll(); }}>{publishing ? "Publishing…" : `Show all on website (${ready})`}</Button>}
       </div>;
     })()}
 
@@ -112,15 +146,22 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
       Drop JPG, PNG, or WebP files here (up to 25 MB each)
     </div>}
 
-    {order.length ? <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{order.map((photo, index) => <li key={photo.id}
+    {order.length > 12 && <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter photos">{FILTERS.map((item) => {
+      const total = order.filter(item.matches).length;
+      return (item.key === "all" || total > 0) && <button key={item.key} type="button" aria-pressed={filter === item.key} onClick={() => { setFilter(item.key); setShown(PAGE_SIZE); }}
+        className={`rounded-full border px-3 py-1 text-xs font-700 ${filter === item.key ? "border-[#20211f] bg-[#20211f] text-white" : "border-[#dcdcd6] text-[#5f615b] hover:border-[#20211f]"}`}>{item.label} ({total})</button>;
+    })}</div>}
+
+    {visible.length ? <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">{visible.slice(0, shown).map((photo, index) => <li key={photo.id}
       draggable={canManage} onDragStart={() => setDragging(photo.id)} onDragEnd={() => setDragging(null)} onDragOver={(event) => { if (dragging) event.preventDefault(); }} onDrop={() => drop(photo.id)}
       className={`group overflow-hidden rounded-lg border bg-white ${dragging === photo.id ? "opacity-40" : ""} ${photo.featured ? "border-[#a4502f]" : "border-[#e7e7e3]"}`}>
       <div className="relative aspect-[3/4] bg-[#efefeb]">
         {photo.url && /* eslint-disable-next-line @next/next/no-img-element -- signed private URLs bypass the shared optimizer */
-          <img src={photo.url} alt={photo.alt_text || photo.title || "Talent image"} className="h-full w-full object-cover" style={photo.focal_point ? { objectPosition: `${photo.focal_point.x}% ${photo.focal_point.y}%` } : undefined} />}
+          <img src={photo.url} alt={photo.alt_text || photo.title || "Talent image"} loading="lazy" decoding="async" className="h-full w-full object-cover" style={photo.focal_point ? { objectPosition: `${photo.focal_point.x}% ${photo.focal_point.y}%` } : undefined} />}
         <div className="absolute left-2 top-2 flex flex-wrap gap-1">
-          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-800">#{index + 1}</span>
+          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-800">#{order.indexOf(photo) + 1}</span>
           {photo.featured && <Badge tone="review">Primary</Badge>}
+          {photo.cropped && <Badge tone="internal">Cropped</Badge>}
           {photo.public ? <Badge tone="public">On website</Badge> : <Badge tone="private">Private</Badge>}
           {photo.review_status === "pending" && <Badge tone="review">From talent · review</Badge>}
           {photo.review_status === "rejected" && <Badge tone="inactive">Not used</Badge>}
@@ -142,13 +183,18 @@ export function PhotoManager({ talentId, photos, canManage }: { talentId: string
         </Button>}
         {canManage && <div className="flex flex-wrap gap-1">
           <IconButton label="Move earlier" onClick={() => move(index, -1)} disabled={pending || index === 0}><ArrowUp size={13} /></IconButton>
-          <IconButton label="Move later" onClick={() => move(index, 1)} disabled={pending || index === order.length - 1}><ArrowDown size={13} /></IconButton>
+          <IconButton label="Move later" onClick={() => move(index, 1)} disabled={pending || index === visible.length - 1}><ArrowDown size={13} /></IconButton>
           <IconButton label={photo.featured ? "Primary image" : "Make primary image"} disabled={pending || photo.featured} onClick={() => run(`${base}/featured`, { body: { photo_id: photo.id }, success: "Primary image set" })}><Star size={13} /></IconButton>
+          <IconButton label="Crop or reposition" onClick={() => setCropping(photo.id)}><Crop size={13} /></IconButton>
           <IconButton label="Edit details" onClick={() => setEditing(photo)}><Pencil size={13} /></IconButton>
           <IconButton label="Archive image" disabled={pending} onClick={() => window.confirm("Archive this image? It is removed from the website and hidden here; the original file is kept.") && run(`${base}/${photo.id}`, { method: "PATCH", body: { archived: true }, success: "Image archived" })}><Archive size={13} /></IconButton>
         </div>}
       </div>
-    </li>)}</ul> : <EmptyState title="No images yet">{canManage ? "Upload images to build this talent's book." : undefined}</EmptyState>}
+    </li>)}</ul> : <EmptyState title={order.length ? "No photos match this filter" : "No images yet"}>{canManage && !order.length ? "Upload images to build this talent's book." : undefined}</EmptyState>}
+
+    {visible.length > shown && <div className="flex justify-center"><Button variant="secondary" onClick={() => setShown((count) => count + PAGE_SIZE)}>Show more ({visible.length - shown} left)</Button></div>}
+
+    {cropping && <PhotoCropDialog talentId={talentId} photoId={cropping} onClose={closeCrop} />}
 
     <Dialog open={Boolean(editing)} onClose={() => setEditing(null)} title="Image details" description="Alt text describes the image for screen readers and search engines." wide>
       {editing && <form onSubmit={saveDetails} className="space-y-5">

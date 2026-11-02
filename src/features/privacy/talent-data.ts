@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { LIBRARY_BUCKET } from "@/features/media/urls";
 
 // Every table that holds data about one talent (data-subject access and erasure).
 export const TALENT_TABLES = [
@@ -24,14 +25,16 @@ export async function collectTalentData(supabase: SupabaseClient, talentId: stri
 // Storage objects that belong to the talent, grouped by bucket.
 export async function talentFiles(supabase: SupabaseClient, talentId: string) {
   const [photos, videos, documents] = await Promise.all([
-    supabase.from("talent_photos").select("storage_bucket,storage_path,public_storage_path").eq("talent_id", talentId),
+    supabase.from("talent_photos").select("storage_bucket,storage_path,public_storage_path,thumbnail_path,cropped_path").eq("talent_id", talentId),
     supabase.from("talent_videos").select("storage_path,public_storage_path").eq("talent_id", talentId),
     supabase.from("talent_documents").select("storage_path").eq("talent_id", talentId),
   ]);
-  const files: Record<string, Set<string>> = { "talent-private": new Set(), "talent-public": new Set(), "talent-documents": new Set() };
-  for (const row of (photos.data ?? []) as { storage_bucket: string; storage_path: string | null; public_storage_path: string | null }[]) {
-    if (row.storage_path) files[row.storage_bucket === "talent-public" ? "talent-public" : "talent-private"].add(row.storage_path);
+  const files: Record<string, Set<string>> = { "talent-private": new Set(), "talent-public": new Set(), "talent-documents": new Set(), [LIBRARY_BUCKET]: new Set() };
+  for (const row of (photos.data ?? []) as { storage_bucket: string; storage_path: string | null; public_storage_path: string | null; thumbnail_path: string | null; cropped_path: string | null }[]) {
+    if (row.storage_path) (files[row.storage_bucket] ?? files["talent-private"]).add(row.storage_path);
     if (row.public_storage_path) files["talent-public"].add(row.public_storage_path);
+    if (row.thumbnail_path) files[LIBRARY_BUCKET].add(row.thumbnail_path);
+    if (row.cropped_path) files[LIBRARY_BUCKET].add(row.cropped_path);
   }
   for (const row of (videos.data ?? []) as { storage_path: string | null; public_storage_path: string | null }[]) {
     if (row.storage_path) files["talent-private"].add(row.storage_path);
@@ -45,5 +48,12 @@ export async function talentFiles(supabase: SupabaseClient, talentId: string) {
       for (const item of data ?? []) if (item.id) files[bucket].add(`${folder}/${item.name}`);
     }
   }
-  return Object.fromEntries(Object.entries(files).map(([bucket, paths]) => [bucket, [...paths]])) as Record<"talent-private" | "talent-public" | "talent-documents", string[]>;
+  for (const folder of ["originals", "thumbnails", "cropped"]) {
+    for (let offset = 0; ; offset += 1000) {
+      const { data } = await supabase.storage.from(LIBRARY_BUCKET).list(`${talentId}/${folder}`, { limit: 1000, offset });
+      for (const item of data ?? []) if (item.id) files[LIBRARY_BUCKET].add(`${talentId}/${folder}/${item.name}`);
+      if ((data ?? []).length < 1000) break;
+    }
+  }
+  return Object.fromEntries(Object.entries(files).map(([bucket, paths]) => [bucket, [...paths]])) as Record<"talent-private" | "talent-public" | "talent-documents" | typeof LIBRARY_BUCKET, string[]>;
 }

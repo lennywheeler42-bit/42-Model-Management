@@ -1,7 +1,7 @@
 // CDS import rules. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isCdsMediaUrl, isExcludedName, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { isCdsMediaUrl, isExcludedName, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
 import { talentSummary } from "../../src/features/talent/summary.ts";
 
 test("agency placeholder records are excluded", () => {
@@ -68,19 +68,23 @@ test("CDS locations are tidied, placeholders become Location TBA", () => {
   assert.equal(talentSummary("", null, null), "Location TBA");
 });
 
-test("photo copy takes portfolios, digitals and the cover, not the whole library", () => {
+test("photo copy takes the whole library: every photo and digital, not videos", () => {
   const media = [
+    { id: "3", kind: "image" as const, position: 2, metadata: {} },
     { id: "1", kind: "image" as const, position: 0, metadata: { web: true } },
     { id: "2", kind: "image" as const, position: 1, metadata: { primary: true } },
-    { id: "3", kind: "image" as const, position: 2, metadata: {} },
     { id: "4", kind: "digital" as const, position: 3, metadata: {} },
     { id: "5", kind: "video" as const, position: 0, metadata: {} },
   ];
-  assert.deepEqual(selectPhotos(media, [{ name: "Fashion-Women", media: ["3"] }]), ["2", "3", "4"]);
-  // No portfolio: the WEB-marked photos keep the talent from having no pictures.
-  assert.deepEqual(selectPhotos(media, []), ["1", "2", "4"]);
+  assert.deepEqual(selectPhotos(media), ["1", "2", "3", "4"]);
   assert.equal(pickCover(media, [{ name: "A", media: ["3"] }], new Set(["2", "3"])), "2");
   assert.equal(pickCover(media, [{ name: "A", media: ["3"] }], new Set(["3"])), "3");
+});
+
+test("the source file name comes from the link, without its signature", () => {
+  const url = new URL("https://cds-ob-619779309805-private-bucket.s3.eu-west-1.amazonaws.com/uploads/content/a/talent/image/b/8/8/8844417-big.jpeg?X-Amz-Signature=secret");
+  assert.equal(sourceFileName(url), "8844417-big.jpeg");
+  assert.equal(sourceFileName(new URL("https://example.test/a/my%20photo%20(1).jpg")), "my-photo-1-.jpg");
 });
 
 test("only the CDS media bucket is fetched", () => {

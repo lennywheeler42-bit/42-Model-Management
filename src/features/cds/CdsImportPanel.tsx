@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, UserPlus } from "lucide-react";
+import { ExternalLink, ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+
+type Verification = {
+  talents: number; linked: number; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; thumbnails: number; bytes: number;
+  rows: { cdsId: string; name: string; talentId: string | null; status: string; note: string | null; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; bytes: number }[];
+};
+const gigabytes = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 
 // Origins allowed to hand data to this page (the owner's own CDS / WebForFashion
 // windows, opened from here). Everything is validated again on the server.
@@ -27,6 +33,8 @@ export function CdsImportPanel({ pending }: { pending: number }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [received, setReceived] = useState(0);
   const [applying, setApplying] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verification, setVerification] = useState<Verification | null>(null);
   const queue = useRef(Promise.resolve());
 
   const note = (text: string, tone: Line["tone"] = "info") =>
@@ -50,7 +58,7 @@ export function CdsImportPanel({ pending }: { pending: number }) {
           if (!response?.ok) note(`Photo copy: ${result.error ?? "error"}`, "error");
           else if (payload.plan) note(`Photo copy: ${result.selected} photos selected for ${result.talents.length} talents; ${result.imported} already copied`, "ok");
           else if (payload.photos) {
-            setReceived((count) => count + (result.imported ?? 0));
+            setReceived((count) => count + (result.imported ?? 0) + (result.upgraded ?? 0));
             if (result.failed) note(`Photo copy: ${result.failed} could not be copied (${(result.errors ?? []).slice(0, 2).join("; ")})`, "error");
           } else note(`Photos ready for ${payload.name ?? payload.finish}: ${result.cover ? "profile picture set, " : ""}${result.portfolios} portfolios`, "ok");
           reply({ type: "cds-import/ack", requestId, ok: Boolean(response?.ok), error: response?.ok ? null : result.error ?? "error", result });
@@ -100,13 +108,42 @@ export function CdsImportPanel({ pending }: { pending: number }) {
     }
   }
 
+  async function verify() {
+    setVerifying(true);
+    try {
+      const response = await fetch("/api/dashboard/cds/verify");
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) { toast.error(payload.error ?? "The check could not finish. Try again."); return; }
+      setVerification(payload as Verification);
+    } catch {
+      toast.error("Network error. Check your connection and try again.");
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  const problems = (row: Verification["rows"][number]) => [
+    row.failed && `${row.failed} failed`, row.missingFile && `${row.missingFile} file missing`, row.wrongTalent && `${row.wrongTalent} wrong talent`,
+    row.duplicates && `${row.duplicates} identical`, !row.talentId && (row.note ?? "Not linked to a talent"),
+  ].filter(Boolean).join(" · ");
+
   return <div className="space-y-4">
     <div className="flex flex-wrap gap-2">
       <Button onClick={() => open("cds")}><ExternalLink size={14} /> 1. Open CDS</Button>
       <Button onClick={() => open("wff")}><ExternalLink size={14} /> 2. Open WebForFashion</Button>
       <Button variant="secondary" onClick={addNewTalents} disabled={applying}><UserPlus size={14} /> {applying ? "Adding…" : `3. Add new talents${pending ? ` (${pending} ready)` : ""}`}</Button>
+      <Button variant="secondary" onClick={verify} disabled={verifying}><ShieldCheck size={14} /> {verifying ? "Checking every file…" : "5. Verify photos"}</Button>
       {received > 0 && <Button variant="ghost" onClick={() => router.refresh()}>Refresh totals ({received} received)</Button>}
     </div>
+    {verification && <div className="space-y-3 rounded-md border border-[#efefeb] bg-[#fafaf8] p-3">
+      <p className="text-sm"><span className="font-800">{verification.verified} of {verification.listed} photos verified</span> in storage ({gigabytes(verification.bytes)}), across {verification.linked} of {verification.talents} models. {verification.waiting} waiting · {verification.failed} failed · {verification.missingFile} file missing · {verification.wrongTalent} wrong talent · {verification.duplicates} identical files · {verification.thumbnails} thumbnails.</p>
+      <div className="relative max-h-96 overflow-auto"><table className="w-full min-w-[560px] text-left text-xs">
+        <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="py-2 pr-4">Model</th><th className="py-2 pr-4">In CDS</th><th className="py-2 pr-4">Verified</th><th className="py-2 pr-4">Waiting</th><th className="py-2">Note</th></tr></thead>
+        <tbody>{verification.rows.map((row) => <tr key={row.cdsId} className="border-b border-[#f3f3f0] last:border-0">
+          <td className="py-1.5 pr-4 font-700">{row.name}</td><td className="py-1.5 pr-4">{row.listed}</td><td className="py-1.5 pr-4">{row.verified}</td><td className="py-1.5 pr-4">{row.waiting}</td><td className="py-1.5 text-[#6b6d66]">{problems(row)}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </div>}
     {lines.length > 0 && <ol className="max-h-64 space-y-1 overflow-y-auto rounded-md border border-[#efefeb] bg-[#fafaf8] p-3 font-mono text-[11px]" aria-live="polite">
       {lines.map((line, index) => <li key={index} className={line.tone === "error" ? "text-[#a9593d]" : line.tone === "ok" ? "text-[#3f6b45]" : "text-[#6b6d66]"}>{line.at} · {line.text}</li>)}
     </ol>}

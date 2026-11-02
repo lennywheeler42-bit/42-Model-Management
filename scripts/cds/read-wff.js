@@ -169,13 +169,35 @@
   // Photo mode (window.__cdsMode = "photos"): asks the dashboard which photos to
   // copy, reads each one's signed full-size link from the gallery, and hands the
   // links over a few at a time; the dashboard's server copies the files. Nothing
-  // is downloaded in this browser.
+  // is downloaded in this browser. Safe to stop and run again: only photos not yet
+  // copied are planned. window.__cdsOnly = ["138421"] limits it to chosen talents.
   async function copyPhotos() {
     const plan = (await send({ plan: true })).result;
     const only = Array.isArray(window.__cdsOnly) ? new Set(window.__cdsOnly) : null;
     const talents = plan.talents.filter((t) => !only || only.has(t.wff_id));
-    Object.assign(state, { phase: "copying", listed: talents.length, photos: 0, failed: 0, missing: [] });
+    Object.assign(state, { phase: "copying", listed: talents.length, selected: plan.selected, alreadyCopied: plan.imported, photos: 0, upgraded: 0, duplicates: 0, failed: 0, retries: 0, missing: [], failures: [] });
+
+    // A batch that dies on the way (a timeout, a dropped connection) is sent again
+    // one photo at a time, so one bad file cannot cost the whole batch.
+    const count = (result) => {
+      state.photos += result.imported;
+      state.upgraded += result.upgraded ?? 0;
+      state.duplicates += result.duplicate;
+      state.failed += result.failed;
+      state.failures.push(...(result.errors ?? []));
+    };
+    const copy = async (items) => {
+      try {
+        count((await send({ photos: items })).result);
+      } catch (error) {
+        state.retries += 1;
+        if (items.length === 1) { state.failed += 1; state.failures.push(`${items[0].id}: ${error.message}`); return; }
+        for (const item of items) await copy([item]);
+      }
+    };
+
     for (const talent of talents) {
+      state.current = talent.name;
       try {
         if (talent.media.length) {
           const wanted = new Set(talent.media);
@@ -185,11 +207,7 @@
           }
           if (found.size < wanted.size) state.missing.push(`${talent.name}: ${wanted.size - found.size} not found`);
           const items = [...found].map(([id, url]) => ({ id, url }));
-          for (let start = 0; start < items.length; start += 6) {
-            const result = (await send({ photos: items.slice(start, start + 6) })).result;
-            state.photos += result.imported + result.duplicate;
-            state.failed += result.failed;
-          }
+          for (let start = 0; start < items.length; start += 6) await copy(items.slice(start, start + 6));
         }
         await send({ finish: talent.wff_id, name: talent.name });
         state.sent += 1;

@@ -23,10 +23,12 @@ const schema = z.object({
   focal_y: percent.optional(),
 });
 
-type Photo = { id: string; storage_path: string; storage_bucket: string; public_storage_path: string | null };
+type Photo = { id: string; storage_path: string; storage_bucket: string; public_storage_path: string | null; cropped_path: string | null };
 
-// Publishing copies the private original into talent-public; withdrawing (or
-// archiving) removes that copy (features/media/publish.ts). The original is always preserved.
+// Publishing puts a copy into talent-public; withdrawing (or archiving) removes that
+// copy (features/media/publish.ts). The original is always preserved.
+export const maxDuration = 60;
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string; photoId: string }> }) {
   const { id, photoId } = await params;
   const auth = await requireApi("media.manage");
@@ -36,7 +38,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
 
   const { supabase } = auth.context;
-  const { data: photo, error } = await supabase.from("talent_photos").select("id,storage_path,storage_bucket,public_storage_path").eq("id", photoId).eq("talent_id", id).maybeSingle<Photo>();
+  const { data: photo, error } = await supabase.from("talent_photos").select("id,storage_path,storage_bucket,public_storage_path,cropped_path").eq("id", photoId).eq("talent_id", id).maybeSingle<Photo>();
   if (error) return databaseError(error, "load the image");
   if (!photo) return NextResponse.json({ error: "Image not found" }, { status: 404 });
 
