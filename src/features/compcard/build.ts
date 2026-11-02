@@ -1,4 +1,6 @@
 import "server-only";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createElement } from "react";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -66,6 +68,8 @@ export async function renderCompCard(supabase: SupabaseClient, talentId: string,
     supporting: supporting.length ? supporting : [primary],
     stats: options.measurements && talent.show_measurements ? await publicStats(supabase, talentId, talent.gender) : [],
     contact: { email: settings.contact_email, phone: settings.contact_phone, website: siteOrigin()?.replace(/^https?:\/\//, "") ?? null, locationLine: settings.location_line },
+    // Traced into the route by next.config.ts. A card without it falls back to a text mark.
+    logo: await readFile(join(process.cwd(), "public/brand/logo-mark.png")).catch(() => null),
   };
   const { renderToBuffer } = await import("@react-pdf/renderer");
   const pdf = await renderToBuffer(createElement(CompCardDocument, { card }) as Parameters<typeof renderToBuffer>[0]);

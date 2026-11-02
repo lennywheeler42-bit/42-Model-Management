@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { BrandLogo } from "@/components/BrandLogo";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
 import { feetInches, lengthLabel } from "@/lib/format";
 import { hashShareToken, isShareToken } from "@/features/packages/share";
@@ -31,7 +32,7 @@ export default async function SharedPackage({ params }: { params: Promise<{ toke
   return <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)]">
     <header className="border-b border-[var(--line)]">
       <div className="container flex h-20 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-current text-[11px] font-800 tracking-[-.08em]">42</span><span className="text-[11px] font-800 uppercase tracking-[.18em]">Model Management</span></Link>
+        <Link href="/" className="flex flex-col" aria-label="42 Model Management, home"><BrandLogo variant="markSmall" className="h-10 w-auto" /><span className="mt-1 w-full text-center text-[6px] font-800 uppercase tracking-[.2em]">Model Management</span></Link>
         <a href={`mailto:${settings.contact_email}?subject=${encodeURIComponent(pkg.title)}`} className="text-[10px] font-800 uppercase tracking-[.16em] underline-offset-4 hover:underline">{settings.contact_email}</a>
       </div>
     </header>

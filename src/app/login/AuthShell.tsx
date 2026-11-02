@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 // Shared frame for the sign-in, forgot-password and reset-password pages.
 export function AuthShell({ eyebrow, title, intro, children }: { eyebrow: string; title: string; intro: string; children: ReactNode }) {
   return <main className="grid min-h-screen place-items-center bg-[#f5f3ef] p-6"><div className="w-full max-w-md rounded-2xl border border-[#e7e3dc] bg-white p-8 shadow-sm sm:p-10">
-    <Link href="/" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-full border border-[#20211f] text-[11px] font-800 tracking-[-.08em]">42</span><span className="text-[10px] font-800 uppercase tracking-[.16em]">Model Management</span></Link>
-    <p className="mt-14 text-[10px] font-800 uppercase tracking-[.2em] text-[#a4502f]">{eyebrow}</p>
+    <Link href="/" className="flex w-fit flex-col" aria-label="42 Model Management, home"><BrandLogo variant="markSmall" className="h-12 w-auto" /><span className="mt-1 w-full text-center text-[7px] font-800 uppercase tracking-[.2em]">Model Management</span></Link>
+    <p className="mt-10 text-[10px] font-800 uppercase tracking-[.2em] text-[#a4502f]">{eyebrow}</p>
     <h1 className="mt-3 text-3xl font-700 tracking-[-.04em]">{title}</h1>
     <p className="mt-3 text-sm leading-6 text-[#6b6d66]">{intro}</p>
     {children}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
+import { BrandLogo } from "./BrandLogo";
 
 export type MenuLink = { href: string; label: string; children?: MenuLink[] };
 
@@ -32,7 +33,7 @@ export function SiteMenu({ links, email }: { links: MenuLink[]; email: string })
     </button>
     {open && <div id="site-menu" role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-50 flex flex-col bg-[var(--ink)] text-white">
       <div className="container flex h-[88px] items-center justify-between">
-        <span className="display text-[34px] leading-none">42</span>
+        <BrandLogo variant="fullSmall" className="h-14 w-auto" alt="42 Model Management" />
         <button type="button" onClick={() => setOpen(false)} aria-label="Close menu" className="flex h-10 w-10 items-center justify-center hover:opacity-60"><X size={24} strokeWidth={1.25} aria-hidden /></button>
       </div>
       <nav aria-label="Menu" className="container flex flex-1 flex-col justify-center gap-1 overflow-y-auto py-8">

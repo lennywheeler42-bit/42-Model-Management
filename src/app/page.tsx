@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { connection } from "next/server";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TalentCard } from "@/components/TalentCard";
@@ -21,7 +22,8 @@ export default async function Home() {
   const [publicTalents, settings, boards] = await Promise.all([getRoster({ limit: 8 }), getSiteSettings(), getPublicBoards()]);
   // Hero and About images come from Dashboard → Website → Settings; until they are
   // chosen, the agency's own B-roll is used (SITE_MEDIA), never stock photography.
-  // The hero film plays over the image, except for visitors who prefer less motion.
+  // The hero film plays over the image, which shows while it loads and for visitors
+  // who prefer less motion.
   const heroImage = cmsMediaUrl(settings.home_hero.image_path) ?? SITE_MEDIA.hero;
   const aboutImage = cmsMediaUrl(settings.home_about.image_path) ?? SITE_MEDIA.about;
   const topBoards = boards.filter((board) => board.depth === 0);
@@ -39,29 +41,16 @@ export default async function Home() {
 
   return (
     <main className="overflow-hidden">
-      <section className="relative flex h-[100svh] min-h-[600px] max-h-[980px] items-end bg-[var(--ink)] text-white">
+      {/* As on 42modelmanagement.com: the film, full screen, with the large logo at its center. */}
+      <section className="relative flex h-[100svh] min-h-[560px] items-center justify-center bg-black text-white">
         <Image src={heroImage} alt="" fill priority sizes="100vw" className="object-cover object-[center_30%] grayscale" />
         <video aria-hidden autoPlay muted loop playsInline preload="auto" poster={heroImage} className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden">
           <source src={HERO_VIDEO_URL} type="video/mp4" />
         </video>
-        <div aria-hidden className="absolute inset-0 bg-black/45" />
-        <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/75 to-transparent" />
-        <SiteHeader dark />
-        <div className="container relative z-10 pb-12 sm:pb-16">
-          {settings.home_hero.eyebrow && <p className="label-sm mb-6 text-white/70">{settings.home_hero.eyebrow}</p>}
-          <h1 className="display max-w-5xl text-[clamp(56px,10vw,152px)] leading-[.86] tracking-[-.02em]"><Headline text={settings.home_hero.headline} /></h1>
-          {settings.home_hero.text && <p className="serif mt-6 max-w-lg text-[19px] leading-snug text-white/80">{settings.home_hero.text}</p>}
-          <div className="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-3">
-              <Link href="/models" className="label flex items-center gap-3 bg-white px-7 py-4 text-[var(--ink)] transition-colors hover:bg-white/85">Explore talent <ArrowRight size={14} aria-hidden /></Link>
-              <Link href="/join" prefetch={false} className="label flex items-center gap-3 border border-white/50 px-7 py-4 transition-colors hover:bg-white hover:text-[var(--ink)]">Apply to join</Link>
-            </div>
-            <div className="label-sm flex items-center gap-6 text-white/60">
-              {settings.location_line && <span>{settings.location_line}</span>}
-              <a href="#roster" aria-label="Scroll to the roster" className="hidden hover:text-white sm:block"><ChevronDown size={22} strokeWidth={1} aria-hidden /></a>
-            </div>
-          </div>
-        </div>
+        <div aria-hidden className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/50 to-transparent" />
+        <SiteHeader dark showLogo={false} />
+        <h1 className="relative z-10 m-0 px-6 leading-none"><BrandLogo variant="full" alt="42 Model Management" priority className="h-auto w-[clamp(240px,27vw,460px)] drop-shadow-[0_22px_64px_rgba(0,0,0,.65)]" /></h1>
+        <a href="#roster" aria-label="Scroll to the roster" className="absolute bottom-7 left-1/2 z-10 -translate-x-1/2 text-white/70 transition-colors hover:text-white"><ChevronDown size={26} strokeWidth={1} aria-hidden /></a>
       </section>
 
       {topBoards.length > 0 && <nav aria-label="Boards" className="border-b border-[var(--line)] bg-[var(--paper)]">

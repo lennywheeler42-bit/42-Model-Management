@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getNavigation, getSiteSettings } from "@/features/cms/queries";
+import { BrandLogo } from "./BrandLogo";
 
 // Footer links come from Dashboard → Website → Navigation. Links to CMS pages
 // that are not published are hidden automatically.
@@ -10,8 +11,9 @@ export async function SiteFooter({ tone = "dark" }: { tone?: "dark" | "light" })
   return <footer className={dark ? "border-t border-white/10 bg-[var(--ink)] text-white/60" : "border-t border-[var(--line)] bg-[var(--paper)] text-[var(--muted)]"}>
     <div className="container grid gap-10 py-12 sm:py-16 md:grid-cols-[1fr_auto] md:items-end">
       <Link href="/" className={`flex w-fit flex-col leading-none ${dark ? "text-white" : "text-[var(--ink)]"}`} aria-label="42 Model Management, home">
-        <span className="display text-[56px] leading-[.85]">42</span>
-        <span className="mt-2 text-[9px] font-500 uppercase tracking-[.32em]">Model Management</span>
+        {dark
+          ? <BrandLogo variant="full" className="h-24 w-auto" />
+          : <><BrandLogo variant="mark" className="h-16 w-auto" /><span className="mt-1.5 w-full text-center text-[8px] font-500 uppercase tracking-[.26em]">Model Management</span></>}
       </Link>
       <nav aria-label="Footer" className="label-sm flex flex-wrap gap-x-7 gap-y-3">
         <Link href="/models" className={linkClass}>Models</Link>

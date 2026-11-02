@@ -2,13 +2,15 @@ import Link from "next/link";
 import { ChevronDown, Search } from "lucide-react";
 import { getPublicBoards } from "@/features/public/queries";
 import { getNavigation, getSiteSettings } from "@/features/cms/queries";
+import { BrandLogo } from "./BrandLogo";
 import { SiteMenu, type MenuLink } from "./SiteMenu";
 
 // Menu: all talent, then every public board as in Dashboard → Boards (top-level
 // boards marked "show in navigation", each with its public sub-boards), header
 // links from Dashboard → Website → Navigation, then About / Join us / Contact.
 // Desktop shows sub-boards in a dropdown; the full-screen menu lists everything.
-export async function SiteHeader({ dark = false }: { dark?: boolean }) {
+// The home page hero has the large logo, so it asks for no second one here.
+export async function SiteHeader({ dark = false, showLogo = true }: { dark?: boolean; showLogo?: boolean }) {
   const [boards, navigation, settings] = await Promise.all([getPublicBoards(), getNavigation(), getSiteSettings()]);
   const short = (name: string) => name.split(" / ").pop() as string;
   const topBoards = boards.filter((board) => board.depth === 0 && board.show_in_navigation);
@@ -32,10 +34,11 @@ export async function SiteHeader({ dark = false }: { dark?: boolean }) {
   return (
     <header className={`absolute inset-x-0 top-0 z-30 ${dark ? "text-white" : "text-[var(--ink)]"}`}>
       <div className="container grid h-[88px] grid-cols-[1fr_auto] items-center gap-6 lg:grid-cols-[1fr_auto_1fr]">
-        <Link href="/" className="flex w-fit flex-col items-start leading-none" aria-label="42 Model Management, home">
-          <span className="display text-[34px] leading-[.85] tracking-[-.02em] sm:text-[40px]">42</span>
-          <span className="mt-1.5 text-[8px] font-500 uppercase tracking-[.32em] sm:text-[9px]">Model Management</span>
-        </Link>
+        {showLogo ? <Link href="/" className="flex w-fit flex-col items-start leading-none" aria-label="42 Model Management, home">
+          {dark
+            ? <BrandLogo variant="fullSmall" className="h-14 w-auto" />
+            : <><BrandLogo variant="markSmall" className="h-10 w-auto" /><span className="mt-1 w-full text-center text-[6px] font-500 uppercase tracking-[.22em]">Model Management</span></>}
+        </Link> : <span aria-hidden />}
         <nav aria-label="Main" className="label hidden items-center gap-8 lg:flex">
           {inline.map((link) => link.children?.length
             ? <div key={link.href} className="group relative">

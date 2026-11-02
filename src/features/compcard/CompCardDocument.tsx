@@ -9,6 +9,7 @@ export type CompCardData = {
   supporting: Buffer[];
   stats: { label: string; value: string }[];
   contact: { email: string; phone: string | null; website: string | null; locationLine: string | null };
+  logo: Buffer | null;
 };
 
 const INK = "#181817";
@@ -30,6 +31,7 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 9, fontFamily: "Helvetica-Bold", marginTop: 1 },
   footer: { position: "absolute", left: 18, right: 18, bottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   mark: { fontSize: 13, fontFamily: "Helvetica-Bold", color: ACCENT },
+  logo: { width: 72, height: 32, marginBottom: 3, objectFit: "contain" },
   contact: { fontSize: 7, color: INK, textAlign: "right", lineHeight: 1.5 },
 });
 
@@ -51,7 +53,8 @@ export function CompCardDocument({ card }: { card: CompCardData }) {
       </View>
       {card.stats.length > 0 && <View style={styles.stats}>{card.stats.map((stat) => <View key={stat.label}><Text style={styles.statLabel}>{stat.label}</Text><Text style={styles.statValue}>{stat.value}</Text></View>)}</View>}
       <View style={styles.footer}>
-        <View><Text style={styles.mark}>42</Text><Text style={styles.brand}>Model Management</Text></View>
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt attribute */}
+        <View>{card.logo ? <Image src={card.logo} style={styles.logo} /> : <Text style={styles.mark}>42</Text>}<Text style={styles.brand}>Model Management</Text></View>
         <View>
           <Text style={styles.contact}>{card.contact.email}</Text>
           {card.contact.phone ? <Text style={styles.contact}>{card.contact.phone}</Text> : null}

@@ -131,13 +131,8 @@ export function SettingsPanel({ settings }: { settings: SettingsValue }) {
         <TextareaField label="Contact heading (home page)" name="contact_heading" rows={2} className="sm:col-span-2" value={value.contact_heading} onChange={(next) => setValue({ ...value, contact_heading: next })} hint="A second line is shown in italics." />
       </div>
     </Card>
-    <Card title="Home page — top" description="Until an image is chosen, the first published talent photo is used.">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TextField label="Small line above" name="hero_eyebrow" value={value.home_hero.eyebrow ?? ""} onChange={(next) => hero({ eyebrow: next })} />
-        <TextareaField label="Headline" name="hero_headline" rows={2} value={value.home_hero.headline ?? ""} onChange={(next) => hero({ headline: next })} hint="A second line is shown in italics." />
-        <TextareaField label="Text (optional)" name="hero_text" rows={2} className="sm:col-span-2" value={value.home_hero.text ?? ""} onChange={(next) => hero({ text: next })} />
-        <div className="sm:col-span-2"><MediaField label="Background image" value={value.home_hero.image_path} onChange={(path) => hero({ image_path: path })} /></div>
-      </div>
+    <Card title="Home page — top" description="The home page opens with the agency film and logo, as on 42modelmanagement.com. This image shows while the film loads, and for visitors who prefer less motion.">
+      <MediaField label="Background image" value={value.home_hero.image_path} onChange={(path) => hero({ image_path: path })} />
     </Card>
     <Card title="Home page — about">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
