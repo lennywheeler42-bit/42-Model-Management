@@ -11,6 +11,8 @@ type Verification = {
   rows: { cdsId: string; name: string; talentId: string | null; status: string; note: string | null; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; bytes: number }[];
 };
 const gigabytes = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+// Longer than the server's own 60-second limit, shorter than the reader's 180-second wait.
+const REQUEST_TIMEOUT_MS = 90_000;
 
 // Origins allowed to hand data to this page (the owner's own CDS / WebForFashion
 // windows, opened from here). Everything is validated again on the server.
@@ -41,6 +43,8 @@ export function CdsImportPanel({ pending }: { pending: number }) {
     setLines((current) => [{ at: new Date().toLocaleTimeString(), text, tone }, ...current].slice(0, 200));
 
   useEffect(() => {
+    // Keeps the line moving whatever one job does.
+    const enqueue = (job: () => Promise<void>) => { queue.current = queue.current.then(job).catch((error) => console.error("CDS import step failed", error)); };
     function onMessage(event: MessageEvent) {
       if (!SOURCES.has(event.origin) || typeof event.data !== "object" || !event.data) return;
       const reply = (message: Record<string, unknown>) => (event.source as Window | null)?.postMessage(message, event.origin);
@@ -51,10 +55,11 @@ export function CdsImportPanel({ pending }: { pending: number }) {
       const requestId = event.data.requestId;
       // Photo copy (step 4): plan, copy a few photos, or finish one talent.
       if (payload.plan || payload.photos || payload.finish) {
-        queue.current = queue.current.then(async () => {
+        enqueue(async () => {
           const body = payload.plan ? { plan: true } : payload.photos ? { photos: payload.photos } : { finish: payload.finish };
-          const response = await fetch("/api/dashboard/cds/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
-          const result = response ? await response.json().catch(() => ({})) : { error: "Network error" };
+          // A request that never returns must not hold up everything behind it.
+          const response = await fetch("/api/dashboard/cds/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }).catch(() => null);
+          const result = response ? await response.json().catch(() => ({})) : { error: "No answer in time" };
           if (!response?.ok) note(`Photo copy: ${result.error ?? "error"}`, "error");
           else if (payload.plan) note(`Photo copy: ${result.selected} photos selected for ${result.talents.length} talents; ${result.imported} already copied`, "ok");
           else if (payload.photos) {
@@ -66,9 +71,9 @@ export function CdsImportPanel({ pending }: { pending: number }) {
         return;
       }
       // One batch at a time, in arrival order.
-      queue.current = queue.current.then(async () => {
-        const response = await fetch("/api/dashboard/cds/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).catch(() => null);
-        const result = response ? await response.json().catch(() => ({})) : { error: "Network error" };
+      enqueue(async () => {
+        const response = await fetch("/api/dashboard/cds/ingest", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }).catch(() => null);
+        const result = response ? await response.json().catch(() => ({})) : { error: "No answer in time" };
         const names = talents.map((t) => `${t.first_name ?? ""} ${t.last_name ?? ""}`.trim()).join(", ");
         if (response?.ok) {
           setReceived((count) => count + talents.length);

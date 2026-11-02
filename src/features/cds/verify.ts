@@ -23,14 +23,19 @@ async function pages<T>(read: (start: number, end: number) => PromiseLike<{ data
   }
 }
 
-// Every file in one talent folder, name → size.
+// Every file in one talent folder, name → size. Storage answers "SlowDown" when it is
+// busy (a photo copy running, say), which is worth waiting out.
 async function listFolder(supabase: SupabaseClient, folder: string) {
   const files = new Map<string, number>();
   for (let offset = 0; ; offset += 1000) {
-    const { data, error } = await supabase.storage.from(LIBRARY_BUCKET).list(folder, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
-    if (error) throw error;
-    for (const item of data ?? []) if (item.id) files.set(`${folder}/${item.name}`, Number(item.metadata?.size ?? 0));
-    if ((data ?? []).length < 1000) return files;
+    let page = await supabase.storage.from(LIBRARY_BUCKET).list(folder, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+    for (let attempt = 1; page.error && attempt <= 3; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      page = await supabase.storage.from(LIBRARY_BUCKET).list(folder, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+    }
+    if (page.error) throw page.error;
+    for (const item of page.data ?? []) if (item.id) files.set(`${folder}/${item.name}`, Number(item.metadata?.size ?? 0));
+    if ((page.data ?? []).length < 1000) return files;
   }
 }
 
@@ -42,9 +47,9 @@ export async function verifyMigration(supabase: SupabaseClient) {
   const photoById = new Map(photos.map((photo) => [photo.id, photo]));
 
   const rows: VerifyRow[] = [];
-  // A few talents at a time: one storage listing per folder.
-  for (let start = 0; start < talents.length; start += 6) {
-    rows.push(...await Promise.all(talents.slice(start, start + 6).map(async (talent) => {
+  // A few talents at a time: two storage listings per talent.
+  for (let start = 0; start < talents.length; start += 3) {
+    rows.push(...await Promise.all(talents.slice(start, start + 3).map(async (talent) => {
       const own = media.filter((m) => m.cds_id === talent.cds_id);
       const row: VerifyRow = {
         cdsId: talent.cds_id, name: `${talent.first_name} ${talent.last_name}`.trim(), talentId: talent.talent_id, status: talent.match_status, note: talent.match_reason,
