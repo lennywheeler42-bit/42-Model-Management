@@ -19,13 +19,15 @@ const ACCENT = "#9e1923";
 const styles = StyleSheet.create({
   page: { backgroundColor: "#ffffff", color: INK, fontFamily: "Helvetica", padding: 18 },
   frontImage: { width: "100%", height: 520, objectFit: "cover" },
-  nameRow: { marginTop: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  nameRow: { marginTop: 12 },
   name: { fontSize: 26, fontFamily: "Helvetica-Bold", letterSpacing: -0.5, textTransform: "uppercase" },
+  metaRow: { marginTop: 2, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   meta: { fontSize: 7, color: MUTED, letterSpacing: 1.4, textTransform: "uppercase" },
   brand: { fontSize: 7, letterSpacing: 1.6, textTransform: "uppercase", fontFamily: "Helvetica-Bold" },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 6 },
-  gridImage: { width: 177, height: 236, objectFit: "cover" },
-  gridImageWide: { width: "100%", height: 480, objectFit: "cover" },
+  // Short enough that two rows of stats clear the logo in the footer.
+  gridImage: { width: 177, height: 222, objectFit: "cover" },
+  gridImageWide: { width: "100%", height: 450, objectFit: "cover" },
   stats: { marginTop: 12, flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 6, borderTopWidth: 0.6, borderTopColor: "#dcdcd6", paddingTop: 8 },
   statLabel: { fontSize: 6, color: MUTED, letterSpacing: 1.2, textTransform: "uppercase" },
   statValue: { fontSize: 9, fontFamily: "Helvetica-Bold", marginTop: 1 },
@@ -35,6 +37,8 @@ const styles = StyleSheet.create({
   contact: { fontSize: 7, color: INK, textAlign: "right", lineHeight: 1.5 },
 });
 
+const nameSize = (name: string) => (name.length > 28 ? 15 : name.length > 22 ? 20 : 26);
+
 export function CompCardDocument({ card }: { card: CompCardData }) {
   const size: [number, number] = [396, 612];
   return <Document title={`${card.name} — 42 Model Management comp card`} author="42 Model Management" creator="42 Model Management">
@@ -42,8 +46,9 @@ export function CompCardDocument({ card }: { card: CompCardData }) {
       {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt attribute */}
       <Image src={card.primary} style={styles.frontImage} />
       <View style={styles.nameRow}>
-        <View><Text style={styles.name}>{card.name}</Text>{card.location ? <Text style={styles.meta}>{card.location}</Text> : null}</View>
-        <Text style={styles.brand}>42 Model Management</Text>
+        {/* The name has the whole line, so a long one stays on the page and on one line. */}
+        <Text style={[styles.name, { fontSize: nameSize(card.name) }]}>{card.name}</Text>
+        <View style={styles.metaRow}><Text style={styles.meta}>{card.location ?? ""}</Text><Text style={styles.brand}>42 Model Management</Text></View>
       </View>
     </Page>
     <Page size={size} style={styles.page}>
