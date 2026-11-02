@@ -85,7 +85,7 @@ export function PhotoCropDialog({ talentId, photoId, onClose }: { talentId: stri
 
       <div className="flex justify-center bg-[#f3f3f0] p-3">
         <div ref={frameElement} className="relative touch-none select-none overflow-hidden bg-[#20211f] active:cursor-grabbing"
-          style={{ aspectRatio: frame ? frame.aspect : ratioOf(aspectKey), height: "min(52vh, 460px)", maxWidth: "100%", cursor: "grab" }}
+          style={{ aspectRatio: frame ? frame.aspect : ratioOf(aspectKey), width: `min(100%, calc(min(52vh, 460px) * ${frame ? frame.aspect : ratioOf(aspectKey)}))`, cursor: "grab" }}
           onPointerDown={(event) => { if (!frame) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { x: event.clientX, y: event.clientY, centerX: frame.centerX, centerY: frame.centerY }; }}
           onPointerMove={pointerMove} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}
           onWheel={(event) => frame && zoomTo(frame.zoom - event.deltaY / 500)}>
