@@ -29,7 +29,7 @@ export async function galleryPhotos(supabase: SupabaseClient, talentId: string) 
 
 export async function publicStats(supabase: SupabaseClient, talentId: string, gender: string | null) {
   const { data } = await supabase.from("talent_measurements").select("height_cm,bust_chest_cm,waist_cm,hips_cm,shoe_size_us,suit_size,hair_color,eye_color")
-    .eq("talent_id", talentId).order("is_official", { ascending: false }).order("measured_on", { ascending: false }).limit(1).maybeSingle();
+    .eq("talent_id", talentId).order("is_official", { ascending: false }).order("measured_on", { ascending: false }).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (!data) return [];
   return ([
     ["Height", data.height_cm ? feetInches(data.height_cm) : null],

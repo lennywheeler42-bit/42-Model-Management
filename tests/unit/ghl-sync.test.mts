@@ -3,7 +3,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { deriveCrmStatus, inWatchedScope, type CrmStatus, type StatusPipeline, type StatusStage } from "../../src/features/ghl/status.ts";
-import { displayValue, filesIn, ghlFormat, instagramHandle, normalizeValue, parseWeight } from "../../src/features/ghl/fields.ts";
+import { CUSTOM_TARGETS, displayValue, filesIn, ghlFormat, instagramHandle, normalizeValue, parseWeight } from "../../src/features/ghl/fields.ts";
 import { decideInbound, shouldPush } from "../../src/features/ghl/merge.ts";
 
 const pipelines = new Map<string, StatusPipeline>([
@@ -140,6 +140,21 @@ describe("three-way merge", () => {
     assert.equal(shouldPush("bidirectional", "175", null), false);
     assert.equal(shouldPush("ghl_only", "175", "180"), false);
     assert.equal(shouldPush("bidirectional", undefined, "180"), true);
+  });
+});
+
+describe("stats belong to GHL", () => {
+  test("new stat fields are GHL-owned; identity and social fields stay shared", () => {
+    for (const target of ["height_cm", "bust_cm", "waist_cm", "hips_cm", "weight_kg", "shoe_size", "shirt_size", "pants_size", "dress_size", "hair_color", "eye_color", "ethnicity"] as const) {
+      assert.equal(CUSTOM_TARGETS[target].ownership, "ghl_only", target);
+    }
+    for (const target of ["gender", "location", "date_of_birth", "instagram", "tiktok", "youtube"] as const) {
+      assert.equal(CUSTOM_TARGETS[target].ownership, "bidirectional", target);
+    }
+  });
+  test("GHL replaces a different imported stat without a conflict, and a blank GHL value erases nothing", () => {
+    assert.deepEqual(decideInbound("ghl_only", undefined, "180", "178"), { action: "apply", value: "178" });
+    assert.deepEqual(decideInbound("ghl_only", undefined, "180", null), { action: "none" });
   });
 });
 

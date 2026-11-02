@@ -28,7 +28,7 @@ export async function buildPreviewProfile(supabase: SupabaseClient, permissions:
   const [photos, measurement, assignments, boards, portfolios, books, videos, skills, privateDetails] = await Promise.all([
     supabase.from("talent_photos").select("id,public_storage_path,alt_text,display_order").eq("talent_id", id).eq("public", true).not("public_storage_path", "is", null).is("archived_at", null).order("featured", { ascending: false }).order("display_order"),
     talent.show_measurements
-      ? supabase.from("talent_measurements").select("height_cm,bust_chest_cm,waist_cm,hips_cm,shoe_size_us,suit_size,inseam_cm,eye_color,hair_color").eq("talent_id", id).order("is_official", { ascending: false }).order("measured_on", { ascending: false }).limit(1).maybeSingle()
+      ? supabase.from("talent_measurements").select("height_cm,bust_chest_cm,waist_cm,hips_cm,shoe_size_us,suit_size,inseam_cm,eye_color,hair_color").eq("talent_id", id).order("is_official", { ascending: false }).order("measured_on", { ascending: false }).order("created_at", { ascending: false }).limit(1).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("talent_board_assignments").select("board_id").eq("talent_id", id),
     supabase.from("boards").select(BOARD_COLUMNS),

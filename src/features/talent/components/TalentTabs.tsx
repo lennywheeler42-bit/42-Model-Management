@@ -83,7 +83,8 @@ export async function TalentTabBody({ tab, talent, supabase, permissions }: Prop
       return <Card><RecordList talentId={id} module="agencies" rows={rows} canEdit={can("agencies.manage")} datalists={{ "agency-names": (agencies.data ?? []).map((agency) => agency.name) }} /></Card>;
     }
     case "stats": {
-      const rows = await getRecords<Row>(supabase, "talent_measurements", id, { column: "measured_on", ascending: false });
+      const rows = (await getRecords<Row>(supabase, "talent_measurements", id, { column: "measured_on", ascending: false }))
+        .sort((a, b) => String(b.measured_on).localeCompare(String(a.measured_on)) || String(b.created_at).localeCompare(String(a.created_at)));
       const official = rows.find((row) => row.is_official);
       const current = rows.find((row) => !row.is_official);
       return <div className="space-y-6">

@@ -156,6 +156,7 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
   - GHL is the CRM; `ghl_*` tables mirror it, and `ghl_contacts.talent_id` (unique) is the one-talent-per-contact link.
   - Mappings (pipeline purpose, stage status, field target and ownership) are data, edited in Dashboard → GHL Sync. Never hard-code pipeline or stage names in code.
   - The sync follows only pipelines with `watched` set (migrations 035, 037; owner's choice is Onboarded/Active Models). With none watched it follows nobody; it must never fall back to every contact (`inWatchedScope`).
+  - Stats belong to GHL, not CDS (owner, 2026-11-03): stat fields are `ghl_only` and GHL snapshots are `is_official`, so they outrank CDS snapshots wherever stats are shown. Anything that reads the latest measurement must order by `is_official`, `measured_on`, then `created_at`, newest first.
   - `GHL_API_TOKEN` is read only by `src/features/ghl/client.ts`.
   - `talent.crm_status` / `crm_programs` are separate from publication; the public site never reads them.
 - **Shell heredocs on this machine can drop or double backslashes.** Write files that contain backslashes (regexes, SQL `E'\n'` escapes) with the editor tools, not bash heredocs or inline Python.

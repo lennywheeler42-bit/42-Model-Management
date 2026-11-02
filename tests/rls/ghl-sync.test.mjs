@@ -188,6 +188,18 @@ describe("migration 035: watched pipelines", () => {
   });
 });
 
+describe("stats shown on the website", () => {
+  test("an official GHL snapshot outranks an imported CDS one from the same day", async () => {
+    const id = "7a1f0c52-6d3b-4c8e-9f21-3b5e8a7d1c40";
+    await su(`insert into public.talent (id, slug, first_name, last_name, display_name, publication_status, show_on_website, show_measurements) values
+      ('${id}', 'stats-rank', 'Stat', 'Rank', 'Stat Rank', 'published', true, true)`);
+    await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official, created_at) values ('${id}', 180, 'cds', true, now() - interval '1 minute')`);
+    await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official) values ('${id}', 170, 'ghl', true)`);
+    const [row] = await rowsAs(db, "anon", `select height_cm from public.public_talents_view where slug = 'stats-rank'`);
+    assert.equal(Number(row.height_cm), 170);
+  });
+});
+
 describe("migration 038: merging duplicate records", () => {
   const draft = "2d6907e1-7272-4acb-9425-ad707a764613";
   const keep = "03590023-9bc2-4ca4-b617-63222d8d22f0";

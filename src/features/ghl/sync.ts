@@ -391,8 +391,9 @@ export async function writeDashboard(db: Db, talentId: string, applied: Map<Targ
       const value = applied.get(target as Target) as string;
       snapshot[column] = ["height_cm", "bust_cm", "waist_cm", "hips_cm", "weight_kg"].includes(target) ? Number(value) : value;
     }
+    // Official, so GHL's stats outrank CDS's everywhere stats are shown.
     must(await db.from("talent_measurements").insert({
-      talent_id: talentId, ...snapshot, source: "ghl", is_official: false,
+      talent_id: talentId, ...snapshot, source: "ghl", is_official: true,
       notes: `Synced from GHL${contact?.dateUpdated ? ` (contact updated ${contact.dateUpdated.slice(0, 10)})` : ""}`,
     }), "measurements");
   }
