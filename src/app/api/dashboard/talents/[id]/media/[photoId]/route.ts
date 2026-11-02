@@ -4,7 +4,7 @@ import { databaseError, writeAudit } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { definedOnly, firstIssue, optionalText } from "@/lib/validation";
 import { refreshPublicSite } from "@/features/public/cache";
-import { publicCopyChanges } from "@/features/media/publish";
+import { publicCopyChanges, sweepCopies } from "@/features/media/publish";
 
 const percent = z.union([z.number(), z.string()]).transform((value) => Math.min(100, Math.max(0, Number(value) || 0)));
 
@@ -47,16 +47,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (focal_x !== undefined || focal_y !== undefined) update.focal_point = { x: focal_x ?? 50, y: focal_y ?? 50 };
 
   const withdraw = makePublic === false || archived === true;
+  let ownCopy: string | undefined;
   if (makePublic === true || (withdraw && photo.public_storage_path)) {
     const result = await publicCopyChanges(supabase, id, photo, makePublic === true);
     if (result.error) return databaseError(result.error, makePublic ? "publish this image" : "withdraw this image");
     Object.assign(update, result.changes);
+    ownCopy = result.ownCopy;
   }
   if (makePublic === false) Object.assign(update, { public: false, publish_to_website: false });
   if (archived !== undefined) Object.assign(update, { archived_at: archived ? new Date().toISOString() : null, ...(archived ? { public: false, publish_to_website: false, featured: false } : {}) });
 
-  const { error: updateError } = await supabase.from("talent_photos").update({ ...update, updated_at: new Date().toISOString() }).eq("id", photo.id);
+  // The website copy changes only if nobody changed it since this was loaded, so of
+  // two changes at once exactly one wins; the other removes the file it made.
+  const copyChanges = "public_storage_path" in update;
+  const row = supabase.from("talent_photos").update({ ...update, updated_at: new Date().toISOString() }).eq("id", photo.id);
+  const { data: saved, error: updateError } = await (!copyChanges ? row : photo.public_storage_path ? row.eq("public_storage_path", photo.public_storage_path) : row.is("public_storage_path", null)).select("id");
   if (updateError) return databaseError(updateError, "update the image");
+  if (copyChanges && !saved?.length) {
+    if (ownCopy) await supabase.storage.from("talent-public").remove([ownCopy]);
+    return NextResponse.json({ error: "This photo was just changed somewhere else. Refresh the page and try again." }, { status: 409 });
+  }
+  if (copyChanges) await sweepCopies(supabase, id, photo, { publicPath: (update.public_storage_path as string | null) ?? null, croppedPath: photo.cropped_path });
 
   const action = parsed.data.review_status ? `media.review_${parsed.data.review_status}` : archived ? "media.archived" : makePublic === true ? "media.published" : makePublic === false ? "media.unpublished" : "media.edited";
   await writeAudit(supabase, { action, entityType: "talent", entityId: id, metadata: { photo_id: photo.id, fields: Object.keys(update) } });

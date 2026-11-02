@@ -33,8 +33,15 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   for (const photo of waiting) {
     if (Date.now() - started > TIME_BUDGET_MS) break;
     const result = await publicCopyChanges(supabase, id, photo, true);
-    const saved = result.error ? result : await supabase.from("talent_photos").update({ ...result.changes, updated_at: new Date().toISOString() }).eq("id", photo.id);
+    // Only if nobody published this photo meanwhile; otherwise this copy is not needed.
+    const row = supabase.from("talent_photos").update({ ...result.changes, updated_at: new Date().toISOString() }).eq("id", photo.id);
+    const saved = result.error ? { error: result.error, data: null } : await (photo.public_storage_path ? row.eq("public_storage_path", photo.public_storage_path) : row.is("public_storage_path", null)).select("id");
     if (saved.error) { failed += 1; log.warn("media", "bulk publish failed", { talent: id, photo: photo.id, error: saved.error.message ?? "" }); continue; }
+    if (!saved.data?.length) {
+      if (result.ownCopy) await supabase.storage.from("talent-public").remove([result.ownCopy]);
+      failed += 1;
+      continue;
+    }
     published += 1;
   }
 

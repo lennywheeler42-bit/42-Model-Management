@@ -1,6 +1,7 @@
 // Photo crop geometry. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { staleCopies } from "../../src/features/media/copies.ts";
 import { cropPixels, cropToFrame, frameToCrop, imageScale, uprightSize, MAX_ZOOM } from "../../src/features/media/crop.ts";
 
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`);
@@ -49,6 +50,17 @@ test("pixels stay inside the image, even with rounding", () => {
   const edge = cropPixels({ x: 0.999, y: 0.999, width: 0.5, height: 0.5 }, 1000, 1000);
   assert.ok(edge.left + edge.width <= 1000 && edge.top + edge.height <= 1000);
   assert.ok(edge.width >= 1 && edge.height >= 1);
+});
+
+test("old copies go; the current copy and the original stay", () => {
+  assert.deepEqual(staleCopies(["a-1.jpg", "a-2.jpg", "a-3.jpg"], "a-3.jpg", null), ["a-1.jpg", "a-2.jpg"]);
+  // Withdrawn: nothing is kept, so nothing can stay reachable by its public link.
+  assert.deepEqual(staleCopies(["a-1.jpg", "a-2.jpg"], null, null), ["a-1.jpg", "a-2.jpg"]);
+  // An original that lives in the public bucket is never a copy.
+  assert.deepEqual(staleCopies(["a-1.jpg", "original.jpg"], null, "original.jpg"), ["a-1.jpg"]);
+  // A file found twice (listed, and named on the row) is removed once.
+  assert.deepEqual(staleCopies(["a-1.jpg", "a-1.jpg"], null, null), ["a-1.jpg"]);
+  assert.deepEqual(staleCopies([], null, null), []);
 });
 
 test("sideways EXIF orientations swap width and height", () => {
