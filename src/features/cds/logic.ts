@@ -72,6 +72,9 @@ export function formerTalentMatch(match: MatchResult): MatchResult {
   return match.kind === "match" && match.reason !== "name" ? match : { kind: "none" };
 }
 
+// WebForFashion marks archived names with asterisks: "*Jane" → "Jane".
+export const formerTalentName = (name: string) => name.replace(/\*/g, "").replace(/\s+/g, " ").trim();
+
 // ---------------------------------------------------------------------------
 // CDS portfolio name -> website board
 // ---------------------------------------------------------------------------

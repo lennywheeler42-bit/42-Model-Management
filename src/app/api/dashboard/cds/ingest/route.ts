@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { databaseError } from "@/lib/api";
 import { requireApi } from "@/lib/agency-auth";
 import { firstIssue } from "@/lib/validation";
-import { isExcludedName } from "@/features/cds/logic";
+import { formerTalentName, isExcludedName } from "@/features/cds/logic";
 import { cdsIngestSchema, type WffTalentPayload } from "@/features/cds/schema";
 
 // Stores data handed over by Dashboard → CDS Import in the staging tables
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
     if (excluded) result.excluded += 1;
   }
 
-  for (const wff of parsed.data.wff ?? []) {
+  for (const received of parsed.data.wff ?? []) {
+    // WebForFashion marks archived names with asterisks ("*Jane Doe").
+    const wff = received.archived ? { ...received, first_name: formerTalentName(received.first_name), last_name: formerTalentName(received.last_name) } : received;
     let target = await findCdsRecord(supabase, wff);
     // In WebForFashion but not in the CDS talent list: staged under its WebForFashion
     // id, so "Add new talents" can link or add them and their photos are not left behind.
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
       profile: { ...target.profile, stats: wff.profile.stats, skills: wff.profile.skills, date_of_birth: target.profile.date_of_birth ?? wff.profile.date_of_birth, ...(wff.archived ? { archived_in_cds: true } : {}) },
       email: target.email ?? wff.emails[0] ?? null,
       phone: target.phone ?? wff.phones[0] ?? null,
+      ...(wff.archived ? { first_name: wff.first_name, last_name: wff.last_name } : {}),
       extracted_at: now, updated_at: now,
     }).eq("cds_id", target.cds_id);
     if (error) return databaseError(error, "save the WebForFashion data");

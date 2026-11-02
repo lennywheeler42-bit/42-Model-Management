@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { cdsIngestSchema } from "../../src/features/cds/schema.ts";
-import { formerTalentMatch, isCdsMediaUrl, isExcludedName, isResizedSource, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { formerTalentMatch, formerTalentName, isCdsMediaUrl, isExcludedName, isResizedSource, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
 import { talentSummary } from "../../src/features/talent/summary.ts";
 
 test("agency placeholder records are excluded", () => {
@@ -28,6 +28,12 @@ test("a former talent joins an active one only on a shared email or phone", () =
   assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "name" }), { kind: "none" }, "a name alone could be someone else");
   assert.deepEqual(formerTalentMatch({ kind: "review", reason: "Same name, different date of birth" }), { kind: "none" }, "unsure gets its own profile");
   assert.deepEqual(formerTalentMatch({ kind: "none" }), { kind: "none" });
+});
+
+test("asterisks marking an archived name are removed", () => {
+  assert.equal(formerTalentName("*Jane"), "Jane");
+  assert.equal(formerTalentName("** Jane  Ann *"), "Jane Ann");
+  assert.equal(formerTalentName("Mary-Jo"), "Mary-Jo");
 });
 
 test("the archived mark survives validation", () => {
