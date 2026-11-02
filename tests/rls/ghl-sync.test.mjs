@@ -200,6 +200,22 @@ describe("stats shown on the website", () => {
   });
 });
 
+describe("migration 041: former talents skipped", () => {
+  test("clears staged former talents but keeps active models' records and active CDS rows", async () => {
+    await su(`insert into public.cds_talents (cds_id, wff_id, first_name, email, phone, profile) values
+      ('wff-90001', '90001', 'Former', 'former@example.test', '2145550100', '{"archived_in_cds":true,"date_of_birth":"2000-01-01","stats":{"height_cm":"170 cm"}}'),
+      ('wff-116025', '116025', 'Active', 'active@example.test', null, '{"archived_in_cds":true,"stats":{"height_cm":"170 cm"}}'),
+      ('77001', '90002', 'Current', 'current@example.test', null, '{"stats":{"height_cm":"170 cm"}}')`);
+    const migration = readFileSync(new URL("../../supabase/migrations/041_cds_former_talents_skipped.sql", import.meta.url), "utf8");
+    await db.exec(migration);
+    await db.exec(migration);
+    assert.deepEqual(await su(`select excluded, match_status, email, phone, profile from public.cds_talents where cds_id = 'wff-90001'`),
+      [{ excluded: true, match_status: "skipped", email: null, phone: null, profile: { archived_in_cds: true } }]);
+    assert.deepEqual(await su(`select excluded, match_status, email from public.cds_talents where cds_id = 'wff-116025'`), [{ excluded: false, match_status: "pending", email: "active@example.test" }]);
+    assert.deepEqual(await su(`select excluded, email from public.cds_talents where cds_id = '77001'`), [{ excluded: false, email: "current@example.test" }]);
+  });
+});
+
 describe("migration 040: blank stats filled from the other source", () => {
   const id = (n) => `7a1f0c52-6d3b-4c8e-9f21-3b5e8a7d2c0${n}`;
   const latest = async (talent) => (await su(`select source, is_official, height_cm::float as height, bust_chest_cm::float as bust, waist_cm::float as waist, shoe_size_us as shoe, hair_color as hair, eye_color as eyes, shirt_size as shirt

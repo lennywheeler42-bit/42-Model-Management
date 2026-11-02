@@ -251,9 +251,9 @@
     const ids = Array.isArray(window.__cdsOnly) ? window.__cdsOnly : await talentIds();
     state.listed = ids.length;
     state.phase = "reading";
-    // window.__cdsArchive = true: run on the Archives list. Former talents are marked as
-    // such, and those with no photos are counted and left out. Three at a time, as most
-    // of the list is empty.
+    // window.__cdsArchive = true: run on the Archives list, normally with __cdsOnly set
+    // to the records of active models. Records with no photos are counted and left out,
+    // and "Add new talents" skips any that is not an active talent's own. Three at a time.
     const archive = Boolean(window.__cdsArchive);
     const queue = [...ids];
     const readNext = async () => {

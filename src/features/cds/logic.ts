@@ -65,9 +65,9 @@ export function matchTalent(input: MatchInput, candidates: MatchCandidate[]): Ma
   return { kind: "none" };
 }
 
-// A former talent (WebForFashion's Archives) joins an active talent only on a shared
-// email or phone. Anything less gets its own archived profile, so no photo can land
-// on the wrong model.
+// A record in WebForFashion's Archives counts only if it is an active talent's own: a
+// shared email or phone and the same first name. A name alone could be someone else,
+// and anything less is skipped, so no photo can land on the wrong model.
 export function formerTalentMatch(match: MatchResult): MatchResult {
   return match.kind === "match" && match.reason !== "name" ? match : { kind: "none" };
 }

@@ -49,9 +49,14 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
       result.review += 1;
       continue;
     }
-    const created = await createTalent(supabase, staged, staged.profile.archived_in_cds ? new Map() : boardFor);
+    // Only active models are migrated (owner, 2026-11-03): no profile for a former talent.
+    if (staged.profile.archived_in_cds) {
+      await stage(supabase, staged.cds_id, { excluded: true, match_status: "skipped", match_reason: "Former talent, not an active model" });
+      continue;
+    }
+    const created = await createTalent(supabase, staged, boardFor);
     await stage(supabase, staged.cds_id, created.id
-      ? { talent_id: created.id, match_status: "created", match_reason: created.problem ? `Created; ${created.problem}` : staged.profile.archived_in_cds ? "Former talent: archived profile" : "Created from CDS" }
+      ? { talent_id: created.id, match_status: "created", match_reason: created.problem ? `Created; ${created.problem}` : "Created from CDS" }
       : { match_status: "review", match_reason: created.problem ?? "Could not be created" });
     if (created.id) result.created += 1; else result.review += 1;
   }
@@ -235,8 +240,6 @@ async function createTalent(supabase: SupabaseClient, staged: StagedTalent, boar
   }
   const boardIds = [...new Set(staged.portfolios.map((p) => boardFor.get(p.name)).filter((id): id is string => Boolean(id)))];
   if (boardIds.length) await step("boards", () => supabase.from("talent_board_assignments").insert(boardIds.map((board_id) => ({ talent_id: talent.id, board_id }))));
-  // A former talent stays out of the active list and off the website.
-  if (staged.profile.archived_in_cds) await step("archive", () => supabase.from("talent").update({ publication_status: "archived" }).eq("id", talent.id).select("id"));
 
   await writeAudit(supabase, { action: "talent.created", entityType: "talent", entityId: talent.id, metadata: { source: "cds", cds_id: staged.cds_id, boards: boardIds.length } });
   return { id: talent.id, problem: problems.length ? `missing ${problems.join(", ")}` : undefined };

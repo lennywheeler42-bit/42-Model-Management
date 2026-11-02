@@ -22,11 +22,11 @@ test("matching prefers email, then phone, then a unique full name", () => {
   assert.deepEqual(matchTalent({ ...input, email: "someone@else.com", firstName: "Brooklyn", lastName: "Ford" }, [alayla, other]), { kind: "none" });
 });
 
-test("a former talent joins an active one only on a shared email or phone", () => {
+test("an archived record counts only on a shared email or phone", () => {
   assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "email" }), { kind: "match", id: "t1", reason: "email" });
   assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "phone" }), { kind: "match", id: "t1", reason: "phone" });
   assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "name" }), { kind: "none" }, "a name alone could be someone else");
-  assert.deepEqual(formerTalentMatch({ kind: "review", reason: "Same name, different date of birth" }), { kind: "none" }, "unsure gets its own profile");
+  assert.deepEqual(formerTalentMatch({ kind: "review", reason: "Same name, different date of birth" }), { kind: "none" }, "unsure is skipped");
   assert.deepEqual(formerTalentMatch({ kind: "none" }), { kind: "none" });
 });
 
