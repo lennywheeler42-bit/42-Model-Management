@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { deriveCrmStatus, inWatchedScope, type CrmStatus, type StatusPipeline, type StatusStage } from "../../src/features/ghl/status.ts";
 import { CUSTOM_TARGETS, displayValue, filesIn, ghlFormat, instagramHandle, normalizeValue, parseWeight } from "../../src/features/ghl/fields.ts";
 import { decideInbound, shouldPush } from "../../src/features/ghl/merge.ts";
+import { shoeLabel } from "../../src/lib/format.ts";
 
 const pipelines = new Map<string, StatusPipeline>([
   ["rec", { id: "rec", name: "Talent Recruitment Pipeline", purpose: "talent", badge_label: "Talent Recruitment" }],
@@ -150,6 +151,13 @@ describe("three-way merge", () => {
 });
 
 describe("stats belong to GHL", () => {
+  test("a letter in GHL's Shoe Size field is kept but never shown to clients", () => {
+    assert.equal(normalizeValue("shoe_size", "L"), "L");
+    assert.equal(shoeLabel("L"), null);
+    assert.equal(shoeLabel("8.5"), "8.5 US");
+    assert.equal(shoeLabel(9), "9 US");
+    assert.equal(shoeLabel(null), null);
+  });
   test("new stat fields are GHL-owned; identity and social fields stay shared", () => {
     for (const target of ["height_cm", "bust_cm", "waist_cm", "hips_cm", "weight_kg", "shoe_size", "shirt_size", "pants_size", "dress_size", "hair_color", "eye_color", "ethnicity"] as const) {
       assert.equal(CUSTOM_TARGETS[target].ownership, "ghl_only", target);

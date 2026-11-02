@@ -26,6 +26,11 @@ export function lengthLabel(cm: number | null | undefined) {
   return cm ? `${inches(cm)} / ${Math.round(cm)} cm` : null;
 }
 
+// GHL's Shoe Size field can hold S, M or L. Only a real size is shown to clients.
+export function shoeLabel(size: string | number | null | undefined) {
+  return size && /\d/.test(String(size)) ? `${size} US` : null;
+}
+
 export function formatDate(value: string | null | undefined, options: Intl.DateTimeFormatOptions = { year: "numeric", month: "short", day: "numeric" }) {
   if (!value) return "—";
   const date = value.length === 10 ? new Date(`${value}T00:00:00`) : new Date(value);

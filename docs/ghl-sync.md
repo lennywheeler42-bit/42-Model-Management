@@ -199,6 +199,7 @@ CRM status, pipeline, stage and opportunity status are always **GHL only**.
 - When two GHL fields map to the same target (Bust and Chest), the first readable value in name order wins.
 - Measurements are history snapshots. A GHL change adds a new snapshot (`source = 'ghl'`) carrying the latest values.
 - **Stats belong to GHL** (owner, 2026-11-03: GHL is accurate, CDS is old). Height, bust, waist, hips, weight, shoe, shirt, pants and dress sizes, hair, eyes and ethnicity are GHL-only under Mapping, so a different GHL value replaces an imported CDS one with no conflict. GHL snapshots are `is_official`, so they outrank CDS snapshots on the website, comp cards and packages. A value GHL leaves blank keeps the CDS one. Models not on the watched pipeline keep their CDS stats. A stat change approved in the talent portal is not official, so it does not show over these until staff mark it official or GHL changes.
+- GHL's Shoe Size field holds S/M/L on many contacts. The value is kept, but only a size with a number shows on the website, comp cards and packages (`shoeLabel`). A bare height such as `62` stays inches, because for a child that can be right: an adult's is corrected by retyping it in GHL as `6'2"`.
 
 ## Loop prevention and conflicts
 

@@ -54,11 +54,13 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 
 Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
 
-**GHL sync is down since 2026-10-08 04:34 UTC:** every run fails with `401 Invalid Private Integration token`. Create a new Private Integration token in GHL (Settings → Private Integrations) and replace `GHL_API_TOKEN` in Vercel (Production), then redeploy and **Run sync now**. The sync follows only "Onboarded/Active Models" (owner decision, 2026-10-31 and 2026-11-03): migration 037 already ticks **Watch** on it and maps its stage to Active, so nothing else is needed under Mapping (see `ghl-sync.md`). Until the new token is in place this has only been tested by automated tests, not against real GHL. The first working sync creates draft talents for pipeline contacts with no record yet.
+**GHL sync is working again (2026-11-03):** the owner replaced the token after an outage from 2026-10-08. It follows only "Onboarded/Active Models" (owner decision, 2026-10-31 and 2026-11-03; see `ghl-sync.md`). The first run was checked against real GHL: all 52 people on the pipeline are linked to a talent, nobody outside it was fetched in full, and a second run changed nothing. It still reads GHL's whole contact list to spot changes, but stores nothing for people outside the pipeline.
+
+**Stats belong to GHL, not CDS (owner, 2026-11-03).** They are GHL-only under Mapping and GHL snapshots are official, so they show on the website, comp cards and packages. Still to fix, in GHL: heights typed as a bare number are read as inches, which is wrong for some adults, and many Shoe Size values are letters, which clients don't see.
 
 **Talent and photo cleanup (owner, 2026-11-03):** talents and photos that are on neither CDS nor that pipeline were archived, not deleted, so they can be restored: 1 duplicate talent and 5 photos. CDS is the old database being moved into this app and GHL syncs through that pipeline only, so a model on either one stays.
 
-**Merged records (owner, 2026-11-03):** two GHL drafts were the same people as published CDS records. Their GHL contacts now point at the published records (038) and the drafts are archived. The first working sync will fill those records' blank fields, such as address, and list their different names under GHL Sync → Conflicts: keep the dashboard value. Nothing is renamed automatically. Other pairs sharing contact details are waiting on an owner answer.
+**Merged records (owner, 2026-11-03):** two GHL drafts were the same people as published CDS records. Their GHL contacts now point at the published records (038) and the drafts are archived. The sync fills those records' blank fields and took their stats from GHL. Their published names were kept (conflicts resolved as "keep dashboard"). Other pairs sharing contact details are waiting on an owner answer.
 
 **GHL sync (Phase 18)**, in order. Details are in `ghl-sync.md` → Setup.
 1. ~~Apply migration 026~~ (done 2026-10-01; first sync run and verified).

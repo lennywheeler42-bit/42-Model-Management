@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { BrandLogo } from "@/components/BrandLogo";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import { feetInches, lengthLabel } from "@/lib/format";
+import { feetInches, lengthLabel, shoeLabel } from "@/lib/format";
 import { hashShareToken, isShareToken } from "@/features/packages/share";
 import { getSiteSettings } from "@/features/cms/queries";
 
@@ -45,7 +45,7 @@ export default async function SharedPackage({ params }: { params: Promise<{ toke
     <div className="container space-y-20 pb-24">
       {pkg.talent.map((talent, index) => {
         const m = talent.measurements;
-        const stats = m ? [["Height", m.height_cm ? feetInches(m.height_cm) : null], ["Bust", lengthLabel(m.bust_cm)], ["Waist", lengthLabel(m.waist_cm)], ["Hips", lengthLabel(m.hips_cm)], ["Shoe", m.shoe_size ? `${m.shoe_size} US` : null], ["Suit", m.suit_size ?? null], ["Hair", m.hair_color ?? null], ["Eyes", m.eye_color ?? null]].filter(([, value]) => value) as [string, string][] : [];
+        const stats = m ? [["Height", m.height_cm ? feetInches(m.height_cm) : null], ["Bust", lengthLabel(m.bust_cm)], ["Waist", lengthLabel(m.waist_cm)], ["Hips", lengthLabel(m.hips_cm)], ["Shoe", shoeLabel(m.shoe_size)], ["Suit", m.suit_size ?? null], ["Hair", m.hair_color ?? null], ["Eyes", m.eye_color ?? null]].filter(([, value]) => value) as [string, string][] : [];
         return <article key={talent.id} className="border-t border-[var(--line)] pt-10">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>

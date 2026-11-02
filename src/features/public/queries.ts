@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPublicSupabaseClient } from "@/lib/supabase/public";
-import { feetInches, heightLabel, lengthLabel } from "@/lib/format";
+import { feetInches, heightLabel, lengthLabel, shoeLabel } from "@/lib/format";
 import { PLACEHOLDER_IMAGE, type PublicBoard, type PublicProfile, type TalentCardData } from "./types";
 import { log } from "@/lib/log";
 import { publicCache } from "./cache";
@@ -97,7 +97,7 @@ export function statsFor(row: Pick<TalentRow, "height_cm" | "bust_cm" | "waist_c
     ["Hips", lengthLabel(row.hips_cm)],
     ["Inseam", lengthLabel(row.inseam_cm)],
     ["Suit", row.suit_size],
-    ["Shoe", row.shoe_size ? `${row.shoe_size} US` : null],
+    ["Shoe", shoeLabel(row.shoe_size)],
     ["Eyes", row.eye_color],
     ["Hair", row.hair_color],
   ] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => ({ label, value: value as string }));

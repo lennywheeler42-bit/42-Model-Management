@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createElement } from "react";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { feetInches, lengthLabel } from "@/lib/format";
+import { feetInches, lengthLabel, shoeLabel } from "@/lib/format";
 import { siteOrigin } from "@/lib/site";
 import { getSiteSettings } from "@/features/cms/queries";
 import { readStored } from "@/features/media/library";
@@ -35,7 +35,7 @@ export async function publicStats(supabase: SupabaseClient, talentId: string, ge
     ["Height", data.height_cm ? feetInches(data.height_cm) : null],
     [gender?.toLowerCase() === "male" ? "Chest" : "Bust", lengthLabel(data.bust_chest_cm)],
     ["Waist", lengthLabel(data.waist_cm)], ["Hips", lengthLabel(data.hips_cm)],
-    ["Shoe", data.shoe_size_us ? `${data.shoe_size_us} US` : null], ["Suit", data.suit_size],
+    ["Shoe", shoeLabel(data.shoe_size_us)], ["Suit", data.suit_size],
     ["Hair", data.hair_color], ["Eyes", data.eye_color],
   ] as [string, string | null][]).filter(([, value]) => value).map(([label, value]) => ({ label, value: value as string }));
 }
