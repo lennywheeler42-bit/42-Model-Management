@@ -6,10 +6,8 @@ import { ExternalLink, ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
-type Verification = {
-  talents: number; linked: number; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; thumbnails: number; bytes: number;
-  rows: { cdsId: string; name: string; talentId: string | null; status: string; note: string | null; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; bytes: number }[];
-};
+type VerifyRow = { cdsId: string; name: string; talentId: string | null; status: string; note: string | null; listed: number; verified: number; duplicates: number; waiting: number; failed: number; missingFile: number; wrongTalent: number; thumbnails: number; bytes: number };
+const VERIFY_BATCH = 8;
 const gigabytes = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(2)} GB`;
 // Longer than the server's own 60-second limit, shorter than the reader's 180-second wait.
 const REQUEST_TIMEOUT_MS = 90_000;
@@ -36,7 +34,8 @@ export function CdsImportPanel({ pending }: { pending: number }) {
   const [received, setReceived] = useState(0);
   const [applying, setApplying] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [verification, setVerification] = useState<Verification | null>(null);
+  const [verification, setVerification] = useState<VerifyRow[] | null>(null);
+  const [verifyTotal, setVerifyTotal] = useState(0);
   const queue = useRef(Promise.resolve());
 
   const note = (text: string, tone: Line["tone"] = "info") =>
@@ -115,11 +114,16 @@ export function CdsImportPanel({ pending }: { pending: number }) {
 
   async function verify() {
     setVerifying(true);
+    setVerification([]);
     try {
-      const response = await fetch("/api/dashboard/cds/verify");
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) { toast.error(payload.error ?? "The check could not finish. Try again."); return; }
-      setVerification(payload as Verification);
+      for (let start = 0; ; start += VERIFY_BATCH) {
+        const response = await fetch(`/api/dashboard/cds/verify?start=${start}&count=${VERIFY_BATCH}`);
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) { toast.error(payload.error ?? "The check could not finish. Try again."); return; }
+        setVerifyTotal(payload.total);
+        setVerification((rows) => [...(rows ?? []), ...payload.rows]);
+        if (start + VERIFY_BATCH >= payload.total) return;
+      }
     } catch {
       toast.error("Network error. Check your connection and try again.");
     } finally {
@@ -127,7 +131,8 @@ export function CdsImportPanel({ pending }: { pending: number }) {
     }
   }
 
-  const problems = (row: Verification["rows"][number]) => [
+  const sum = (key: "listed" | "verified" | "duplicates" | "waiting" | "failed" | "missingFile" | "wrongTalent" | "thumbnails" | "bytes") => (verification ?? []).reduce((total, row) => total + row[key], 0);
+  const problems = (row: VerifyRow) => [
     row.failed && `${row.failed} failed`, row.missingFile && `${row.missingFile} file missing`, row.wrongTalent && `${row.wrongTalent} wrong talent`,
     row.duplicates && `${row.duplicates} identical`, !row.talentId && (row.note ?? "Not linked to a talent"),
   ].filter(Boolean).join(" · ");
@@ -141,10 +146,10 @@ export function CdsImportPanel({ pending }: { pending: number }) {
       {received > 0 && <Button variant="ghost" onClick={() => router.refresh()}>Refresh totals ({received} received)</Button>}
     </div>
     {verification && <div className="space-y-3 rounded-md border border-[#efefeb] bg-[#fafaf8] p-3">
-      <p className="text-sm"><span className="font-800">{verification.verified} of {verification.listed} photos verified</span> in storage ({gigabytes(verification.bytes)}), across {verification.linked} of {verification.talents} models. {verification.waiting} waiting · {verification.failed} failed · {verification.missingFile} file missing · {verification.wrongTalent} wrong talent · {verification.duplicates} identical files · {verification.thumbnails} thumbnails.</p>
+      <p className="text-sm"><span className="font-800">{verifying ? `Checking: ${verification.length} of ${verifyTotal} models so far. ` : ""}{sum("verified") + sum("duplicates")} of {sum("listed")} CDS photos accounted for</span>: {sum("verified")} unique files verified in storage ({gigabytes(sum("bytes"))}) and {sum("duplicates")} identical copies of those files, across {verification.filter((row) => row.talentId).length} of {verification.length} models. {sum("waiting")} waiting · {sum("failed")} failed · {sum("missingFile")} file missing · {sum("wrongTalent")} wrong talent · {sum("thumbnails")} thumbnails.</p>
       <div className="relative max-h-96 overflow-auto"><table className="w-full min-w-[560px] text-left text-xs">
         <thead><tr className="border-b border-[#efefeb] text-[9px] font-800 uppercase tracking-[.14em] text-[#6b6d66]"><th className="py-2 pr-4">Model</th><th className="py-2 pr-4">In CDS</th><th className="py-2 pr-4">Verified</th><th className="py-2 pr-4">Waiting</th><th className="py-2">Note</th></tr></thead>
-        <tbody>{verification.rows.map((row) => <tr key={row.cdsId} className="border-b border-[#f3f3f0] last:border-0">
+        <tbody>{[...verification].sort((a, b) => a.name.localeCompare(b.name)).map((row) => <tr key={row.cdsId} className="border-b border-[#f3f3f0] last:border-0">
           <td className="py-1.5 pr-4 font-700">{row.name}</td><td className="py-1.5 pr-4">{row.listed}</td><td className="py-1.5 pr-4">{row.verified}</td><td className="py-1.5 pr-4">{row.waiting}</td><td className="py-1.5 text-[#6b6d66]">{problems(row)}</td>
         </tr>)}</tbody>
       </table></div>

@@ -6,7 +6,8 @@ import { isResizedSource } from "./logic";
 // Compares what WebForFashion listed against what is really stored, model by model:
 // each media row, its talent_photos row, and the file in model-photos. A photo only
 // counts as verified if it is the original, not a resized copy, its file exists at the
-// recorded size, and it belongs to that talent.
+// recorded size, and it belongs to that talent. A few models per request: listing a
+// whole library takes longer than one request may run.
 
 export type VerifyRow = {
   cdsId: string; name: string; talentId: string | null; status: string; note: string | null;
@@ -39,47 +40,45 @@ async function listFolder(supabase: SupabaseClient, folder: string) {
   }
 }
 
-export async function verifyMigration(supabase: SupabaseClient) {
+export async function verifyMigration(supabase: SupabaseClient, start: number, count: number) {
   type Talent = { cds_id: string; first_name: string; last_name: string; talent_id: string | null; match_status: string; match_reason: string | null };
-  const talents = await pages<Talent>((from, to) => supabase.from("cds_talents").select("cds_id,first_name,last_name,talent_id,match_status,match_reason").eq("excluded", false).order("cds_id").range(from, to));
-  const media = await pages<{ wff_media_id: string; cds_id: string; status: string; photo_id: string | null }>((from, to) => supabase.from("cds_media").select("wff_media_id,cds_id,status,photo_id").neq("kind", "video").order("wff_media_id").range(from, to));
-  const photos = await pages<{ id: string; talent_id: string; storage_bucket: string; storage_path: string; thumbnail_path: string | null; file_size: number | null; source_url: string | null }>((from, to) => supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,thumbnail_path,file_size,source_url").eq("source", "cds").is("archived_at", null).order("id").range(from, to));
+  const { data: all, error } = await supabase.from("cds_talents").select("cds_id,first_name,last_name,talent_id,match_status,match_reason").eq("excluded", false).order("cds_id").limit(5000);
+  if (error) throw error;
+  const talents = (all ?? []) as Talent[];
+  const batch = talents.slice(start, start + count);
+  if (!batch.length) return { total: talents.length, rows: [] as VerifyRow[] };
+
+  const media = await pages<{ cds_id: string; status: string; photo_id: string | null }>((from, to) => supabase.from("cds_media").select("cds_id,status,photo_id").neq("kind", "video").in("cds_id", batch.map((t) => t.cds_id)).order("wff_media_id").range(from, to));
+  const talentIds = batch.map((t) => t.talent_id).filter((id): id is string => Boolean(id));
+  // Any source: a CDS photo identical to one staff had uploaded shares that row.
+  const photos = talentIds.length ? await pages<{ id: string; talent_id: string; storage_bucket: string; storage_path: string; thumbnail_path: string | null; file_size: number | null; source_url: string | null }>((from, to) => supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,thumbnail_path,file_size,source_url").in("talent_id", talentIds).order("id").range(from, to)) : [];
   const photoById = new Map(photos.map((photo) => [photo.id, photo]));
 
-  const rows: VerifyRow[] = [];
-  // A few talents at a time: two storage listings per talent.
-  for (let start = 0; start < talents.length; start += 3) {
-    rows.push(...await Promise.all(talents.slice(start, start + 3).map(async (talent) => {
-      const own = media.filter((m) => m.cds_id === talent.cds_id);
-      const row: VerifyRow = {
-        cdsId: talent.cds_id, name: `${talent.first_name} ${talent.last_name}`.trim(), talentId: talent.talent_id, status: talent.match_status, note: talent.match_reason,
-        listed: own.length, verified: 0, duplicates: 0, waiting: 0, failed: 0, missingFile: 0, wrongTalent: 0, thumbnails: 0, bytes: 0,
-      };
-      if (!talent.talent_id) { row.waiting = own.length; return row; }
-      const [originals, thumbnails] = await Promise.all([listFolder(supabase, `${talent.talent_id}/originals`), listFolder(supabase, `${talent.talent_id}/thumbnails`)]);
-      const seen = new Set<string>();
-      for (const item of own) {
-        if (item.status === "failed") { row.failed += 1; continue; }
-        const photo = item.status === "imported" && item.photo_id ? photoById.get(item.photo_id) : null;
-        // Listed, or still a resized copy.
-        if (!photo || photo.storage_bucket !== LIBRARY_BUCKET || isResizedSource(photo.source_url)) { row.waiting += 1; continue; }
-        if (photo.talent_id !== talent.talent_id || !photo.storage_path.startsWith(`${talent.talent_id}/`)) { row.wrongTalent += 1; continue; }
-        const size = originals.get(photo.storage_path);
-        if (size === undefined || (photo.file_size && size !== photo.file_size)) { row.missingFile += 1; continue; }
-        if (seen.has(photo.id)) { row.duplicates += 1; continue; }
-        seen.add(photo.id);
-        row.verified += 1;
-        row.bytes += size;
-        if (photo.thumbnail_path && thumbnails.has(photo.thumbnail_path)) row.thumbnails += 1;
-      }
-      return row;
-    })));
-  }
-  rows.sort((a, b) => a.name.localeCompare(b.name));
-  const sum = (key: "listed" | "verified" | "duplicates" | "waiting" | "failed" | "missingFile" | "wrongTalent" | "thumbnails" | "bytes") => rows.reduce((total, row) => total + row[key], 0);
-  return {
-    talents: rows.length, linked: rows.filter((row) => row.talentId).length,
-    listed: sum("listed"), verified: sum("verified"), duplicates: sum("duplicates"), waiting: sum("waiting"), failed: sum("failed"),
-    missingFile: sum("missingFile"), wrongTalent: sum("wrongTalent"), thumbnails: sum("thumbnails"), bytes: sum("bytes"), rows,
-  };
+  const rows = await Promise.all(batch.map(async (talent) => {
+    const own = media.filter((m) => m.cds_id === talent.cds_id);
+    const row: VerifyRow = {
+      cdsId: talent.cds_id, name: `${talent.first_name} ${talent.last_name}`.trim(), talentId: talent.talent_id, status: talent.match_status, note: talent.match_reason,
+      listed: own.length, verified: 0, duplicates: 0, waiting: 0, failed: 0, missingFile: 0, wrongTalent: 0, thumbnails: 0, bytes: 0,
+    };
+    if (!talent.talent_id) { row.waiting = own.length; return row; }
+    const [originals, thumbnails] = await Promise.all([listFolder(supabase, `${talent.talent_id}/originals`), listFolder(supabase, `${talent.talent_id}/thumbnails`)]);
+    const seen = new Set<string>();
+    for (const item of own) {
+      if (item.status === "failed") { row.failed += 1; continue; }
+      const photo = item.status === "imported" && item.photo_id ? photoById.get(item.photo_id) : null;
+      if (item.status === "imported" && item.photo_id && !photo) { row.wrongTalent += 1; continue; }
+      // Listed, or still a resized copy.
+      if (!photo || photo.storage_bucket !== LIBRARY_BUCKET || isResizedSource(photo.source_url)) { row.waiting += 1; continue; }
+      if (photo.talent_id !== talent.talent_id || !photo.storage_path.startsWith(`${talent.talent_id}/`)) { row.wrongTalent += 1; continue; }
+      const size = originals.get(photo.storage_path);
+      if (size === undefined || (photo.file_size && size !== photo.file_size)) { row.missingFile += 1; continue; }
+      if (seen.has(photo.id)) { row.duplicates += 1; continue; }
+      seen.add(photo.id);
+      row.verified += 1;
+      row.bytes += size;
+      if (photo.thumbnail_path && thumbnails.has(photo.thumbnail_path)) row.thumbnails += 1;
+    }
+    return row;
+  }));
+  return { total: talents.length, rows };
 }
