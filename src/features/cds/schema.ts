@@ -43,6 +43,8 @@ export const wffTalentSchema = z.object({
   }),
   portfolios: z.array(z.object({ id, name: short(120), website: z.boolean(), media: z.array(id).max(5000) })).max(50),
   media: z.array(cdsMediaSchema).max(10_000),
+  // From WebForFashion's Archives list: a former talent, kept private and archived.
+  archived: z.boolean().optional(),
 });
 
 export const cdsIngestSchema = z.object({
@@ -52,5 +54,5 @@ export const cdsIngestSchema = z.object({
 
 export type CdsTalentPayload = z.infer<typeof cdsTalentSchema>;
 export type WffTalentPayload = z.infer<typeof wffTalentSchema>;
-export type StagedProfile = CdsTalentPayload["profile"] & Partial<Pick<WffTalentPayload["profile"], "stats" | "skills">>;
+export type StagedProfile = CdsTalentPayload["profile"] & Partial<Pick<WffTalentPayload["profile"], "stats" | "skills">> & { archived_in_cds?: boolean };
 export type StagedPortfolio = WffTalentPayload["portfolios"][number];

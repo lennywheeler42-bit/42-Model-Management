@@ -17,25 +17,30 @@ import { isCdsMediaUrl, isResizedSource, pickCover, selectPhotos, sourceFileName
 // policies apply. New photos are private; nothing reaches the website until staff
 // choose "Show on website".
 
-type Linked = { cds_id: string; wff_id: string; talent_id: string; match_status: string; portfolios: PortfolioRef[] };
+type Linked = { cds_id: string; wff_id: string; talent_id: string; match_status: string; portfolios: PortfolioRef[]; archived: boolean | null };
+
+// Long id lists are read a hundred at a time: they travel in the request's URL.
+const inHundreds = <T>(list: T[]) => Array.from({ length: Math.ceil(list.length / 100) }, (_, index) => list.slice(index * 100, (index + 1) * 100));
 
 async function linkedTalents(supabase: SupabaseClient, wffId?: string) {
-  let query = supabase.from("cds_talents").select("cds_id,wff_id,talent_id,match_status,portfolios")
+  let query = supabase.from("cds_talents").select("cds_id,wff_id,talent_id,match_status,portfolios,archived:profile->archived_in_cds")
     .eq("excluded", false).not("talent_id", "is", null).not("wff_id", "is", null).in("match_status", ["created", "matched"]);
   if (wffId) query = query.eq("wff_id", wffId);
   const { data, error } = await query.limit(1000);
   if (error) throw error;
-  return (data ?? []) as Linked[];
+  return (data ?? []) as unknown as Linked[];
 }
 
 async function mediaOf(supabase: SupabaseClient, cdsIds: string[]) {
   const rows: (MediaItem & { cds_id: string; status: string; photo_id: string | null })[] = [];
-  for (let start = 0; ; start += 1000) {
-    const { data, error } = await supabase.from("cds_media").select("wff_media_id,cds_id,kind,position,metadata,status,photo_id")
-      .in("cds_id", cdsIds).order("wff_media_id").range(start, start + 999);
-    if (error) throw error;
-    rows.push(...(data ?? []).map((row) => ({ id: row.wff_media_id, cds_id: row.cds_id, kind: row.kind, position: row.position, metadata: row.metadata ?? {}, status: row.status, photo_id: row.photo_id })));
-    if ((data ?? []).length < 1000) break;
+  for (const ids of inHundreds(cdsIds)) {
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await supabase.from("cds_media").select("wff_media_id,cds_id,kind,position,metadata,status,photo_id")
+        .in("cds_id", ids).order("wff_media_id").range(start, start + 999);
+      if (error) throw error;
+      rows.push(...(data ?? []).map((row) => ({ id: row.wff_media_id, cds_id: row.cds_id, kind: row.kind, position: row.position, metadata: row.metadata ?? {}, status: row.status, photo_id: row.photo_id })));
+      if ((data ?? []).length < 1000) break;
+    }
   }
   return rows;
 }
@@ -44,11 +49,13 @@ async function mediaOf(supabase: SupabaseClient, cdsIds: string[]) {
 // copies in talent-private; those are replaced by the original on the next run.
 async function originalPhotoIds(supabase: SupabaseClient, talentIds: string[]) {
   const ids = new Set<string>();
-  for (let start = 0; ; start += 1000) {
-    const { data, error } = await supabase.from("talent_photos").select("id,source_url").in("talent_id", talentIds).eq("storage_bucket", LIBRARY_BUCKET).order("id").range(start, start + 999);
-    if (error) throw error;
-    for (const row of data ?? []) if (!isResizedSource(row.source_url)) ids.add(row.id);
-    if ((data ?? []).length < 1000) break;
+  for (const talents of inHundreds(talentIds)) {
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await supabase.from("talent_photos").select("id,source_url").in("talent_id", talents).eq("storage_bucket", LIBRARY_BUCKET).order("id").range(start, start + 999);
+      if (error) throw error;
+      for (const row of data ?? []) if (!isResizedSource(row.source_url)) ids.add(row.id);
+      if ((data ?? []).length < 1000) break;
+    }
   }
   return ids;
 }
@@ -60,8 +67,11 @@ export async function planPhotos(supabase: SupabaseClient) {
   if (!talents.length) return { talents: [], selected: 0, imported: 0, skipped: 0 };
   const media = await mediaOf(supabase, talents.map((t) => t.cds_id));
   const inLibrary = await originalPhotoIds(supabase, talents.map((t) => t.talent_id));
-  const { data: names } = await supabase.from("talent").select("id,display_name").in("id", talents.map((t) => t.talent_id));
-  const nameOf = new Map((names ?? []).map((row) => [row.id, row.display_name as string]));
+  const nameOf = new Map<string, string>();
+  for (const ids of inHundreds(talents.map((t) => t.talent_id))) {
+    const { data: names } = await supabase.from("talent").select("id,display_name").in("id", ids);
+    for (const row of names ?? []) nameOf.set(row.id, row.display_name as string);
+  }
 
   const reopen = media.filter((m) => m.status === "skipped" && m.kind !== "video").map((m) => m.id);
   for (let start = 0; start < reopen.length; start += 500) {
@@ -69,7 +79,7 @@ export async function planPhotos(supabase: SupabaseClient) {
     if (error) throw error;
   }
 
-  const plan: { wff_id: string; name: string; media: string[] }[] = [];
+  const plan: { wff_id: string; name: string; media: string[]; archived: boolean }[] = [];
   let selected = 0, imported = 0;
   for (const talent of talents) {
     const own = media.filter((m) => m.cds_id === talent.cds_id);
@@ -77,7 +87,7 @@ export async function planPhotos(supabase: SupabaseClient) {
     const todo = own.filter((m) => wanted.has(m.id) && !(m.status === "imported" && m.photo_id && inLibrary.has(m.photo_id)));
     selected += wanted.size;
     imported += wanted.size - todo.length;
-    if (wanted.size) plan.push({ wff_id: talent.wff_id, name: nameOf.get(talent.talent_id) ?? talent.cds_id, media: todo.map((m) => m.id) });
+    if (wanted.size) plan.push({ wff_id: talent.wff_id, name: nameOf.get(talent.talent_id) ?? talent.cds_id, media: todo.map((m) => m.id), archived: Boolean(talent.archived) });
   }
   return { talents: plan, selected, imported, skipped: 0 };
 }
@@ -223,7 +233,7 @@ export async function finishTalentPhotos(supabase: SupabaseClient, wffId: string
     // Waits until every photo in it has arrived, so a re-run never finds it half full.
     if (slugs.has(slug) || !portfolio.media.filter((id) => known.has(id)).every((id) => copied.has(id))) continue;
     const { data: created, error } = await supabase.from("portfolios").insert({
-      talent_id: talent.talent_id, name: portfolio.name, slug, public: talent.match_status === "created" && Boolean(portfolio.website), display_order: index,
+      talent_id: talent.talent_id, name: portfolio.name, slug, public: talent.match_status === "created" && !talent.archived && Boolean(portfolio.website), display_order: index,
     }).select("id").single();
     if (error || !created) throw error ?? new Error("portfolio not saved");
     const photoIds = portfolio.media.map((id) => copied.get(id)).filter((id): id is string => Boolean(id));

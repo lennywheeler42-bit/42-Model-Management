@@ -65,6 +65,13 @@ export function matchTalent(input: MatchInput, candidates: MatchCandidate[]): Ma
   return { kind: "none" };
 }
 
+// A former talent (WebForFashion's Archives) joins an active talent only on a shared
+// email or phone. Anything less gets its own archived profile, so no photo can land
+// on the wrong model.
+export function formerTalentMatch(match: MatchResult): MatchResult {
+  return match.kind === "match" && match.reason !== "name" ? match : { kind: "none" };
+}
+
 // ---------------------------------------------------------------------------
 // CDS portfolio name -> website board
 // ---------------------------------------------------------------------------

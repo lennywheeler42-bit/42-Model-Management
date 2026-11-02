@@ -187,6 +187,16 @@
     }
   }
 
+  // Archive mode: most former talents have no photos, so check before the full read.
+  async function hasPhotos(wffId) {
+    const doc = parse(await (await get(`/imaging/talent/${wffId}`)).text());
+    const endpoint = doc.querySelector("[data-load-more-talents]")?.getAttribute("data-load-more-talents");
+    if (!endpoint) return true;
+    const response = await fetch(endpoint, { method: "POST", credentials: "include", headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ limit: "1", offset: "0" }) });
+    if (!response.ok) throw new Error(`photo list: HTTP ${response.status}`);
+    return ((await response.json()).photos ?? []).length > 0;
+  }
+
   // Photo mode (window.__cdsMode = "photos"): asks the dashboard which photos to
   // copy, reads each one's signed link to the original, and hands the links over a
   // few at a time; the dashboard's server copies the files. Nothing is downloaded in
@@ -195,7 +205,7 @@
   async function copyPhotos() {
     const plan = (await send({ plan: true })).result;
     const only = Array.isArray(window.__cdsOnly) ? new Set(window.__cdsOnly) : null;
-    const talents = plan.talents.filter((t) => !only || only.has(t.wff_id));
+    const talents = plan.talents.filter((t) => (!only || only.has(t.wff_id)) && (!window.__cdsArchive || t.archived));
     Object.assign(state, { phase: "copying", listed: talents.length, selected: plan.selected, alreadyCopied: plan.imported, photos: 0, upgraded: 0, duplicates: 0, failed: 0, retries: 0, missing: [], failures: [] });
 
     // A batch that dies on the way (a timeout, a dropped connection) is sent again
@@ -241,15 +251,25 @@
     const ids = Array.isArray(window.__cdsOnly) ? window.__cdsOnly : await talentIds();
     state.listed = ids.length;
     state.phase = "reading";
-    for (const id of ids) {
-      try {
-        const talent = await readTalent(id);
-        const ack = await send({ wff: [talent] });
-        state.sent += 1;
-        if (ack.unmatched?.length) state.unmatched.push(...ack.unmatched);
-      } catch (error) { state.errors.push(`${id}: ${error.message}`); }
-      state.read += 1;
-    }
+    // window.__cdsArchive = true: run on the Archives list. Former talents are marked as
+    // such, and those with no photos are counted and left out. Three at a time, as most
+    // of the list is empty.
+    const archive = Boolean(window.__cdsArchive);
+    const queue = [...ids];
+    const readNext = async () => {
+      while (queue.length) {
+        const id = queue.shift();
+        try {
+          if (archive && !(await hasPhotos(id))) { state.empty = (state.empty ?? 0) + 1; continue; }
+          const talent = await readTalent(id);
+          const ack = await send({ wff: [archive ? { ...talent, archived: true } : talent] });
+          state.sent += 1;
+          if (ack.unmatched?.length) state.unmatched.push(...ack.unmatched);
+        } catch (error) { state.errors.push(`${id}: ${error.message}`); }
+        finally { state.read += 1; }
+      }
+    };
+    await Promise.all(Array.from({ length: archive ? 3 : 1 }, readNext));
     state.phase = "done";
   })().catch((error) => { state.phase = "failed"; state.errors.push(String(error?.message || error)); });
   return "started";

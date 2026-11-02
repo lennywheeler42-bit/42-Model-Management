@@ -1,7 +1,8 @@
 // CDS import rules. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isCdsMediaUrl, isExcludedName, isResizedSource, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
+import { cdsIngestSchema } from "../../src/features/cds/schema.ts";
+import { formerTalentMatch, isCdsMediaUrl, isExcludedName, isResizedSource, matchTalent, measurementRow, normalizeLocation, pickCover, planPortfolioBoard, selectPhotos, sourceFileName, type BoardRef, type MatchCandidate } from "../../src/features/cds/logic.ts";
 import { talentSummary } from "../../src/features/talent/summary.ts";
 
 test("agency placeholder records are excluded", () => {
@@ -19,6 +20,20 @@ test("matching prefers email, then phone, then a unique full name", () => {
   assert.deepEqual(matchTalent({ ...input, email: null, phone: "+1 682 597 7125" }, [alayla]), { kind: "match", id: "t1", reason: "phone" });
   assert.deepEqual(matchTalent({ ...input, email: null }, [alayla]), { kind: "match", id: "t1", reason: "name" });
   assert.deepEqual(matchTalent({ ...input, email: "someone@else.com", firstName: "Brooklyn", lastName: "Ford" }, [alayla, other]), { kind: "none" });
+});
+
+test("a former talent joins an active one only on a shared email or phone", () => {
+  assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "email" }), { kind: "match", id: "t1", reason: "email" });
+  assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "phone" }), { kind: "match", id: "t1", reason: "phone" });
+  assert.deepEqual(formerTalentMatch({ kind: "match", id: "t1", reason: "name" }), { kind: "none" }, "a name alone could be someone else");
+  assert.deepEqual(formerTalentMatch({ kind: "review", reason: "Same name, different date of birth" }), { kind: "none" }, "unsure gets its own profile");
+  assert.deepEqual(formerTalentMatch({ kind: "none" }), { kind: "none" });
+});
+
+test("the archived mark survives validation", () => {
+  const talent = { wff_id: "1", first_name: "A", last_name: "B", emails: [], phones: [], cds_boards: [], profile: { date_of_birth: null, stats: {}, skills: [] }, portfolios: [], media: [] };
+  assert.equal(cdsIngestSchema.parse({ wff: [{ ...talent, archived: true }] }).wff?.[0].archived, true);
+  assert.equal(cdsIngestSchema.parse({ wff: [talent] }).wff?.[0].archived, undefined);
 });
 
 test("uncertain matches go to review instead of creating a duplicate", () => {

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { writeAudit } from "@/lib/api";
 import { log } from "@/lib/log";
 import { slugify } from "@/lib/validation";
-import { matchTalent, measurementRow, normalizeLocation, planPortfolioBoard, type BoardRef, type MatchCandidate } from "./logic";
+import { formerTalentMatch, matchTalent, measurementRow, normalizeLocation, planPortfolioBoard, type BoardRef, type MatchCandidate } from "./logic";
 import type { StagedPortfolio, StagedProfile } from "./schema";
 
 type StagedTalent = {
@@ -31,11 +31,13 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
     return { ...result, remaining: 0 };
   }
 
-  const boardFor = await ensurePortfolioBoards(supabase, [...new Set(batch.flatMap((t) => t.portfolios.map((p) => p.name)))], result);
+  // Former talents never go on a board, so they never create one.
+  const boardFor = await ensurePortfolioBoards(supabase, [...new Set(batch.filter((t) => !t.profile.archived_in_cds).flatMap((t) => t.portfolios.map((p) => p.name)))], result);
   const candidates = await loadCandidates(supabase);
 
   for (const staged of batch) {
-    const match = matchTalent({ firstName: staged.first_name, lastName: staged.last_name, email: staged.email, phone: staged.phone, dateOfBirth: staged.profile.date_of_birth }, candidates);
+    const found = matchTalent({ firstName: staged.first_name, lastName: staged.last_name, email: staged.email, phone: staged.phone, dateOfBirth: staged.profile.date_of_birth }, candidates);
+    const match = staged.profile.archived_in_cds ? formerTalentMatch(found) : found;
     if (match.kind === "match") {
       await stage(supabase, staged.cds_id, { talent_id: match.id, match_status: "matched", match_reason: `Matched by ${match.reason}` });
       candidates.splice(candidates.findIndex((c) => c.id === match.id), 1);
@@ -47,9 +49,9 @@ export async function applyPendingTalents(supabase: SupabaseClient, limit = 8) {
       result.review += 1;
       continue;
     }
-    const created = await createTalent(supabase, staged, boardFor);
+    const created = await createTalent(supabase, staged, staged.profile.archived_in_cds ? new Map() : boardFor);
     await stage(supabase, staged.cds_id, created.id
-      ? { talent_id: created.id, match_status: "created", match_reason: created.problem ? `Created; ${created.problem}` : "Created from CDS" }
+      ? { talent_id: created.id, match_status: "created", match_reason: created.problem ? `Created; ${created.problem}` : staged.profile.archived_in_cds ? "Former talent: archived profile" : "Created from CDS" }
       : { match_status: "review", match_reason: created.problem ?? "Could not be created" });
     if (created.id) result.created += 1; else result.review += 1;
   }
@@ -233,6 +235,8 @@ async function createTalent(supabase: SupabaseClient, staged: StagedTalent, boar
   }
   const boardIds = [...new Set(staged.portfolios.map((p) => boardFor.get(p.name)).filter((id): id is string => Boolean(id)))];
   if (boardIds.length) await step("boards", () => supabase.from("talent_board_assignments").insert(boardIds.map((board_id) => ({ talent_id: talent.id, board_id }))));
+  // A former talent stays out of the active list and off the website.
+  if (staged.profile.archived_in_cds) await step("archive", () => supabase.from("talent").update({ publication_status: "archived" }).eq("id", talent.id).select("id"));
 
   await writeAudit(supabase, { action: "talent.created", entityType: "talent", entityId: talent.id, metadata: { source: "cds", cds_id: staged.cds_id, boards: boardIds.length } });
   return { id: talent.id, problem: problems.length ? `missing ${problems.join(", ")}` : undefined };

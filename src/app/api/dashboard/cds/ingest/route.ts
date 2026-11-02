@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       wff_id: wff.wff_id,
       cds_boards: wff.cds_boards,
       portfolios: wff.portfolios,
-      profile: { ...target.profile, stats: wff.profile.stats, skills: wff.profile.skills, date_of_birth: target.profile.date_of_birth ?? wff.profile.date_of_birth },
+      profile: { ...target.profile, stats: wff.profile.stats, skills: wff.profile.skills, date_of_birth: target.profile.date_of_birth ?? wff.profile.date_of_birth, ...(wff.archived ? { archived_in_cds: true } : {}) },
       email: target.email ?? wff.emails[0] ?? null,
       phone: target.phone ?? wff.phones[0] ?? null,
       extracted_at: now, updated_at: now,
