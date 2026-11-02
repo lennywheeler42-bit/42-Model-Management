@@ -2,6 +2,7 @@
 // GHL contact, and the write-back queue. Run: npm run test:rls
 import { before, describe, test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { addMember, as, createDatabase, newUser, rejects, rowsAs, users } from "./harness.mjs";
 
 let db;
@@ -184,6 +185,32 @@ describe("migration 035: watched pipelines", () => {
     await as(db, people.admin, "update public.ghl_pipelines set watched = true where id = 'p-expo'");
     assert.deepEqual(await rowsAs(db, users.talentManager, "select watched from public.ghl_pipelines where id = 'p-expo'"), [{ watched: true }]);
     await as(db, people.admin, "update public.ghl_pipelines set watched = false where id = 'p-expo'");
+  });
+});
+
+describe("migration 038: merging duplicate records", () => {
+  const draft = "2d6907e1-7272-4acb-9425-ad707a764613";
+  const keep = "03590023-9bc2-4ca4-b617-63222d8d22f0";
+  const contact = "MFgJUhqGEwOFhEQkApBR";
+  const migration = () => readFileSync(new URL("../../supabase/migrations/038_ghl_merge_duplicate_records.sql", import.meta.url), "utf8");
+
+  test("the contact moves to the kept record; the draft and a re-run change nothing else", async () => {
+    await su(`insert into public.talent (id, slug, first_name, last_name, display_name, publication_status, show_on_website) values
+      ('${draft}', 'merge-draft', 'Sam', 'Draft', 'Sam Draft', 'draft', false), ('${keep}', 'merge-keep', 'Sammy', 'Kept', 'Sammy Kept', 'draft', false)`);
+    await su(`insert into public.ghl_contacts (id, first_name, talent_id, crm_status, programs) values ('${contact}', 'Sam', '${draft}', 'active', '{"Tag"}')`);
+    await su(`insert into public.applications (source, external_id, first_name, status, converted_talent_id) values ('ghl', '${contact}', 'Sam', 'converted', '${draft}')`);
+
+    await db.exec(migration());
+    assert.equal((await su(`select talent_id from public.ghl_contacts where id = '${contact}'`))[0].talent_id, keep);
+    assert.deepEqual(await su(`select first_name, crm_status, crm_programs from public.talent where id = '${keep}'`), [{ first_name: "Sammy", crm_status: "active", crm_programs: ["Tag"] }]);
+    assert.equal((await su(`select converted_talent_id from public.applications where external_id = '${contact}'`))[0].converted_talent_id, keep);
+    assert.equal((await su(`select count(*)::int as n from public.talent where id = '${draft}' and archived_at is null`))[0].n, 1);
+
+    // Staff link it elsewhere later: running the migration again must not undo that.
+    await su(`update public.ghl_contacts set talent_id = null where id = '${contact}'`);
+    await db.exec(migration());
+    assert.equal((await su(`select talent_id from public.ghl_contacts where id = '${contact}'`))[0].talent_id, null);
+    assert.equal((await su(`select count(*)::int as n from public.audit_logs where action = 'ghl.contact_moved' and entity_id = '${keep}'`))[0].n, 1);
   });
 });
 
