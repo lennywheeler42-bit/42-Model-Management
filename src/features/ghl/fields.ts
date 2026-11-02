@@ -107,6 +107,16 @@ export function instagramHandle(value: unknown): string | null {
   return handle ? `@${handle[1]}` : raw.slice(0, 100);
 }
 
+// "(214) 555-0101" and "+12145550101" are one number: US numbers get one form, so
+// a different format alone is never a conflict. Others stay as typed.
+function phoneForm(value: unknown): string | null {
+  const raw = clean(value, 40);
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  return digits.length === 11 && digits.startsWith("1") ? `+${digits}` : raw;
+}
+
 // Comparable dashboard-side value for a target, or null when blank/unreadable.
 // Unreadable values such as "N/A" become null here but stay in the raw CRM data.
 export function normalizeValue(target: CustomTarget | NativeTarget, value: unknown): string | null {
@@ -117,7 +127,7 @@ export function normalizeValue(target: CustomTarget | NativeTarget, value: unkno
     case "date_of_birth": return parseDate(value);
     case "instagram": return instagramHandle(value);
     case "email": return clean(value, 200)?.toLowerCase() ?? null;
-    case "phone": return clean(value, 40);
+    case "phone": return phoneForm(value);
     default: return clean(value, 200);
   }
 }

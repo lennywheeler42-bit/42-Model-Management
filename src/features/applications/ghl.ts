@@ -87,6 +87,8 @@ export function parseHeight(value: unknown): number | null {
   let lower = raw.toLowerCase().replace(/’|′|`|´/g, "'").replace(/”|″|''/g, '"');
   // "5'7 cm": feet and inches with a wrong unit typed after them.
   if (lower.includes("'")) lower = lower.replace(/\s*cm$/, "");
+  // 5"4 and 5”11: the inches mark typed where the feet mark belongs.
+  lower = lower.replace(/^(\d)\s*"\s*(?=\d)/, "$1'");
   const feet = lower.match(/^(\d)\s*(?:'|ft|feet|foot|-|\s)\s*(\d{1,2}(?:\.\d+)?)?(?:\s+(\d)\/(\d))?\s*(?:"|in|inches)?$/);
   if (feet) {
     const fraction = feet[3] && Number(feet[4]) ? Number(feet[3]) / Number(feet[4]) : 0;

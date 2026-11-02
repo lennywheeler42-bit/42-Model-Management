@@ -280,7 +280,7 @@ export async function loadDashboard(db: Db, talentId: string): Promise<Dashboard
   const m = measurement.data as Record<string, unknown> | null;
   const values = new Map<Target, string | null>([
     ["first_name", str(t.first_name)], ["last_name", str(t.last_name)], ["gender", str(t.gender)], ["location", str(t.location)],
-    ["email", normalizeValue("email", d.email)], ["phone", str(d.mobile)], ["date_of_birth", str(d.date_of_birth)],
+    ["email", normalizeValue("email", d.email)], ["phone", normalizeValue("phone", d.mobile)], ["date_of_birth", str(d.date_of_birth)],
     ["address", addressKey(address.data)],
   ]);
   for (const [target, column] of Object.entries(MEASUREMENT_COLUMNS)) values.set(target as Target, comparable(target as Target, str(m?.[column])));

@@ -67,6 +67,12 @@ describe("field values", () => {
   test("measurements typed in GHL normalize; unreadable values stay blank", () => {
     assert.equal(normalizeValue("height_cm", "5’9”"), "175");
     assert.equal(normalizeValue("height_cm", "5 10.5’"), null);
+    assert.equal(normalizeValue("height_cm", '5"4'), "163");
+    assert.equal(normalizeValue("height_cm", "5”11"), "180");
+    assert.equal(normalizeValue("height_cm", "62"), "157", "a bare number stays inches: it can be a child's height");
+    assert.equal(normalizeValue("phone", "(214) 555-0101"), "+12145550101");
+    assert.equal(normalizeValue("phone", "+1 214-555-0101"), "+12145550101");
+    assert.equal(normalizeValue("phone", "+44 20 7946 0958"), "+44 20 7946 0958");
     assert.equal(normalizeValue("bust_cm", "34C"), "86.4");
     assert.equal(normalizeValue("waist_cm", "63cm"), "63");
     assert.equal(normalizeValue("hips_cm", "N/A"), null);

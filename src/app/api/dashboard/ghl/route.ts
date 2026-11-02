@@ -5,6 +5,7 @@ import { writeAudit } from "@/lib/api";
 import { log } from "@/lib/log";
 import { ghlConfigured } from "@/features/ghl/client";
 import { reconcile, retryFailedJobs, syncContactNow } from "@/features/ghl/engine";
+import { refreshPublicSite } from "@/features/public/cache";
 
 // Staff sync actions: run (or continue) a reconciliation step, retry failed and
 // dead jobs, or re-sync one contact now. The sync runs with the secret key after
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   if (!ghlConfigured()) return NextResponse.json({ error: "GHL is not connected: set GHL_API_TOKEN and GHL_LOCATION_ID on the server" }, { status: 503 });
   const { supabase, user } = auth.context;
+  // A sync can change the stats a published model shows on the website.
+  refreshPublicSite();
 
   try {
     if (parsed.data.action === "retry") {
