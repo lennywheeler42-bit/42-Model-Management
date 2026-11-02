@@ -5,6 +5,7 @@ import { ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { log } from "@/lib/log";
 import { CdsImportPanel } from "@/features/cds/CdsImportPanel";
+import { ConfirmSamePerson } from "@/features/cds/ConfirmSamePerson";
 
 export const metadata = { title: "CDS Import" };
 
@@ -92,7 +93,7 @@ export default async function CdsImportPage() {
           <td className="py-2 pr-4 font-mono text-xs">{t.cds_id}</td>
           <td className="py-2 pr-4 text-xs text-[#6b6d66]">{t.portfolios.map((p) => p.name).join(", ") || "—"}</td>
           <td className="py-2 pr-4"><Badge tone={tone(t.match_status)}>{t.match_status === "matched" ? "In dashboard" : t.match_status === "created" ? "Added" : t.match_status}</Badge></td>
-          <td className="py-2 text-xs text-[#6b6d66]">{t.match_reason ?? ""}</td>
+          <td className="py-2 text-xs text-[#6b6d66]"><span className="mr-2">{t.match_reason ?? ""}</span>{t.match_status === "review" && !t.talent_id && <ConfirmSamePerson cdsId={t.cds_id} name={`${t.first_name} ${t.last_name}`} />}</td>
         </tr>)}</tbody>
       </table></div>
     </Card>}
