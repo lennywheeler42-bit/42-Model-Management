@@ -200,6 +200,25 @@ describe("stats shown on the website", () => {
   });
 });
 
+describe("migration 039: stats saved in inches", () => {
+  test("converts inch values on the two GHL snapshots only, once", async () => {
+    const one = "e1adc5a5-7e07-4086-80fd-732b1b8c7320";
+    const other = "7a1f0c52-6d3b-4c8e-9f21-3b5e8a7d1c41";
+    await su(`insert into public.talent (id, slug, first_name, last_name, display_name, publication_status, show_on_website) values
+      ('${one}', 'inches-one', 'One', 'Inches', 'One Inches', 'draft', false), ('${other}', 'inches-other', 'Other', 'Inches', 'Other Inches', 'draft', false)`);
+    await su(`insert into public.talent_measurements (talent_id, bust_chest_cm, waist_cm, hips_cm, source, is_official) values
+      ('${one}', 32, 62.2, 35, 'ghl', true), ('${one}', 32, 24, 35, 'cds', true), ('${other}', 32, 24, 35, 'ghl', true)`);
+    const rows = (id, source) => su(`select bust_chest_cm::float as bust, waist_cm::float as waist, hips_cm::float as hips from public.talent_measurements where talent_id = '${id}' and source = '${source}'`);
+    const migration = readFileSync(new URL("../../supabase/migrations/039_ghl_stats_inches_to_cm.sql", import.meta.url), "utf8");
+
+    await db.exec(migration);
+    await db.exec(migration);
+    assert.deepEqual(await rows(one, "ghl"), [{ bust: 81.3, waist: 62.2, hips: 88.9 }]);
+    assert.deepEqual(await rows(one, "cds"), [{ bust: 32, waist: 24, hips: 35 }]);
+    assert.deepEqual(await rows(other, "ghl"), [{ bust: 32, waist: 24, hips: 35 }]);
+  });
+});
+
 describe("migration 038: merging duplicate records", () => {
   const draft = "2d6907e1-7272-4acb-9425-ad707a764613";
   const keep = "03590023-9bc2-4ca4-b617-63222d8d22f0";
