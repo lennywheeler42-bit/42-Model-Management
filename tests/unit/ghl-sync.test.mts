@@ -70,7 +70,10 @@ describe("field values", () => {
     assert.equal(normalizeValue("height_cm", "5 10.5’"), null);
     assert.equal(normalizeValue("height_cm", '5"4'), "163");
     assert.equal(normalizeValue("height_cm", "5”11"), "180");
-    assert.equal(normalizeValue("height_cm", "62"), "157", "a bare number stays inches: it can be a child's height");
+    assert.equal(normalizeValue("height_cm", "62"), "188", "6'2\", confirmed by the owner");
+    assert.equal(normalizeValue("height_cm", "57"), "170", "5'7\", confirmed against CDS");
+    assert.equal(normalizeValue("height_cm", "53"), "160", "5'3\", confirmed against CDS");
+    assert.equal(normalizeValue("height_cm", "69"), "175", "5'9\" in inches, not 6'9\"");
     assert.equal(normalizeValue("phone", "(214) 555-0101"), "+12145550101");
     assert.equal(normalizeValue("phone", "+1 214-555-0101"), "+12145550101");
     assert.equal(normalizeValue("phone", "+44 20 7946 0958"), "+44 20 7946 0958");
@@ -78,7 +81,8 @@ describe("field values", () => {
     assert.equal(normalizeValue("waist_cm", "63cm"), "63");
     assert.equal(normalizeValue("hips_cm", "N/A"), null);
     assert.equal(normalizeValue("hips_cm", "Unknown"), null);
-    assert.equal(normalizeValue("shoe_size", "M"), "M");
+    assert.equal(normalizeValue("shoe_size", "M"), null);
+    assert.equal(normalizeValue("shoe_size", "8.5"), "8.5");
     assert.equal(normalizeValue("gender", ""), null);
     assert.equal(normalizeValue("email", " Maya@Example.TEST "), "maya@example.test");
   });
@@ -151,8 +155,8 @@ describe("three-way merge", () => {
 });
 
 describe("stats belong to GHL", () => {
-  test("a letter in GHL's Shoe Size field is kept but never shown to clients", () => {
-    assert.equal(normalizeValue("shoe_size", "L"), "L");
+  test("a letter in GHL's Shoe Size field counts as blank and is never shown to clients", () => {
+    assert.deepEqual(decideInbound("ghl_only", undefined, "9", normalizeValue("shoe_size", "L")), { action: "none" });
     assert.equal(shoeLabel("L"), null);
     assert.equal(shoeLabel("8.5"), "8.5 US");
     assert.equal(shoeLabel(9), "9 US");

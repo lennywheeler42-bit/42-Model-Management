@@ -128,6 +128,11 @@ export function normalizeValue(target: CustomTarget | NativeTarget, value: unkno
     case "instagram": return instagramHandle(value);
     case "email": return clean(value, 200)?.toLowerCase() ?? null;
     case "phone": return phoneForm(value);
+    // GHL's Shoe Size field can hold S, M or L, which is blank as far as a shoe goes.
+    case "shoe_size": {
+      const size = clean(value, 20);
+      return size && /\d/.test(size) ? size : null;
+    }
     default: return clean(value, 200);
   }
 }

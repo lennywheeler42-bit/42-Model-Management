@@ -199,7 +199,9 @@ CRM status, pipeline, stage and opportunity status are always **GHL only**.
 - When two GHL fields map to the same target (Bust and Chest), the first readable value in name order wins.
 - Measurements are history snapshots. A GHL change adds a new snapshot (`source = 'ghl'`) carrying the latest values.
 - **Stats belong to GHL** (owner, 2026-11-03: GHL is accurate, CDS is old). Height, bust, waist, hips, weight, shoe, shirt, pants and dress sizes, hair, eyes and ethnicity are GHL-only under Mapping, so a different GHL value replaces an imported CDS one with no conflict. GHL snapshots are `is_official`, so they outrank CDS snapshots on the website, comp cards and packages. A value GHL leaves blank keeps the CDS one. Models not on the watched pipeline keep their CDS stats. A stat change approved in the talent portal is not official, so it does not show over these until staff mark it official or GHL changes.
-- GHL's Shoe Size field holds S/M/L on many contacts. The value is kept, but only a size with a number shows on the website, comp cards and packages (`shoeLabel`). A bare height such as `62` stays inches, because for a child that can be right: an adult's is corrected by retyping it in GHL as `6'2"`.
+- **Stats follow one rule (owner, 2026-11-03): GHL first, and what one source lacks comes from the other.** The sync never erases a value GHL leaves blank, and migration 040 filled the blanks that existed then: from CDS's staged stats, and from the stored copy of a contact for a talent with no contact of its own. Sharing an email alone is never enough, because relatives use the same one: the first name must match too.
+- GHL's Shoe Size field holds S/M/L on many contacts. A letter counts as blank, so it never replaces a real size, and only a size with a number shows on the website, comp cards and packages (`shoeLabel`).
+- A bare height is feet and inches up to 64 (`57` = 5'7", `62` = 6'2", checked against CDS heights and the owner). From 65 it is inches (`69` = 5'9").
 
 ## Loop prevention and conflicts
 

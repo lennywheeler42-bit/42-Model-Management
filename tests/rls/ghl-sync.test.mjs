@@ -200,6 +200,53 @@ describe("stats shown on the website", () => {
   });
 });
 
+describe("migration 040: blank stats filled from the other source", () => {
+  const id = (n) => `7a1f0c52-6d3b-4c8e-9f21-3b5e8a7d2c0${n}`;
+  const latest = async (talent) => (await su(`select source, is_official, height_cm::float as height, bust_chest_cm::float as bust, waist_cm::float as waist, shoe_size_us as shoe, hair_color as hair, eye_color as eyes, shirt_size as shirt
+    from public.talent_measurements where talent_id = '${talent}' order by is_official desc, measured_on desc, created_at desc limit 1`))[0];
+  const count = async (talent) => (await su(`select count(*)::int as n from public.talent_measurements where talent_id = '${talent}'`))[0].n;
+
+  test("GHL values stay, CDS and GHL fill each other's blanks, and other people's contacts are never used", async () => {
+    await su(`insert into public.ghl_field_definitions (id, object_key, name, target, ownership) values
+      ('f-bust', 'contact', 'Bust', 'bust_cm', 'ghl_only'), ('f-waist', 'contact', 'Waist', 'waist_cm', 'ghl_only'), ('f-hair', 'contact', 'Hair', 'hair_color', 'ghl_only'), ('f-shoe', 'contact', 'Shoe', 'shoe_size', 'ghl_only')`);
+    await su(`insert into public.talent (id, slug, first_name, last_name, display_name, publication_status, show_on_website) values
+      ('${id(1)}', 'fill-1', 'Pipe', 'Line', 'Pipe Line', 'draft', false),
+      ('${id(2)}', 'fill-2', 'Only', 'Cds', 'Only Cds', 'published', true),
+      ('${id(3)}', 'fill-3', 'Kid', 'Same', 'Kid Same', 'draft', false),
+      ('${id(4)}', 'fill-4', 'Other', 'Name', 'Other Name', 'draft', false),
+      ('${id(5)}', 'fill-5', 'Parent', 'Same', 'Parent Same', 'draft', false)`);
+    await su(`insert into public.talent_private_details (talent_id, email) values
+      ('${id(2)}', 'only@example.test'), ('${id(3)}', 'shared@example.test'), ('${id(4)}', 'other@example.test'), ('${id(5)}', 'shared@example.test')
+      on conflict (talent_id) do update set email = excluded.email`);
+    // 1: on the pipeline; GHL's height stays, its letter shoe gives way to CDS, an inch value in a cm field from CDS is not used.
+    await su(`insert into public.ghl_contacts (id, first_name, talent_id, custom_fields) values ('c-fill-1', 'Pipe', '${id(1)}', '{}')`);
+    await su(`insert into public.talent_measurements (talent_id, height_cm, shoe_size_us, shirt_size, source, is_official) values ('${id(1)}', 170, 'M', 'S', 'ghl', false)`);
+    await su(`insert into public.cds_talents (cds_id, talent_id, profile) values ('fill-cds-1', '${id(1)}', '{"stats":{"height_cm":"180 cm","shoe_us":"9.0","eyes_color":"Brown","bust_cm":"33 cm"}}')`);
+    // 2: CDS only; GHL fills bust and hair; N/A and a letter shoe fill nothing.
+    await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official) values ('${id(2)}', 175, 'cds', true)`);
+    await su(`insert into public.cds_talents (cds_id, talent_id, profile) values ('fill-cds-2', '${id(2)}', '{"stats":{"height_cm":"175 cm"}}')`);
+    await su(`insert into public.ghl_contacts (id, first_name, email, custom_fields) values ('c-fill-2', 'Only', 'only@example.test', '{"f-bust":"32E","f-waist":"N/A","f-hair":"Brown","f-shoe":"L"}')`);
+    // 3: shares a contact's email, but that contact belongs to someone else.
+    await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official) values ('${id(3)}', 150, 'cds', true)`);
+    await su(`insert into public.ghl_contacts (id, first_name, email, talent_id, custom_fields) values ('c-fill-3', 'Parent', 'shared@example.test', '${id(5)}', '{"f-bust":"30"}')`);
+    // 4: same email, different first name: not the same person.
+    await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official) values ('${id(4)}', 160, 'cds', true)`);
+    await su(`insert into public.ghl_contacts (id, first_name, email, custom_fields) values ('c-fill-4', 'Stranger', 'other@example.test', '{"f-bust":"30","f-hair":"Red"}')`);
+
+    const migration = readFileSync(new URL("../../supabase/migrations/040_fill_blank_stats.sql", import.meta.url), "utf8");
+    await db.exec(migration);
+
+    assert.deepEqual(await latest(id(1)), { source: "cds", is_official: true, height: 170, bust: null, waist: null, shoe: "9.0", hair: null, eyes: "Brown", shirt: "S" });
+    assert.deepEqual(await latest(id(2)), { source: "ghl", is_official: true, height: 175, bust: 81.3, waist: null, shoe: null, hair: "Brown", eyes: null, shirt: null });
+    assert.equal(await count(id(3)), 1);
+    assert.equal(await count(id(4)), 1);
+
+    await db.exec(migration);
+    assert.equal(await count(id(1)), 2);
+    assert.equal(await count(id(2)), 2);
+  });
+});
+
 describe("migration 039: stats saved in inches", () => {
   test("converts inch values on the two GHL snapshots only, once", async () => {
     const one = "e1adc5a5-7e07-4086-80fd-732b1b8c7320";

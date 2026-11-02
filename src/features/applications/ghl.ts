@@ -98,6 +98,10 @@ export function parseHeight(value: unknown): number | null {
   // "510" = 5'10": feet then two-digit inches, no separator (impossible as cm).
   const compact = lower.match(/^([4-6])(0\d|1[01])$/);
   if (compact) return Math.round((Number(compact[1]) * 12 + Number(compact[2])) * 2.54);
+  // "57" = 5'7", "62" = 6'2": confirmed against CDS heights and the owner. 65 and up
+  // stay inches below, because 69 is 5'9", not 6'9".
+  const shorthand = lower.match(/^([45]\d|6[0-4])$/);
+  if (shorthand) return Math.round((Number(shorthand[1][0]) * 12 + Number(shorthand[1][1])) * 2.54);
   const metres = lower.match(/^(\d\.\d{1,2})\s*m$/);
   if (metres) return Math.round(Number(metres[1]) * 100);
   const number = lower.match(/^(\d{2,3}(?:\.\d+)?)\s*(cm|in|inches|")?$/);
