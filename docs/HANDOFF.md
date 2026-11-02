@@ -54,7 +54,9 @@ The spec (`42_Agency_OS_Claude_Master_Prompt.md`) lives outside the repo.
 
 Done: migrations 019–025 applied, code merged to `main` and deployed, Vercel env vars (`SUPABASE_SECRET_KEY`, `GHL_WEBHOOK_SECRET`) set.
 
-**GHL sync is down since 2026-10-08 04:34 UTC:** every run fails with `401 Invalid Private Integration token`. Create a new Private Integration token in GHL (Settings → Private Integrations) and replace `GHL_API_TOKEN` in Vercel (Production), then redeploy and **Run sync now**. The sync follows only "Onboarded/Active Models" (owner decision, 2026-10-31 and 2026-11-03): migration 037 already ticks **Watch** on it and maps its stage to Active, so nothing else is needed under Mapping (see `ghl-sync.md`).
+**GHL sync is down since 2026-10-08 04:34 UTC:** every run fails with `401 Invalid Private Integration token`. Create a new Private Integration token in GHL (Settings → Private Integrations) and replace `GHL_API_TOKEN` in Vercel (Production), then redeploy and **Run sync now**. The sync follows only "Onboarded/Active Models" (owner decision, 2026-10-31 and 2026-11-03): migration 037 already ticks **Watch** on it and maps its stage to Active, so nothing else is needed under Mapping (see `ghl-sync.md`). Until the new token is in place this has only been tested by automated tests, not against real GHL. The first working sync creates draft talents for pipeline contacts with no record yet.
+
+**Talent and photo cleanup (owner, 2026-11-03):** talents and photos that are on neither CDS nor that pipeline were archived, not deleted, so they can be restored: 1 duplicate talent and 5 photos.
 
 **GHL sync (Phase 18)**, in order. Details are in `ghl-sync.md` → Setup.
 1. ~~Apply migration 026~~ (done 2026-10-01; first sync run and verified).
