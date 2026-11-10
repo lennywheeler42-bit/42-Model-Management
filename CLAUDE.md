@@ -107,6 +107,7 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 - "Show on website" writes a web-sized JPEG (the crop if there is one) into `talent-public` and records `public_storage_path`. Withdrawing removes the copy.
 - A change to a photo's crop or website copy saves only if that value is unchanged since it was loaded (409 otherwise; the loser removes its own files), then `sweepCopies()` clears every other `<photo id>-…` copy, so a withdrawn photo leaves nothing reachable in the public bucket. New code that writes these copies must do the same.
 - Comp cards pick from the whole gallery and use the crop if there is one; photos a talent sent that are in review or rejected are left out (`src/features/compcard/build.ts`).
+- The comp card editor is drag and drop: layouts, themes and frames are in `src/features/compcard/layout.ts`, shared by the preview and the PDF. Each frame stores the photo, zoom and center, as the crop tool does (`frameToCrop`), so the server cuts the same region the editor shows. Keep the editor's thumbnail the same image the server prints (crop, then website copy, then original). Otherwise the framing drifts.
 - Documents live in `talent-documents` and are downloaded only through 60-second signed URLs, which are audited.
 - Team profile photos live in the public `team-avatars` bucket at `<auth user id>/…` (migration 027); the URL is kept in the user's own Auth metadata as `profile_photo_url` (`src/features/team/photo.ts`).
 

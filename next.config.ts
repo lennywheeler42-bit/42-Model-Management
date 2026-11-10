@@ -46,7 +46,7 @@ const nextConfig: NextConfig = {
   // Rendered in Node route handlers (PDF comp cards); not bundled.
   serverExternalPackages: ["@react-pdf/renderer"],
   // The comp card reads the logo from disk, and public/ is not traced by default.
-  outputFileTracingIncludes: { "/api/dashboard/talents/[id]/comp-card": ["./public/brand/logo-mark.png"] },
+  outputFileTracingIncludes: { "/api/dashboard/talents/[id]/comp-card": ["./public/brand/logo-mark-480.webp"] },
   images: {
     // 90 for talent photos (PHOTO_QUALITY): they are already compressed once.
     qualities: [75, 90],
