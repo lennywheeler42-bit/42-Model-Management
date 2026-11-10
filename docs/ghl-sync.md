@@ -252,6 +252,7 @@ Photos arrive **private and unpublished**. Staff choose the cover and **Make pub
   - Each invocation works for about 50 seconds and saves a cursor. The next call continues from there, and the cron route calls itself, up to 30 hops.
 - **Rate limits:** the client follows GHL's `x-ratelimit-*` headers and backs off exponentially, with jitter, on 429 and 5xx responses.
 - **Failures:** failed jobs retry after 2, 4, 8 … minutes, up to 6 hours apart. After 8 attempts they are marked **dead** and wait for **Retry failed**.
+  - **Retry failed** queues each failed record once (`ghl_enqueue_jobs`) and closes its stopped rows (`retryPlan` in `src/features/ghl/queue.ts`). It must not re-open stopped rows directly: a record can leave several behind, only one job per record may be open (`ghl_sync_jobs_open_idx`), and the database then refuses the whole change. That is why the 323 records left by the invalid-token outage (2026-10-30 to 2026-11-02) could not be retried until 2026-11-10. A retried contact outside the watched pipeline is still not mirrored (`syncContact`).
 - **Scale:** every step pages and uses ID-keyed upserts, so running it twice changes nothing. Cost grows with the number of *changed* contacts, not with the total.
 
 ## Website and CMS

@@ -6,6 +6,7 @@ import { requirePage } from "@/lib/agency-auth";
 import { log } from "@/lib/log";
 import { CdsImportPanel } from "@/features/cds/CdsImportPanel";
 import { ConfirmSamePerson } from "@/features/cds/ConfirmSamePerson";
+import { outdatedWebCopyCount } from "@/features/media/refresh";
 
 export const metadata = { title: "CDS Import" };
 
@@ -36,7 +37,9 @@ export default async function CdsImportPage() {
     // Photos still waiting to be copied, counted only for talents in the dashboard.
     const linked = ((talents.data ?? []) as Staged[]).filter((t) => t.talent_id && ["created", "matched"].includes(t.match_status)).map((t) => t.cds_id);
     const waiting = imported && linked.length ? await count(supabase.from("cds_media").select("wff_media_id", head).eq("status", "listed").in("cds_id", linked)) : 0;
-    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, waiting, mappings: mappings.data ?? [] };
+    // Photos on the website that still show the first import's small files (step 6).
+    const outdated = imported ? await outdatedWebCopyCount(supabase) : 0;
+    data = { talents: (talents.data ?? []) as Staged[], pending, images, digitals, videos, imported, failed, skipped, waiting, outdated, mappings: mappings.data ?? [] };
   } catch (error) {
     log.error("cds", "overview failed", error);
     return <ErrorState title="The CDS import status could not be loaded" />;
@@ -57,6 +60,7 @@ export default async function CdsImportPage() {
     : !data.imported ? "Talents added; photos not copied yet (step 4)"
     : data.waiting || data.skipped ? `In progress: ${data.waiting + data.skipped} photos still to copy (step 4)`
     : data.failed ? `Finished, with ${data.failed} photos that could not be copied (run step 4 again to retry)`
+    : data.outdated ? `Photos copied. ${data.outdated} photos on the website still show the small files from the first import (step 6)`
     : "Import finished: talents added and photos copied. Run step 5 to check every file.";
 
   return <div className="space-y-6">
@@ -67,8 +71,8 @@ export default async function CdsImportPage() {
 
     <p className="rounded-lg border border-[#e7e7e3] bg-white px-4 py-3 text-sm"><span className="font-800">Status:</span> {status}</p>
 
-    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. 4 copies every photo, unchanged, directly into cloud storage (nothing passes through this computer) from the WebForFashion window. New photos stay private until staff put them on the website. 5 checks each file against the CDS list, model by model. Runs can be repeated: finished photos are never copied twice.">
-      <CdsImportPanel pending={data.pending} />
+    <Card title="Import" description="1 reads every active talent from CDS, 2 reads their boards, stats, portfolios and photo list from WebForFashion, each in a second window, and saves them here. 3 adds the talents who are not in the dashboard yet, as drafts. 4 copies every photo, unchanged, directly into cloud storage (nothing passes through this computer) from the WebForFashion window. New photos stay private until staff put them on the website. 5 checks each file against the CDS list, model by model. 6 remakes the website copy of photos already on the website from their originals, so they are shown at full web quality (up to 2400 px) instead of the small files from the first import; which photos are on the website does not change. Runs can be repeated: finished photos are never copied twice.">
+      <CdsImportPanel pending={data.pending} outdated={data.outdated} />
     </Card>
 
     {data.mappings.length > 0 && <Card title="CDS portfolios → website boards" description="A talent appears on every board their CDS portfolios map to. New boards were created unpublished: publish them in Boards when ready.">

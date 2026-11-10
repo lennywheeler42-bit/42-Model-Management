@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { deriveCrmStatus, inWatchedScope, type CrmStatus, type StatusPipeline, type StatusStage } from "../../src/features/ghl/status.ts";
 import { CUSTOM_TARGETS, displayValue, filesIn, ghlFormat, instagramHandle, normalizeValue, parseWeight } from "../../src/features/ghl/fields.ts";
 import { decideInbound, shouldPush } from "../../src/features/ghl/merge.ts";
+import { retryPlan, type FailedJob } from "../../src/features/ghl/queue.ts";
 import { shoeLabel } from "../../src/lib/format.ts";
 
 const pipelines = new Map<string, StatusPipeline>([
@@ -184,5 +185,34 @@ describe("watched pipelines", () => {
     const watched = new Set(["p-onboarded"]);
     assert.equal(inWatchedScope(watched, "p-onboarded"), true);
     assert.equal(inWatchedScope(watched, "p-expo"), false);
+  });
+});
+
+describe("retry failed", () => {
+  const job = (id: string, external_id: string, status: FailedJob["status"], kind: FailedJob["kind"] = "contact"): FailedJob => ({ id, kind, external_id, status });
+
+  test("a record with several stopped jobs is queued once and every stopped row is closed", () => {
+    const plan = retryPlan([job("1", "c-a", "dead"), job("2", "c-a", "dead"), job("3", "c-b", "dead")]);
+    assert.deepEqual(plan.queue, [{ kind: "contact", ids: ["c-a", "c-b"] }]);
+    assert.deepEqual(plan.close, ["1", "2", "3"]);
+    assert.deepEqual(plan.restart, []);
+    assert.equal(plan.records, 2);
+  });
+
+  test("a job still retrying is kept and starts again; it is never closed", () => {
+    const plan = retryPlan([job("1", "c-a", "failed"), job("2", "c-a", "dead")]);
+    assert.deepEqual(plan.restart, ["1"]);
+    assert.deepEqual(plan.close, ["2"]);
+    assert.equal(plan.records, 1);
+  });
+
+  test("reads from GHL and write-backs for the same record are separate jobs", () => {
+    const plan = retryPlan([job("1", "c-a", "dead"), job("2", "c-a", "dead", "push_contact")]);
+    assert.deepEqual(plan.queue, [{ kind: "contact", ids: ["c-a"] }, { kind: "push_contact", ids: ["c-a"] }]);
+    assert.equal(plan.records, 2);
+  });
+
+  test("nothing failed, nothing to do", () => {
+    assert.deepEqual(retryPlan([]), { queue: [], restart: [], close: [], records: 0 });
   });
 });

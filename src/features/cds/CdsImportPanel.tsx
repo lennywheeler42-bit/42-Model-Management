@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, ShieldCheck, UserPlus } from "lucide-react";
+import { ExternalLink, ImageUp, ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
@@ -27,7 +27,8 @@ type Line = { at: string; text: string; tone: "ok" | "error" | "info" };
 // requestId, payload: { talents?, wff? } } — the body of /api/dashboard/cds/ingest.
 // Step 3 adds the talents not yet in the dashboard. Step 4 (photos) runs from the
 // WebForFashion window too: { plan | photos | finish } go to /api/dashboard/cds/photos.
-export function CdsImportPanel({ pending }: { pending: number }) {
+// Step 6 remakes outdated website copies from the originals (/api/dashboard/cds/website-photos).
+export function CdsImportPanel({ pending, outdated }: { pending: number; outdated: number }) {
   const router = useRouter();
   const toast = useToast();
   const [lines, setLines] = useState<Line[]>([]);
@@ -36,6 +37,7 @@ export function CdsImportPanel({ pending }: { pending: number }) {
   const [verifying, setVerifying] = useState(false);
   const [verification, setVerification] = useState<VerifyRow[] | null>(null);
   const [verifyTotal, setVerifyTotal] = useState(0);
+  const [updating, setUpdating] = useState<string | null>(null);
   const queue = useRef(Promise.resolve());
 
   const note = (text: string, tone: Line["tone"] = "info") =>
@@ -131,6 +133,39 @@ export function CdsImportPanel({ pending }: { pending: number }) {
     }
   }
 
+  // Each call works for about 40 seconds and says where it stopped.
+  async function updateWebsitePhotos() {
+    setUpdating("Updating…");
+    const totals = { refreshed: 0, changed: 0, failed: 0 };
+    let finished = false;
+    try {
+      let after: string | null = null;
+      for (let round = 0; round < 500; round += 1) {
+        const response: Response = await fetch("/api/dashboard/cds/website-photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ after }), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) { toast.error(payload.error ?? "The update stopped. Run it again to continue."); break; }
+        totals.refreshed += payload.refreshed; totals.changed += payload.changed; totals.failed += payload.failed;
+        if (payload.failed) note(`Website photos: ${payload.failed} could not be updated (${(payload.errors ?? []).slice(0, 2).join("; ")})`, "error");
+        note(`Website photos: ${totals.refreshed} updated, ${payload.remaining} left`, "ok");
+        setUpdating(`Updating… ${totals.refreshed} done, ${payload.remaining} left`);
+        if (!payload.next) { finished = true; break; }
+        // No progress in a whole call: stop rather than repeat it.
+        if (payload.next === after) { toast.error("The update is not moving. Try again in a few minutes."); break; }
+        after = payload.next;
+      }
+      if (finished) {
+        const rest = [totals.changed && `${totals.changed} were changed by someone meanwhile and left alone`, totals.failed && `${totals.failed} could not be updated; run it again to retry`].filter(Boolean).join("; ");
+        if (totals.failed) toast.error(`${totals.refreshed} website photos updated. ${rest}.`);
+        else toast.success(`${totals.refreshed} website photos now come from the originals${rest ? `. ${rest}` : ""}.`);
+      }
+    } catch {
+      toast.error("Network error. Run it again to continue where it stopped.");
+    } finally {
+      setUpdating(null);
+      router.refresh();
+    }
+  }
+
   const sum = (key: "listed" | "verified" | "duplicates" | "waiting" | "failed" | "missingFile" | "wrongTalent" | "thumbnails" | "bytes") => (verification ?? []).reduce((total, row) => total + row[key], 0);
   const problems = (row: VerifyRow) => [
     row.failed && `${row.failed} failed`, row.missingFile && `${row.missingFile} file missing`, row.wrongTalent && `${row.wrongTalent} wrong talent`,
@@ -143,6 +178,7 @@ export function CdsImportPanel({ pending }: { pending: number }) {
       <Button onClick={() => open("wff")}><ExternalLink size={14} /> 2. Open WebForFashion</Button>
       <Button variant="secondary" onClick={addNewTalents} disabled={applying}><UserPlus size={14} /> {applying ? "Adding…" : `3. Add new talents${pending ? ` (${pending} ready)` : ""}`}</Button>
       <Button variant="secondary" onClick={verify} disabled={verifying}><ShieldCheck size={14} /> {verifying ? "Checking every file…" : "5. Verify photos"}</Button>
+      <Button variant="secondary" onClick={updateWebsitePhotos} disabled={updating !== null || outdated === 0}><ImageUp size={14} /> {updating ?? (outdated ? `6. Update website photos (${outdated})` : "6. Website photos are up to date")}</Button>
       {received > 0 && <Button variant="ghost" onClick={() => router.refresh()}>Refresh totals ({received} received)</Button>}
     </div>
     {verification && <div className="space-y-3 rounded-md border border-[#efefeb] bg-[#fafaf8] p-3">

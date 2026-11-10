@@ -164,6 +164,22 @@ describe("ghl sync: write-back queue", () => {
   });
 });
 
+describe("retry failed: stopped jobs", () => {
+  test("a record with two stopped jobs cannot be re-opened row by row; it is queued once and the rows closed", async () => {
+    await su("insert into public.ghl_sync_jobs (kind, external_id, status, attempts, last_error) values ('contact', 'r-dup', 'dead', 8, '401'), ('contact', 'r-dup', 'dead', 8, '401'), ('contact', 'r-solo', 'dead', 8, '401')");
+    // What "Retry failed" used to run: refused whole, so nothing was retried.
+    await assert.rejects(su("update public.ghl_sync_jobs set status = 'pending', attempts = 0 where status in ('failed', 'dead') and external_id like 'r-%'"), /ghl_sync_jobs_open_idx/);
+    assert.equal((await su("select count(*)::int as n from public.ghl_sync_jobs where external_id like 'r-%' and status = 'dead'"))[0].n, 3);
+    // What it runs now (retryFailedJobs in features/ghl/engine.ts).
+    const [{ n }] = await su("select public.ghl_enqueue_jobs('contact', array['r-dup', 'r-solo'], 'retry failed') as n");
+    assert.equal(n, 2);
+    await su("update public.ghl_sync_jobs set status = 'done', finished_at = now() where status = 'dead' and external_id like 'r-%'");
+    assert.deepEqual(await su("select external_id, status, attempts, count(*)::int as n from public.ghl_sync_jobs where external_id like 'r-%' and status <> 'done' group by 1, 2, 3 order by 1"),
+      [{ external_id: "r-dup", status: "pending", attempts: 0, n: 1 }, { external_id: "r-solo", status: "pending", attempts: 0, n: 1 }]);
+    await su("delete from public.ghl_sync_jobs where external_id like 'r-%'");
+  });
+});
+
 describe("migration 033: queueing GHL contacts", () => {
   test("queueing an already-queued contact is skipped, not an error; staff cannot call it", async () => {
     const [{ n: first }] = await su("select public.ghl_enqueue_jobs('contact', array['q-1', 'q-2', 'q-1'], 'test') as n");

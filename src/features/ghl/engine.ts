@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { log } from "@/lib/log";
 import { ghl, ghlConfigured } from "./client";
+import { retryPlan, type FailedJob } from "./queue";
 import { inWatchedScope } from "./status";
 import { bump, chunks, discover, loadConfig, loadDashboard, pushContact, saveOpportunities, syncContact, writeDashboard, type SyncConfig, type SyncStats } from "./sync";
 
@@ -192,9 +193,32 @@ export async function reconcile(trigger: "cron" | "dashboard" | "script", deadli
 // Staff actions (the route has already checked integrations.manage).
 export async function retryFailedJobs() {
   const db = createAdminSupabaseClient();
-  const { data } = await db.from("ghl_sync_jobs").update({ status: "pending", attempts: 0, next_attempt_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .in("status", ["failed", "dead"]).select("id");
-  return data?.length ?? 0;
+  const jobs: FailedJob[] = [];
+  for (let start = 0; ; start += 1000) {
+    const { data, error } = await db.from("ghl_sync_jobs").select("id,kind,external_id,status").in("status", ["failed", "dead"]).order("id").range(start, start + 999);
+    if (error) throw error;
+    jobs.push(...((data ?? []) as FailedJob[]));
+    if ((data ?? []).length < 1000) break;
+  }
+  const plan = retryPlan(jobs);
+  // Queue first, so a problem here leaves every failed record listed as it was.
+  for (const { kind, ids } of plan.queue) {
+    for (const batch of chunks(ids, 200)) {
+      const { error } = await db.rpc("ghl_enqueue_jobs", { p_kind: kind, p_ids: batch, p_reason: "retry failed" });
+      if (error) throw error;
+    }
+  }
+  const now = new Date().toISOString();
+  for (const batch of chunks(plan.restart, 100)) {
+    const { error } = await db.from("ghl_sync_jobs").update({ attempts: 0, next_attempt_at: now, updated_at: now }).in("id", batch).eq("status", "failed");
+    if (error) throw error;
+  }
+  // Stopped rows are closed, not re-opened: the record's one open job does the retry.
+  for (const batch of chunks(plan.close, 100)) {
+    const { error } = await db.from("ghl_sync_jobs").update({ status: "done", finished_at: now, updated_at: now }).in("id", batch).eq("status", "dead");
+    if (error) throw error;
+  }
+  return plan.records;
 }
 
 export async function syncContactNow(contactId: string, deadline: number) {

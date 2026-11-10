@@ -44,7 +44,7 @@ export function RunSyncButton() {
 export function RetryFailedButton({ count }: { count: number }) {
   const { run, pending } = useMutation();
   return <Button variant="secondary" icon={<RotateCcw size={14} />} disabled={pending || count === 0}
-    onClick={() => run("/api/dashboard/ghl", { body: { action: "retry" }, success: "Failed records queued again. Run sync now to process them." })}>Retry failed ({count})</Button>;
+    onClick={() => run("/api/dashboard/ghl", { body: { action: "retry" }, success: "Failed records queued again, once each. Run sync now to process them." })}>Retry failed ({count})</Button>;
 }
 
 export function SyncContactButton({ contactId, label = "Sync from GHL now" }: { contactId: string; label?: string }) {

@@ -1,7 +1,7 @@
 // Photo crop geometry. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { staleCopies } from "../../src/features/media/copies.ts";
+import { hasOutdatedWebCopy, isWebCopyPath, staleCopies } from "../../src/features/media/copies.ts";
 import { cropPixels, cropToFrame, frameToCrop, imageScale, uprightSize, MAX_ZOOM } from "../../src/features/media/crop.ts";
 
 const near = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} is not ${b}`);
@@ -67,4 +67,28 @@ test("sideways EXIF orientations swap width and height", () => {
   assert.deepEqual(uprightSize(4000, 3000, 6), { width: 3000, height: 4000 });
   assert.deepEqual(uprightSize(4000, 3000, 1), { width: 4000, height: 3000 });
   assert.deepEqual(uprightSize(4000, 3000), { width: 4000, height: 3000 });
+});
+
+test("a website copy made from the stored photo is told from the first import's small file", () => {
+  const id = "f0725627-30e9-47b3-bf65-7621087bc61d";
+  assert.equal(isWebCopyPath(id, `talent/t-1/${id}-1794324508412.jpg`), true);
+  // The first CDS import: WebForFashion's resized file, named after its media id.
+  assert.equal(isWebCopyPath(id, `talent/t-1/${id}-cds-6750110.jpg`), false);
+  assert.equal(isWebCopyPath(id, `talent/t-1/${id}-photo.jpg`), false);
+  // Another photo's copy is not this photo's.
+  assert.equal(isWebCopyPath(id, "talent/t-1/aaaaaaaa-30e9-47b3-bf65-7621087bc61d-1794324508412.jpg"), false);
+  assert.equal(isWebCopyPath(id, null), false);
+});
+
+test("only photos on the website, from the library, with an old copy are remade", () => {
+  const id = "f0725627-30e9-47b3-bf65-7621087bc61d";
+  const photo = { id, public: true, storage_bucket: "model-photos", public_storage_path: `talent/t-1/${id}-cds-6750110.jpg` };
+  assert.equal(hasOutdatedWebCopy(photo, "model-photos"), true);
+  // Already remade: running the update again changes nothing.
+  assert.equal(hasOutdatedWebCopy({ ...photo, public_storage_path: `talent/t-1/${id}-1794324508412.jpg` }, "model-photos"), false);
+  // Private photos stay private: the update never puts a photo on the website.
+  assert.equal(hasOutdatedWebCopy({ ...photo, public: false }, "model-photos"), false);
+  assert.equal(hasOutdatedWebCopy({ ...photo, public_storage_path: null }, "model-photos"), false);
+  // Outside the library the website copy is the stored file itself.
+  assert.equal(hasOutdatedWebCopy({ ...photo, storage_bucket: "talent-private" }, "model-photos"), false);
 });
