@@ -14,8 +14,8 @@ const pad = (value: number) => String(value).padStart(2, "0");
 // at roughly its own size, which together fill the landscape banner with no
 // cropping of faces. Phones show one portrait at a time, cross-fading every 6
 // seconds (paused while hovered or focused, never with reduced motion).
-export function ProfileHero({ images, name, categories, location, hasVideo, backHref }: {
-  images: ProfileImage[]; name: string; categories: string[]; location: string; hasVideo: boolean; backHref: string;
+export function ProfileHero({ images, name, categories, hasVideo, backHref }: {
+  images: ProfileImage[]; name: string; categories: string[]; hasVideo: boolean; backHref: string;
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -53,7 +53,6 @@ export function ProfileHero({ images, name, categories, location, hasVideo, back
       <Link href={backHref} className="label-sm mb-8 hidden w-fit items-center gap-2 text-white/70 hover:text-white md:inline-flex"><ArrowLeft size={13} aria-hidden /> Roster</Link>
       {categories.length > 0 && <p className="label-sm mb-4 text-white/80 md:mb-5">{categories.join("  /  ")}</p>}
       <h1 className="display max-w-[14ch] text-[clamp(52px,9vw,128px)] uppercase leading-[.86] tracking-[-.01em] [text-shadow:0_2px_30px_rgba(0,0,0,.35)]">{name}</h1>
-      {location && <p className="label mt-5 text-white/85">{location}</p>}
       {hasVideo && <a href="#video" className="label mt-8 flex w-fit items-center gap-4 text-white hover:opacity-80 md:mt-10">
         <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/80 md:h-12 md:w-12"><Play size={16} fill="currentColor" aria-hidden className="ml-0.5" /></span>
         Watch video

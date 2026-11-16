@@ -58,8 +58,8 @@ export function RosterFilterBar({ filters, boards, options }: { filters: RosterF
         </nav>}
       </div>
       <div className="flex shrink-0 items-center gap-4">
-        <label className="flex items-center gap-3 border-b border-[var(--line)] pb-2 text-[11px] text-[var(--muted)]"><Search size={15} aria-hidden /><span className="sr-only">Search by name or location</span>
-          <input name="q" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or city" maxLength={60} className="w-36 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--muted)] sm:w-44" />
+        <label className="flex items-center gap-3 border-b border-[var(--line)] pb-2 text-[11px] text-[var(--muted)]"><Search size={15} aria-hidden /><span className="sr-only">Search by name</span>
+          <input name="q" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name" maxLength={60} className="w-36 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--muted)] sm:w-44" />
         </label>
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="roster-filters"
           className="flex items-center gap-2 text-[10px] font-800 uppercase tracking-[.14em] hover:opacity-70"><SlidersHorizontal size={14} aria-hidden />Filters{count ? ` (${count})` : ""}</button>
@@ -72,7 +72,6 @@ export function RosterFilterBar({ filters, boards, options }: { filters: RosterF
       <label className={labelClass}>Max height<select name="heightMax" value={value("heightMax")} onChange={setFrom("heightMax")} className={selectClass}><option value="">Any</option>{heights.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
       <label className={labelClass}>Min age<input name="ageMin" type="number" inputMode="numeric" min={0} max={99} defaultValue={value("ageMin")} onBlur={setFrom("ageMin")} className={selectClass} /></label>
       <label className={labelClass}>Max age<input name="ageMax" type="number" inputMode="numeric" min={0} max={99} defaultValue={value("ageMax")} onBlur={setFrom("ageMax")} className={selectClass} /></label>
-      <label className={labelClass}>Location<input name="location" defaultValue={value("location")} onBlur={setFrom("location")} maxLength={60} placeholder="Any" className={selectClass} /></label>
       <label className={labelClass}>Hair<select name="hair" value={value("hair")} onChange={setFrom("hair")} className={selectClass}><option value="">Any</option>{options.hair.map((item) => <option key={item}>{item}</option>)}</select></label>
       <label className={labelClass}>Eyes<select name="eyes" value={value("eyes")} onChange={setFrom("eyes")} className={selectClass}><option value="">Any</option>{options.eyes.map((item) => <option key={item}>{item}</option>)}</select></label>
       <label className={labelClass}>Waist up to<select name="waistMax" value={value("waistMax")} onChange={setFrom("waistMax")} className={selectClass}><option value="">Any</option>{waists.map((item) => <option key={item} value={item}>{item}&quot;</option>)}</select></label>

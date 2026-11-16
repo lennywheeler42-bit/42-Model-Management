@@ -17,7 +17,6 @@ export type TalentCardData = {
   id: string;
   slug: string;
   name: string;
-  location: string;
   height: string | null;
   boardLabel: string;
   image: string;
@@ -34,7 +33,6 @@ export type PublicProfile = {
   name: string;
   firstName: string;
   lastName: string;
-  location: string;
   gender: string;
   age: number | null;
   bio: string;

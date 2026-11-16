@@ -42,7 +42,7 @@ describe("042: no photo, no place on the website", () => {
   });
 
   test("nothing about them can be read anonymously from the tables either", async () => {
-    assert.deepEqual(await rowsAs(db, "anon", "select display_name, location from public.talent where id = $1", [noPhotoId]), []);
+    assert.deepEqual(await rowsAs(db, "anon", "select display_name, gender from public.talent where id = $1", [noPhotoId]), []);
     assert.deepEqual(await rowsAs(db, "anon", "select height_cm from public.talent_measurements where talent_id = $1", [noPhotoId]), []);
     assert.deepEqual(await rowsAs(db, "anon", "select board_id from public.talent_board_assignments where talent_id = $1", [noPhotoId]), []);
     assert.deepEqual(await rowsAs(db, "anon", "select * from public.public_talent_skills_view where talent_id = $1", [noPhotoId]), []);
@@ -52,7 +52,7 @@ describe("042: no photo, no place on the website", () => {
   test("they appear as soon as a photo is on the website, and leave when it is withdrawn", async () => {
     const [{ id: photo }] = await su(`insert into public.talent_photos (talent_id, storage_path, storage_bucket, "public", public_storage_path) values ($1, 'talent/n/cover.jpg', 'talent-private', true, 'talent/n/cover-public.jpg') returning id`, [noPhotoId]);
     const [row] = await rowsAs(db, "anon", "select location, height_cm, primary_image_path from public.public_talents_view where slug = 'no-photo'");
-    assert.deepEqual({ ...row, height_cm: Number(row.height_cm) }, { location: "Fort Worth", height_cm: 172, primary_image_path: "talent/n/cover-public.jpg" });
+    assert.deepEqual({ ...row, height_cm: Number(row.height_cm) }, { location: null, height_cm: 172, primary_image_path: "talent/n/cover-public.jpg" });
     await su("update public.talent_photos set archived_at = now() where id = $1", [photo]);
     assert.deepEqual(await rowsAs(db, "anon", "select slug from public.public_talents_view where slug = 'no-photo'"), []);
     await su("delete from public.talent_photos where id = $1", [photo]);
@@ -61,6 +61,22 @@ describe("042: no photo, no place on the website", () => {
   test("anonymous visitors learn nothing but yes or no from the photo check", async () => {
     const [row] = await rowsAs(db, "anon", "select public.talent_has_website_photo($1) as no_photo, public.talent_has_website_photo($2) as has_photo", [noPhotoId, ids.publishedTalent]);
     assert.deepEqual(row, { no_photo: false, has_photo: true });
+  });
+});
+
+describe("045: no location on the website", () => {
+  test("the public view has no location for anyone, and the column cannot be read from the table", async () => {
+    await su("update public.talent set location = 'Dallas' where id = $1", [ids.publishedTalent]);
+    const rows = await rowsAs(db, "anon", "select slug, location from public.public_talents_view");
+    assert.ok(rows.length >= 1);
+    assert.deepEqual([...new Set(rows.map((row) => row.location))], [null]);
+    assert.ok(await rejects(db, "anon", "select location from public.talent"));
+    assert.deepEqual(await rowsAs(db, "anon", "select slug from public.public_talents_view where location ilike '%dallas%'"), [], "it cannot be searched by either");
+    assert.equal((await rowsAs(db, "anon", "select display_name from public.talent where id = $1", [ids.publishedTalent])).length, 1, "the rest of the public row still reads");
+  });
+
+  test("staff still see the location in the dashboard, and a package still carries it for talent with a photo", async () => {
+    assert.deepEqual(await rowsAs(db, people.booker, "select location from public.talent where id = $1", [ids.publishedTalent]), [{ location: "Dallas" }]);
   });
 });
 

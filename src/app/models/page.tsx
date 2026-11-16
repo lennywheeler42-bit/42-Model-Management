@@ -17,7 +17,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
   const filtered = activeFilterCount(filters) > 0 || (filters.page ?? 1) > 1;
   return {
     title: "Models",
-    description: "Explore the 42 Model Management roster by board, height, location, skills and more.",
+    description: "Explore the 42 Model Management roster by board, height, skills and more.",
     alternates: { canonical: "/models" },
     robots: filtered ? { index: false, follow: true } : undefined,
   };
@@ -35,7 +35,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Searc
       <section className="container pb-16 pt-32 sm:pb-24 sm:pt-44">
         <div className="flex flex-col justify-between gap-8 border-b border-[var(--line)] pb-10 md:flex-row md:items-end">
           <div><p className="label-sm mb-5 text-[var(--muted)]">The roster</p><h1 className="display text-[clamp(56px,10vw,150px)] uppercase leading-[.84] tracking-[-.01em]">All talent</h1></div>
-          <div className="max-w-xs"><p className="serif text-[18px] leading-snug text-[var(--muted)]">Search our working roster by board, measurements, location or skills.</p><Link href="/#contact" className="label-sm mt-5 flex w-fit items-center gap-2 border-b border-[var(--ink)] pb-1">Book talent <ArrowUpRight size={13} aria-hidden /></Link></div>
+          <div className="max-w-xs"><p className="serif text-[18px] leading-snug text-[var(--muted)]">Search our working roster by board, measurements or skills.</p><Link href="/#contact" className="label-sm mt-5 flex w-fit items-center gap-2 border-b border-[var(--ink)] pb-1">Book talent <ArrowUpRight size={13} aria-hidden /></Link></div>
         </div>
         <div id="search" className="scroll-mt-6 pt-10">
           <RosterFilterBar key={rosterQuery(filters, { page: undefined })} filters={filters} boards={boards} options={options} />

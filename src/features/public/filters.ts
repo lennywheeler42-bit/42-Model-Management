@@ -21,7 +21,6 @@ export const rosterFilterSchema = z.object({
   hipsMax: bounded(20, 70),
   hair: text(40),
   eyes: text(40),
-  location: text(60),
   skill: text(60),
   portfolio: text(60),
   sort: z.enum(["featured", "name", "newest"]).optional().catch(undefined),

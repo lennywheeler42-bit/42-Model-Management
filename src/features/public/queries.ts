@@ -8,9 +8,10 @@ import { publicCache } from "./cache";
 import { boardAndDescendantPaths, cardBoard } from "./board-paths";
 
 // Public website reads. Always the anonymous role through the public-safe views, so
-// drafts, archived, internal-only, and private fields can never be returned.
+// drafts, archived, internal-only, and private fields can never be returned. A
+// talent's location is not shown on the website (migration 045) and is never read here.
 export type TalentRow = {
-  id: string; slug: string; display_name: string; location: string | null; gender: string | null; age: number | null;
+  id: string; slug: string; display_name: string; gender: string | null; age: number | null;
   featured: boolean; public_bio: string | null; primary_image_path: string | null; primary_image_alt: string | null;
   height_cm: number | null; bust_cm: number | null; waist_cm: number | null; hips_cm: number | null; shoe_size: string | null;
   suit_size: string | null; inseam_cm: number | null; eye_color: string | null; hair_color: string | null;
@@ -18,20 +19,19 @@ export type TalentRow = {
   boards: { id: string; name: string; path: string; sort_order: number | null }[] | null; board_paths: string[] | null;
 };
 
-export const CARD_COLUMNS = "id,slug,display_name,location,featured,primary_image_path,primary_image_alt,height_cm,boards,board_paths";
+export const CARD_COLUMNS = "id,slug,display_name,featured,primary_image_path,primary_image_alt,height_cm,boards,board_paths";
 
 export function publicImageUrl(supabase: SupabaseClient, path: string | null) {
   return path ? supabase.storage.from("talent-public").getPublicUrl(path).data.publicUrl : PLACEHOLDER_IMAGE;
 }
 
-export function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "display_name" | "location" | "featured" | "primary_image_path" | "primary_image_alt" | "height_cm" | "boards" | "board_paths">, boardPath?: string): TalentCardData {
+export function toCard(supabase: SupabaseClient, row: Pick<TalentRow, "id" | "slug" | "display_name" | "featured" | "primary_image_path" | "primary_image_alt" | "height_cm" | "boards" | "board_paths">, boardPath?: string): TalentCardData {
   const boards = row.boards ?? [];
   const board = cardBoard(boards, boardPath);
   return {
     id: row.id,
     slug: row.slug,
     name: row.display_name,
-    location: row.location ?? "",
     height: row.height_cm ? feetInches(row.height_cm) : null,
     boardLabel: board?.name.split(" / ").pop() ?? "",
     image: publicImageUrl(supabase, row.primary_image_path),
@@ -132,7 +132,6 @@ const cachedProfile = publicCache(async (slug: string): Promise<PublicProfile | 
     name: row.display_name,
     firstName,
     lastName: rest.join(" "),
-    location: row.location ?? "",
     gender: row.gender ?? "",
     age: row.age,
     bio: row.public_bio ?? "",

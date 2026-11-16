@@ -74,7 +74,7 @@ test("12–13. Saih appears automatically on the public Teens/Boys board", async
 test("14–15. the public profile shows approved information and images only", async () => {
   const [profile] = await anonRows("select * from public.public_talents_view where slug = 'saih-acc01'");
   assert.equal(profile.display_name, "Saih");
-  assert.equal(profile.location, "Dallas");
+  assert.equal(profile.location, null, "location is not shown on the website (045)");
   assert.equal(Number(profile.height_cm), 170);
   assert.equal(profile.eye_color, "Brown");
   assert.equal(profile.age, null, "age is opt-in");

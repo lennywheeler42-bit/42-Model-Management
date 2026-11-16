@@ -33,9 +33,8 @@ const cachedSearch = publicCache(async (filters: RosterFilters, boardPaths: stri
     if (!boardPaths.length) return empty;
     query = query.overlaps("board_paths", boardPaths);
   }
-  if (filters.q) query = query.or(`display_name.ilike.%${filters.q}%,location.ilike.%${filters.q}%`);
+  if (filters.q) query = query.ilike("display_name", `%${filters.q}%`);
   if (filters.gender) query = query.ilike("gender", filters.gender);
-  if (filters.location) query = query.ilike("location", `%${filters.location}%`);
   if (filters.hair) query = query.ilike("hair_color", filters.hair);
   if (filters.eyes) query = query.ilike("eye_color", filters.eyes);
   if (filters.ageMin !== undefined) query = query.gte("age", filters.ageMin);

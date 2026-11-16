@@ -14,9 +14,13 @@ test("drops invalid values instead of failing the whole search", () => {
 });
 
 test("strips characters that could alter the PostgREST filter", () => {
-  const filters = parseRosterFilters({ q: "sam),id.eq.1,(x%_*", location: "Dallas*" });
+  const filters = parseRosterFilters({ q: "sam),id.eq.1,(x%_*", hair: "Red*" });
   assert.equal(filters.q, "sam id.eq.1 x");
-  assert.equal(filters.location, "Dallas");
+  assert.equal(filters.hair, "Red");
+});
+
+test("the website cannot be searched by location (045)", () => {
+  assert.deepEqual(parseRosterFilters({ location: "Dallas" }), {});
 });
 
 test("builds a stable, shareable query string", () => {

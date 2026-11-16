@@ -92,6 +92,7 @@ Any schema or policy change needs a test here. The stubs approximate Supabase; t
 - Anon reads the underlying tables through anon-only policies on published rows, plus column grants.
 - New public views must be `security_invoker`. A test asserts this.
 - Hidden values (measurements when `show_measurements` is off, age unless `show_age`) are nulled in the views. Never filter or expose them through another route.
+- A talent's location is not on the website at all (migration 045, owner 2026-11-17): `public_talents_view.location` is always null, anon cannot read `talent.location`, and the public code neither shows nor searches it. Staff still see it; packages (talent with a photo) and comp cards still carry it.
 
 **Talent publication.**
 

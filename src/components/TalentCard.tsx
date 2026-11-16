@@ -12,7 +12,6 @@ export function TalentCard({ talent, index = 0 }: { talent: TalentCardData; inde
       <div className="flex items-baseline justify-between gap-3 pt-4">
         <div className="min-w-0">
           <h3 className="display truncate text-[19px] uppercase leading-tight tracking-[.04em] sm:text-[21px]">{talent.name}</h3>
-          {talent.location && <p className="label-sm mt-1.5 truncate !text-[9px] text-[var(--muted)]">{talent.location}</p>}
         </div>
         {talent.height && <span className="serif shrink-0 text-[15px] italic text-[var(--muted)]">{talent.height}</span>}
       </div>

@@ -34,7 +34,7 @@ export function ProfileView({ talent, related = [], backHref = "/models" }: { ta
   ].filter((tab): tab is { id: string; label: string } => Boolean(tab));
 
   return <>
-    <ProfileHero images={heroImages} name={talent.name} categories={categories} location={talent.location} hasVideo={talent.videos.length > 0} backHref={backHref} />
+    <ProfileHero images={heroImages} name={talent.name} categories={categories} hasVideo={talent.videos.length > 0} backHref={backHref} />
     <ProfileTabs tabs={tabs} />
 
     {portfolio.length > 0 && <Section id="portfolio" title="Portfolio" description={`A selection of editorial, commercial and lifestyle work featuring ${firstName}.`}

@@ -56,7 +56,6 @@ export async function buildPreviewProfile(supabase: SupabaseClient, permissions:
     name: talent.display_name,
     firstName,
     lastName: rest.join(" "),
-    location: talent.location ?? "",
     gender: talent.gender ?? "",
     age: talent.show_age ? ageFromDob((privateDetails.data as { date_of_birth: string | null } | null)?.date_of_birth) : null,
     bio: talent.public_bio ?? "",

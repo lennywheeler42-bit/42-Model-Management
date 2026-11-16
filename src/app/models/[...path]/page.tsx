@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     return { title: found.board.name, description: found.board.description ?? `${found.board.name} — talent represented by 42 Model Management.`, alternates: { canonical: `/models/${found.board.path}` } };
   }
   const { talent } = found;
-  const description = talent.bio || `${talent.name}${talent.location ? `, ${talent.location}` : ""} — represented by 42 Model Management.`;
+  const description = talent.bio || `${talent.name} — represented by 42 Model Management.`;
   return {
     title: talent.name,
     description,
