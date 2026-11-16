@@ -209,6 +209,7 @@ describe("stats shown on the website", () => {
     const id = "7a1f0c52-6d3b-4c8e-9f21-3b5e8a7d1c40";
     await su(`insert into public.talent (id, slug, first_name, last_name, display_name, publication_status, show_on_website, show_measurements) values
       ('${id}', 'stats-rank', 'Stat', 'Rank', 'Stat Rank', 'published', true, true)`);
+    await su(`insert into public.talent_photos (talent_id, storage_path, "public", public_storage_path) values ('${id}', 'talent/${id}/cover.jpg', true, 'talent/${id}/cover.jpg')`);
     await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official, created_at) values ('${id}', 180, 'cds', true, now() - interval '1 minute')`);
     await su(`insert into public.talent_measurements (talent_id, height_cm, source, is_official) values ('${id}', 170, 'ghl', true)`);
     const [row] = await rowsAs(db, "anon", `select height_cm from public.public_talents_view where slug = 'stats-rank'`);

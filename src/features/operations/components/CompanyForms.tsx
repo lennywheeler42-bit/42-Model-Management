@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Star, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { Mail, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { Button, buttonClass } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { CheckboxField, SelectField, TextareaField, TextField } from "@/components/ui/Field";
 import { Card } from "@/components/ui/PageHeader";
@@ -65,7 +66,7 @@ export function DeleteCompanyButton({ id, name }: { id: string; name: string }) 
 
 type Contact = { id: string; name: string; title: string | null; email: string | null; phone: string | null; notes: string | null; is_primary: boolean };
 
-export function ContactsPanel({ companyId, contacts, canManage }: { companyId: string; contacts: Contact[]; canManage: boolean }) {
+export function ContactsPanel({ companyId, contacts, canManage, canEmailPackages = false }: { companyId: string; contacts: Contact[]; canManage: boolean; canEmailPackages?: boolean }) {
   const { run, pending } = useMutation();
   const [editing, setEditing] = useState<Contact | "new" | null>(null);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -84,6 +85,7 @@ export function ContactsPanel({ companyId, contacts, canManage }: { companyId: s
         <p className="text-xs text-[#6b6d66]">{[contact.title, contact.email, contact.phone].filter(Boolean).join(" · ")}</p>
       </div>
       {contact.email && <a href={`mailto:${contact.email}`} className="text-xs text-[#5f615b] hover:underline">Email</a>}
+      {contact.email && canEmailPackages && <Link href={`/dashboard/packages/send?contact=${contact.id}`} className={buttonClass("secondary", "sm")}><Mail size={13} aria-hidden />Email package</Link>}
       {canManage && <>
         <Button size="sm" variant="ghost" onClick={() => setEditing(contact)}>Edit</Button>
         <Button size="sm" variant="ghost" icon={<Trash2 size={13} />} disabled={pending} onClick={() => window.confirm(`Remove ${contact.name}?`) && run(`/api/dashboard/contacts/${contact.id}`, { method: "DELETE", success: "Contact removed" })}><span className="sr-only">Remove</span></Button>

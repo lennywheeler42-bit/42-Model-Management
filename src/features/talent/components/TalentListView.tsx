@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Globe2, Plus } from "lucide-react";
 import { StatusBadge, Badge } from "@/components/ui/Badge";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
@@ -10,6 +10,7 @@ import type { listTalent, loadBoards, TalentListRow } from "@/features/talent/qu
 import { CrmBadges } from "@/features/ghl/components/CrmBadges";
 import { CRM_STATUSES, CRM_STATUS_LABELS } from "@/features/ghl/status";
 import { talentSummary } from "@/features/talent/summary";
+import { WEBSITE_LABELS, websiteState } from "@/features/talent/website";
 
 export type TalentSearch = { q?: string; status?: string; board?: string; program?: string; crm?: string; page?: string };
 
@@ -28,13 +29,14 @@ function pageHref(search: TalentSearch, page: number) {
   return `/dashboard/talent?${params}`;
 }
 
-export function TalentListView({ result, boards, programs = [], search, canCreate, canExportPrivate = false }: {
-  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; programs?: string[]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean;
+export function TalentListView({ result, boards, programs = [], search, canCreate, canExportPrivate = false, canCheckWebsite = false }: {
+  result: Awaited<ReturnType<typeof listTalent>>; boards: Awaited<ReturnType<typeof loadBoards>>["flat"]; programs?: string[]; search: TalentSearch; canCreate: boolean; canExportPrivate?: boolean; canCheckWebsite?: boolean;
 }) {
   const fieldClass = "mt-2 w-full rounded-md border border-[#dcdcd6] bg-white px-3 py-2.5 text-sm font-400 normal-case tracking-normal outline-none focus:border-[#a4502f]";
   return <div className="space-y-6">
     <PageHeader eyebrow="Talent" title="Roster" description={`${result.total} talent record${result.total === 1 ? "" : "s"} match these filters.`}
       actions={<div className="flex flex-wrap gap-2">
+        {canCheckWebsite && <ButtonLink href="/dashboard/talent/website" variant="secondary" icon={<Globe2 size={14} />}>Website check</ButtonLink>}
         {/* File downloads from route handlers, not page navigations. */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/api/dashboard/talents/export" className={buttonClass("secondary")}>Export CSV</a>
@@ -63,7 +65,7 @@ export function TalentListView({ result, boards, programs = [], search, canCreat
         { key: "program", header: "Program (GHL)", cell: (row) => <CrmBadges status={row.crm_status} programs={row.crm_programs} /> },
         { key: "boards", header: "Boards", cell: (row) => row.boards.length ? <span className="text-xs text-[#5f615b]">{row.boards.map((board) => board.name).join(", ")}</span> : <span className="text-xs text-[#717369]">Unassigned</span> },
         { key: "status", header: "Status", cell: (row) => <StatusBadge status={row.publication_status} /> },
-        { key: "website", header: "Website", cell: (row) => row.publication_status === "published" && row.show_on_website ? <Badge tone="public">Live</Badge> : <Badge tone="private">Hidden</Badge> },
+        { key: "website", header: "Website", cell: (row) => { const state = WEBSITE_LABELS[websiteState(row, row.photos)]; return <Badge tone={state.tone}>{state.label}</Badge>; } },
         { key: "updated", header: "Updated", className: "whitespace-nowrap text-xs text-[#6b6d66]", cell: (row) => formatDate(row.updated_at) },
       ]}
     />

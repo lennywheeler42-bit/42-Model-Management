@@ -11,6 +11,9 @@ import { useToast } from "@/components/ui/Toast";
 import { formatDateTime } from "@/lib/format";
 import { useMutation } from "@/lib/use-mutation";
 import { linkState } from "./share-state";
+import type { EmailTemplate } from "./email";
+import { PackageEmailForm, PackageEmailLog } from "./PackageEmailForm";
+import { companyPeople, type PackageEmailRow } from "./queries";
 
 type Item = { talent_id: string; note: string };
 export type PackageData = {
@@ -19,8 +22,9 @@ export type PackageData = {
   items: { talent_id: string; note: string | null }[];
 };
 
-export function PackageEditor({ pkg, talent, companies, contacts }: {
-  pkg: PackageData; talent: { id: string; display_name: string }[]; companies: { id: string; name: string }[]; contacts: { id: string; name: string; company_id: string }[];
+export function PackageEditor({ pkg, talent, companies, contacts, emails, template, mailReady, senderName, now }: {
+  pkg: PackageData; talent: { id: string; display_name: string }[]; companies: { id: string; name: string; email: string | null }[]; contacts: { id: string; name: string; company_id: string; email: string | null }[];
+  emails: PackageEmailRow[]; template: EmailTemplate; mailReady: boolean; senderName: string; now: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -45,6 +49,9 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
     return next;
   });
   const state = linkState(pkg);
+  // Who can be emailed: the chosen client's contacts with an address, then the company's own.
+  const people = companyPeople(companies.find((company) => company.id === companyId) ?? null, contacts.filter((contact) => contact.company_id === companyId));
+  const liveEmails = emails.filter((email) => !email.revoked_at && Date.parse(email.expires_at) > now).length;
 
   const save = () => run(`/api/dashboard/packages/${pkg.id}`, { method: "PUT", body: { title, message, company_id: companyId, contact_id: contactId, show_measurements: measurements, items }, success: "Package saved" });
   async function share() {
@@ -60,7 +67,7 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
     if (await run(`/api/dashboard/packages/${pkg.id}`, { method: "DELETE", success: "Package deleted", refresh: false })) router.push("/dashboard/packages");
   }
 
-  return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+  return <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
     <div className="min-w-0 space-y-6">
       <Card title="Package">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -109,9 +116,14 @@ export function PackageEditor({ pkg, talent, companies, contacts }: {
             <Button icon={<Link2 size={14} />} disabled={pending || !items.length} onClick={share}>{pkg.has_link ? "New link" : "Create link"}</Button>
           </div>
           {pkg.has_link && <p className="text-[11px] text-[#6b6d66]">Creating a new link stops the old one working.</p>}
-          {state === "live" && <Button size="sm" variant="ghost" disabled={pending} onClick={() => window.confirm("Stop this link working now?") && run(`/api/dashboard/packages/${pkg.id}/share`, { method: "DELETE", success: "Link revoked" })}>Revoke link</Button>}
+          {(state === "live" || liveEmails > 0) && <Button size="sm" variant="ghost" disabled={pending} onClick={() => window.confirm(liveEmails ? "Stop this package's links working now, including the ones sent by email?" : "Stop this link working now?") && run(`/api/dashboard/packages/${pkg.id}/share`, { method: "DELETE", success: liveEmails ? "All links revoked" : "Link revoked" })}>{liveEmails ? "Revoke all links" : "Revoke link"}</Button>}
         </div>
       </Card>
+      <Card title="Email the package" description="Send the client a message with a private link. Change the wording here, or save it as the template for next time.">
+        <PackageEmailForm packages={[{ id: pkg.id, title: title.trim() || pkg.title, talent: items.length }]} people={people} preselected={contactId ? [contactId] : []} template={template} mailReady={mailReady} senderName={senderName}
+          before={async () => Boolean(await save())} />
+      </Card>
+      <Card title={`Emails sent (${emails.length})`}><PackageEmailLog packageId={pkg.id} emails={emails} now={now} /></Card>
     </aside>
   </div>;
 }

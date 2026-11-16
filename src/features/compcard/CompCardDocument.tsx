@@ -1,23 +1,28 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
-import { FRONT_LOGO_WIDTH, LOGO_HEIGHT, MARGIN, NAME_TRACKING, PAGE, nameSize, type Layout, type Theme } from "./layout";
+import { FRONT_LOGO_WIDTH, MARGIN, NAME_TRACKING, PAGE, logoSize, nameSize, type Layout, type Stat, type Theme } from "./layout";
 
 // Names are never broken with a hyphen; nameSize keeps them on one line instead.
 Font.registerHyphenationCallback((word) => [word]);
 
 // Two-sided comp card (5.5 × 8.5 in): front = the front layout's photos, the name and
-// the 42 logo; back = the back layout's photos, approved measurements, the logo and
-// agency contact details only. Frames come from layout.ts, as in the editor.
+// the logo; back = the back layout's photos, approved measurements, the logo and
+// agency contact details only. Frames come from layout.ts, as in the editor. The
+// text is the talent's own unless staff typed over it in the editor (cardText).
 export type CompCardData = {
   name: string;
-  location: string | null;
+  // The line under the name: the talent's location unless changed. Empty prints nothing.
+  subtitle: string;
   theme: Theme;
   front: Layout;
   back: Layout;
   // Already framed to each slot's shape, keyed by slot id. Empty slots are left blank.
   images: Record<string, Buffer>;
-  stats: { label: string; value: string }[];
-  contact: { email: string; phone: string | null; website: string | null; locationLine: string | null };
+  stats: Stat[];
+  contact: string[];
+  // The 42 mark, or the logo uploaded in the editor. Null prints a text mark.
   logo: { data: Buffer; width: number; height: number } | null;
+  // The line under the logo. Empty prints nothing.
+  tagline: string;
 };
 
 const ACCENT = "#9e1923";
@@ -35,13 +40,13 @@ const styles = StyleSheet.create({
   contact: { fontSize: 7, textAlign: "right", lineHeight: 1.5 },
 });
 
-// The 42 / FORTY TWO mark, with "Model Management" set in type under it.
+// The logo, with its line ("Model Management") set in type under it.
 function Logo({ card }: { card: CompCardData }) {
   const { logo, theme } = card;
   return <View style={{ alignItems: "center" }}>
     {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt attribute */}
-    {logo ? <Image src={logo.data} style={{ height: LOGO_HEIGHT, width: (LOGO_HEIGHT * logo.width) / logo.height }} /> : <Text style={styles.mark}>42</Text>}
-    <Text style={[styles.brand, { color: theme.ink }]}>Model Management</Text>
+    {logo ? <Image src={logo.data} style={logoSize(logo.width, logo.height)} /> : <Text style={styles.mark}>42</Text>}
+    {card.tagline ? <Text style={[styles.brand, { color: theme.ink }]}>{card.tagline}</Text> : null}
   </View>;
 }
 
@@ -66,7 +71,7 @@ export function CompCardDocument({ card }: { card: CompCardData }) {
           name's box and wraps names that nameSize sized for one line. */}
       <View style={{ position: "absolute", left: MARGIN, width: nameWidth, top: photoBottom + 10, bottom: 14, justifyContent: "center" }}>
         <Text style={[styles.name, { fontSize: nameSize(card.name, nameWidth) }]}>{card.name}</Text>
-        {card.location ? <Text style={[styles.meta, { color: theme.muted }]}>{card.location}</Text> : null}
+        {card.subtitle ? <Text style={[styles.meta, { color: theme.muted }]}>{card.subtitle}</Text> : null}
       </View>
       <View style={{ position: "absolute", right: MARGIN, width: FRONT_LOGO_WIDTH, top: photoBottom + 10, bottom: 14, justifyContent: "center", alignItems: "flex-end" }}>
         <Logo card={card} />
@@ -74,17 +79,12 @@ export function CompCardDocument({ card }: { card: CompCardData }) {
     </Page>
     <Page size={size} style={page}>
       <Photos layout={card.back} card={card} />
-      {card.stats.length > 0 && <View style={[styles.stats, { top: backBottom + 12, borderTopColor: theme.rule }]}>{card.stats.map((stat) => <View key={stat.label}>
+      {card.stats.length > 0 && <View style={[styles.stats, { top: backBottom + 12, borderTopColor: theme.rule }]}>{card.stats.map((stat, index) => <View key={`${stat.label}-${index}`}>
         <Text style={[styles.statLabel, { color: theme.muted }]}>{stat.label}</Text><Text style={styles.statValue}>{stat.value}</Text>
       </View>)}</View>}
       <View style={styles.footer}>
         <Logo card={card} />
-        <View>
-          <Text style={styles.contact}>{card.contact.email}</Text>
-          {card.contact.phone ? <Text style={styles.contact}>{card.contact.phone}</Text> : null}
-          {card.contact.website ? <Text style={styles.contact}>{card.contact.website}</Text> : null}
-          {card.contact.locationLine ? <Text style={styles.contact}>{card.contact.locationLine}</Text> : null}
-        </View>
+        <View>{card.contact.map((entry, index) => <Text key={`${entry}-${index}`} style={styles.contact}>{entry}</Text>)}</View>
       </View>
     </Page>
   </Document>;

@@ -6,7 +6,9 @@ import { ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { log } from "@/lib/log";
 import { companyOptions, talentOptions } from "@/features/operations/queries";
+import { mailerConfigured } from "@/lib/mailer";
 import { PackageEditor, type PackageData } from "@/features/packages/PackageEditor";
+import { packageEmails, packageTemplate } from "@/features/packages/queries";
 
 export const metadata = { title: "Package" };
 
@@ -16,11 +18,14 @@ export default async function PackagePage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { supabase } = context;
-  const [pkg, items, talent, options] = await Promise.all([
+  const [pkg, items, talent, options, emails, template] = await Promise.all([
     supabase.from("packages").select("id,title,message,company_id,contact_id,show_measurements,shared_at,expires_at,revoked_at,view_count,last_viewed_at,share_token_hash").eq("id", id).maybeSingle(),
     supabase.from("package_items").select("talent_id,note").eq("package_id", id).order("sort_order"),
     talentOptions(supabase),
     companyOptions(supabase),
+    // Before migration 042 is applied there is no email log: the page still opens.
+    packageEmails(supabase, id).catch(() => []),
+    packageTemplate(supabase),
   ]);
   if (pkg.error || items.error) {
     log.error("packages", "load failed", pkg.error ?? items.error);
@@ -33,6 +38,7 @@ export default async function PackagePage({ params }: { params: Promise<{ id: st
   return <div className="space-y-6">
     <Link href="/dashboard/packages" className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />All packages</Link>
     <PageHeader eyebrow="Package" title={data.title} />
-    <PackageEditor pkg={data} talent={talent} companies={options.companies} contacts={options.contacts} />
+    <PackageEditor pkg={data} talent={talent} companies={options.companies} contacts={options.contacts} emails={emails} template={template}
+      mailReady={mailerConfigured()} senderName={context.membership.full_name || "42 Model Management"} now={new Date().getTime()} />
   </div>;
 }

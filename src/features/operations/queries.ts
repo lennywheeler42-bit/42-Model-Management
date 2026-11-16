@@ -143,10 +143,10 @@ export async function talentOptions(supabase: SupabaseClient) {
 
 export async function companyOptions(supabase: SupabaseClient) {
   const [companies, contacts] = await Promise.all([
-    supabase.from("companies").select("id,name").eq("is_active", true).order("name").limit(1000),
-    supabase.from("company_contacts").select("id,name,company_id").order("name").limit(3000),
+    supabase.from("companies").select("id,name,email").eq("is_active", true).order("name").limit(1000),
+    supabase.from("company_contacts").select("id,name,company_id,email,title").order("name").limit(3000),
   ]);
-  return { companies: (companies.data ?? []) as { id: string; name: string }[], contacts: (contacts.data ?? []) as { id: string; name: string; company_id: string }[] };
+  return { companies: (companies.data ?? []) as { id: string; name: string; email: string | null }[], contacts: (contacts.data ?? []) as { id: string; name: string; company_id: string; email: string | null; title: string | null }[] };
 }
 
 export type FinanceRow = BookingRow & { financials: { fee_total: string | null; currency: string; commission_pct: string | null; expenses: string | null; invoice_status: string; invoice_number: string | null; invoiced_on: string | null; paid_on: string | null } | null };

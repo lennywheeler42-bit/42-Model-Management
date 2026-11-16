@@ -18,6 +18,8 @@ before(async () => {
     await su("insert into public.talent_private_details (talent_id, date_of_birth) values ($1, '2000-01-15') on conflict (talent_id) do update set date_of_birth = excluded.date_of_birth", [id]);
     await su("insert into public.talent_measurements (talent_id, height_cm, waist_cm, hair_color) values ($1, 180, 70, 'Red')", [id]);
     await su("insert into public.talent_board_assignments (talent_id, board_id) values ($1, $2)", [id, board]);
+    // The website lists only talent with a photo on it (042).
+    await su(`insert into public.talent_photos (talent_id, storage_path, "public", public_storage_path) values ($1, $2, true, $2)`, [id, `talent/${id}/cover.jpg`]);
     return id;
   };
   await make("shows-all", true, true);

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mail } from "lucide-react";
 import { buttonClass } from "@/components/ui/Button";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -20,6 +21,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
     log.error("operations", "contacts failed", error);
     return <ErrorState title="Contacts could not be loaded" />;
   }
+  const canEmailPackages = context.permissions.has("packages.manage");
   return <div className="space-y-6">
     <PageHeader eyebrow="Relationships" title="Contacts" description="People at client companies. Add or edit them on the company's page." />
     <form role="search" className="flex flex-col gap-2 sm:flex-row">
@@ -34,6 +36,9 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
         { key: "company", header: "Company", cell: (row) => row.company ? <Link href={`/dashboard/companies/${row.company.id}`} className="hover:text-[#a4502f]">{row.company.name}</Link> : "—" },
         { key: "email", header: "Email", cell: (row) => row.email ? <a href={`mailto:${row.email}`} className="text-xs hover:underline">{row.email}</a> : <span className="text-xs text-[#717369]">—</span> },
         { key: "phone", header: "Phone", cell: (row) => <span className="text-xs">{row.phone ?? "—"}</span> },
+        ...(canEmailPackages ? [{ key: "package", header: "", className: "text-right", cell: (row: (typeof rows)[number]) => row.email
+          ? <Link href={`/dashboard/packages/send?contact=${row.id}`} className={buttonClass("secondary", "sm")}><Mail size={13} aria-hidden />Email package</Link>
+          : <span className="text-xs text-[#717369]">No email</span> }] : []),
       ]} />
   </div>;
 }

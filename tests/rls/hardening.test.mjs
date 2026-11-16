@@ -19,8 +19,9 @@ const ANON_READABLE = new Set([
   "website_pages", "website_page_revisions", "website_navigation", "website_settings", "website_redirects",
 ]);
 
-// Functions anonymous visitors may call.
-const ANON_CALLABLE = new Set(["talent_public_age", "talent_is_public", "get_shared_package", "record_redirect_hit"]);
+// Functions anonymous visitors may call. talent_has_website_photo (042) only answers
+// yes or no for an id: the anonymous talent policy needs it.
+const ANON_CALLABLE = new Set(["talent_public_age", "talent_is_public", "talent_has_website_photo", "get_shared_package", "record_redirect_hit"]);
 
 before(async () => {
   db = await createDatabase();

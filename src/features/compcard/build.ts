@@ -1,6 +1,4 @@
 import "server-only";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { createElement } from "react";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -10,14 +8,17 @@ import { getSiteSettings } from "@/features/cms/queries";
 import { readStored } from "@/features/media/library";
 import { cropPixels, frameToCrop } from "@/features/media/crop";
 import { LIBRARY_BUCKET, type StoredPhoto } from "@/features/media/urls";
+import { compCardBrand, printLogo } from "./brand";
 import { CompCardDocument, type CompCardData } from "./CompCardDocument";
-import { BACK_LAYOUTS, FRONT_LAYOUTS, defaultDesign, filledSlots, findLayout, findTheme, type Design } from "./layout";
+import { BACK_LAYOUTS, FRONT_LAYOUTS, cardText, defaultDesign, filledSlots, findLayout, findTheme, type Design } from "./layout";
 
 // Builds a comp card from the talent's whole gallery, with no second upload: staff
 // drag any photo into a frame, cropped versions are used as framed, and photos a
 // talent sent that are still in review or were rejected are left out. Runs as the
 // signed-in staff member, so RLS decides what can be read. Measurements print only if
 // the talent allows them to be public. Private contact and legal details are never read.
+// The name, the line under it, the stats and the contact lines are the talent's and
+// the agency's own unless staff typed over them in the editor (design.text).
 
 export type CompCardPhoto = StoredPhoto & { cropped_path: string | null; alt_text: string | null; featured: boolean; public: boolean };
 
@@ -59,15 +60,10 @@ async function source(supabase: SupabaseClient, photo: CompCardPhoto) {
 const PIXELS_PER_POINT = 300 / 72;
 const MAX_EDGE = 2200;
 
-// react-pdf does not read WebP, so the logo is turned into PNG. Traced into the route
-// by next.config.ts; a card without it falls back to a text mark.
-async function logo() {
-  try {
-    const { data, info } = await sharp(await readFile(join(process.cwd(), "public/brand/logo-mark-480.webp"))).png().toBuffer({ resolveWithObject: true });
-    return { data, width: info.width, height: info.height };
-  } catch {
-    return null;
-  }
+// The agency's contact lines, as printed in the footer of the back.
+export async function agencyContact() {
+  const settings = await getSiteSettings();
+  return [settings.contact_email, settings.contact_phone, siteOrigin()?.replace(/^https?:\/\//, "") ?? null, settings.location_line].filter((entry): entry is string => Boolean(entry));
 }
 
 export async function renderCompCard(supabase: SupabaseClient, talentId: string, requested: Design | null) {
@@ -95,17 +91,20 @@ export async function renderCompCard(supabase: SupabaseClient, talentId: string,
   }));
 
   const theme = findTheme(design.theme);
-  const settings = await getSiteSettings();
+  const [brand, contact, stats] = await Promise.all([compCardBrand(supabase), agencyContact(), publicStats(supabase, talentId, talent.gender)]);
+  const text = cardText(design.text, { name: talent.display_name, subtitle: talent.location, stats, contact });
   const card: CompCardData = {
-    name: talent.display_name,
-    location: talent.location,
+    name: text.name,
+    subtitle: text.subtitle,
     theme,
     front: findLayout(FRONT_LAYOUTS, design.front),
     back: findLayout(BACK_LAYOUTS, design.back),
     images,
-    stats: design.measurements && talent.show_measurements ? await publicStats(supabase, talentId, talent.gender) : [],
-    contact: { email: settings.contact_email, phone: settings.contact_phone, website: siteOrigin()?.replace(/^https?:\/\//, "") ?? null, locationLine: settings.location_line },
-    logo: await logo(),
+    // Stats print only if the talent allows them to be public, typed over or not.
+    stats: design.measurements && talent.show_measurements ? text.stats : [],
+    contact: text.contact,
+    logo: await printLogo(supabase, brand),
+    tagline: brand.tagline.trim(),
   };
   const { renderToBuffer } = await import("@react-pdf/renderer");
   const pdf = await renderToBuffer(createElement(CompCardDocument, { card }) as Parameters<typeof renderToBuffer>[0]);

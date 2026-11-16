@@ -54,6 +54,16 @@ test("the secret key is read only by the admin client", () => {
   assert.deepEqual(readers, ["src/lib/supabase/admin.ts"]);
 });
 
+test("the mailbox settings are read only by the mailer, which only server code imports", () => {
+  const readers = sources.filter((file) => /SMTP_(HOST|PORT|USER|PASSWORD)|EMAIL_FROM/.test(file.text)).map((file) => file.path);
+  assert.deepEqual(readers, ["src/lib/mailer.ts"]);
+  const clients = sources.filter((file) => /^\s*["']use client["']/m.test(file.text) && /from\s+["']@\/lib\/mailer["']/.test(file.text)).map((file) => file.path);
+  assert.deepEqual(clients, []);
+  // Emails go out only for a signed-in package manager.
+  const senders = sources.filter((file) => /\bsendMail\(/.test(file.text) && file.path !== "src/lib/mailer.ts");
+  for (const file of senders) assert.match(file.text, /requireApi\(\s*"packages\.manage"/, `${file.path} must require packages.manage`);
+});
+
 test("no NEXT_PUBLIC_ variable carries a secret", () => {
   const leaks = sources.filter((file) => /NEXT_PUBLIC_[A-Z_]*(SECRET|SERVICE_ROLE|TOKEN|PASSWORD)/.test(file.text)).map((file) => file.path);
   assert.deepEqual(leaks, []);

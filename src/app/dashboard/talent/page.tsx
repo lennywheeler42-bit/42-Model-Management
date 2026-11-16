@@ -22,5 +22,5 @@ export default async function TalentListPage({ searchParams }: { searchParams: P
     log.error("talent", "list failed", error);
     return <ErrorState title="Talent could not be loaded" />;
   }
-  return <TalentListView result={data[0]} boards={data[1].flat} programs={data[2]} search={search} canCreate={context.permissions.has("talent.create")} canExportPrivate={context.permissions.has("talent.private.view")} />;
+  return <TalentListView result={data[0]} boards={data[1].flat} programs={data[2]} search={search} canCreate={context.permissions.has("talent.create")} canExportPrivate={context.permissions.has("talent.private.view")} canCheckWebsite={context.permissions.has("media.view")} />;
 }

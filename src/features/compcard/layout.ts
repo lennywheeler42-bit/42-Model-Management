@@ -67,11 +67,59 @@ export const THEMES: Theme[] = [
 export const LOGO_HEIGHT = 32;
 export const FRONT_LOGO_WIDTH = 106;
 
+// An uploaded logo of any shape is fitted into this box; the 42 mark fills its height.
+export const LOGO_MAX_WIDTH = 100;
+export const DEFAULT_TAGLINE = "Model Management";
+export function logoSize(width: number, height: number) {
+  const scale = Math.min(LOGO_HEIGHT / Math.max(1, height), LOGO_MAX_WIDTH / Math.max(1, width));
+  return { width: Math.round(width * scale * 100) / 100, height: Math.round(height * scale * 100) / 100 };
+}
+
 export const findLayout = (list: Layout[], key: string) => list.find((layout) => layout.key === key) ?? list[0];
 export const findTheme = (key: string) => THEMES.find((theme) => theme.key === key) ?? THEMES[0];
 
 export type Placement = { photoId: string; zoom: number; centerX: number; centerY: number };
-export type Design = { front: string; back: string; theme: string; measurements: boolean; slots: Record<string, Placement> };
+export type Stat = { label: string; value: string };
+// Text staff typed over the card's own. A part left out prints the talent's own:
+// the name, the line under it (their location), their stats, the agency's contact lines.
+export type CardText = { name?: string; subtitle?: string; stats?: Stat[]; contact?: string[] };
+export type Design = { front: string; back: string; theme: string; measurements: boolean; slots: Record<string, Placement>; text?: CardText };
+
+export const TEXT_LIMITS = { name: 60, subtitle: 80, statLabel: 16, statValue: 24, stats: 10, contactLine: 60, contactLines: 5, tagline: 60 } as const;
+
+// One printed line: no line breaks, tabs or control characters.
+const oneLine = (value: string) => [...value].map((char) => (char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127 ? " " : char)).join("").replace(/ {2,}/g, " ");
+const line = (max: number) => z.string().max(max).transform(oneLine);
+export const textSchema = z.object({
+  name: line(TEXT_LIMITS.name).optional(),
+  subtitle: line(TEXT_LIMITS.subtitle).optional(),
+  stats: z.array(z.object({ label: line(TEXT_LIMITS.statLabel), value: line(TEXT_LIMITS.statValue) })).max(TEXT_LIMITS.stats).optional(),
+  contact: z.array(line(TEXT_LIMITS.contactLine)).max(TEXT_LIMITS.contactLines).optional(),
+});
+
+// What the card prints: the typed text where there is any, else the talent's own.
+// A card always has a name; an emptied line under it, stat or contact line is left out.
+export function cardText(text: CardText | undefined, own: { name: string; subtitle: string | null; stats: Stat[]; contact: string[] }) {
+  return {
+    name: text?.name?.trim() || own.name,
+    subtitle: (text?.subtitle !== undefined ? text.subtitle : own.subtitle ?? "").trim(),
+    stats: (text?.stats ?? own.stats).map((stat) => ({ label: stat.label.trim(), value: stat.value.trim() })).filter((stat) => stat.label && stat.value),
+    contact: (text?.contact ?? own.contact).map((entry) => entry.trim()).filter(Boolean),
+  };
+}
+
+// Drops the parts of the typed text that say what the card would print anyway, so a
+// later change to the talent's name, stats or the agency's details still reaches it.
+export function trimText(text: CardText | undefined, own: { name: string; subtitle: string | null; stats: Stat[]; contact: string[] }): CardText | undefined {
+  if (!text) return undefined;
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const next: CardText = {};
+  if (text.name !== undefined && text.name !== own.name) next.name = text.name;
+  if (text.subtitle !== undefined && text.subtitle !== (own.subtitle ?? "")) next.subtitle = text.subtitle;
+  if (text.stats && !same(text.stats, own.stats)) next.stats = text.stats;
+  if (text.contact && !same(text.contact, own.contact)) next.contact = text.contact;
+  return Object.keys(next).length ? next : undefined;
+}
 
 const id = z.string().regex(/^[0-9a-f-]{36}$/i);
 export const placementSchema = z.object({
@@ -86,6 +134,7 @@ export const designSchema = z.object({
   theme: z.string().max(20),
   measurements: z.boolean(),
   slots: z.record(z.string().regex(/^[fb]\d$/), placementSchema),
+  text: textSchema.optional(),
 });
 
 export const placed = (photoId: string): Placement => ({ photoId, zoom: 1, centerX: 0.5, centerY: 0.5 });

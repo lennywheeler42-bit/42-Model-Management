@@ -1,18 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, GripVertical, Minus, Plus, RotateCcw, X } from "lucide-react";
+import { Download, GripVertical, ImageUp, Minus, Plus, RotateCcw, X } from "lucide-react";
 import { Button, buttonClass } from "@/components/ui/Button";
-import { CheckboxField } from "@/components/ui/Field";
+import { CheckboxField, TextareaField, TextField } from "@/components/ui/Field";
+import { useToast } from "@/components/ui/Toast";
+import { useMutation } from "@/lib/use-mutation";
 import { frameToCrop, imageScale, MAX_ZOOM } from "@/features/media/crop";
 import {
-  BACK_LAYOUTS, FRONT_LAYOUTS, FRONT_LOGO_WIDTH, LOGO_HEIGHT, MARGIN, NAME_TRACKING, PAGE, THEMES,
-  changeLayout, clearSlot, defaultDesign, designSchema, dropPhoto, findLayout, findTheme, nameSize, swapSlots,
-  type Design, type Layout, type Placement, type Slot, type Theme,
+  BACK_LAYOUTS, DEFAULT_TAGLINE, FRONT_LAYOUTS, FRONT_LOGO_WIDTH, LOGO_HEIGHT, LOGO_MAX_WIDTH, MARGIN, NAME_TRACKING, PAGE, TEXT_LIMITS, THEMES,
+  cardText, changeLayout, clearSlot, defaultDesign, designSchema, dropPhoto, findLayout, findTheme, logoSize, nameSize, swapSlots, trimText,
+  type CardText, type Design, type Layout, type Placement, type Slot, type Stat, type Theme,
 } from "./layout";
 
 type Photo = { id: string; url: string; alt: string; public: boolean; cropped: boolean };
 type Size = { width: number; height: number };
+// The logo every comp card prints: an uploaded one, or the built-in 42 mark (null).
+type Brand = { logoUrl: string | null; tagline: string };
+const BUILT_IN_LOGO = "/brand/logo-mark-480.webp";
 
 const PAGE_SIZE = 40;
 const PHOTO_TYPE = "application/x-42-photo";
@@ -31,8 +36,10 @@ function settle(placement: Placement, imageAspect: number, slotAspect: number): 
 // Comp card editor in the manner of CDS: choose a layout and theme, drag photos from
 // the gallery onto the frames (or tap a photo, then a frame), drag a placed photo to
 // move it inside its frame, zoom it, or drag its handle onto another frame to swap.
-export function CompCardBuilder({ talentId, name, location, photos, stats, measurementsAllowed, contact }: {
-  talentId: string; name: string; location: string | null; photos: Photo[]; stats: { label: string; value: string }[]; measurementsAllowed: boolean; contact: string[];
+// The text on the card can be typed over, and the logo replaced (for every card).
+export function CompCardBuilder({ talentId, name, location, photos, stats, measurementsAllowed, contact, brand, canEditBrand }: {
+  talentId: string; name: string; location: string | null; photos: Photo[]; stats: Stat[]; measurementsAllowed: boolean; contact: string[];
+  brand: Brand; canEditBrand: boolean;
 }) {
   const storageKey = `compcard:${talentId}`;
   const byId = useMemo(() => new Map(photos.map((photo) => [photo.id, photo])), [photos]);
@@ -66,6 +73,14 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
     try { window.localStorage.setItem(storageKey, JSON.stringify(design)); } catch { /* not remembered */ }
   }, [design, storageKey, restored]);
 
+  // The card's own text, and what it prints once staff have typed over any of it.
+  const own = useMemo(() => ({ name, subtitle: location, stats, contact }), [name, location, stats, contact]);
+  const text = cardText(design.text, own);
+  const setText = (patch: CardText) => setDesign((current) => ({ ...current, text: { ...current.text, ...patch } }));
+  const statRows = design.text?.stats ?? stats;
+  const setStat = (index: number, patch: Partial<Stat>) => setText({ stats: statRows.map((stat, at) => (at === index ? { ...stat, ...patch } : stat)) });
+  const textChanged = Boolean(trimText(design.text, own));
+
   const theme = findTheme(design.theme);
   const front = findLayout(FRONT_LAYOUTS, design.front);
   const back = findLayout(BACK_LAYOUTS, design.back);
@@ -74,7 +89,8 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
   const allSlots = [...front.slots, ...back.slots];
   const selectedSlot = allSlots.find((slot) => slot.id === selected) ?? null;
   const selectedPlacement = selected ? design.slots[selected] : undefined;
-  const href = `/api/dashboard/talents/${talentId}/comp-card?design=${encodeURIComponent(JSON.stringify(design))}`;
+  // Only text that differs from the card's own travels with the design.
+  const href = `/api/dashboard/talents/${talentId}/comp-card?design=${encodeURIComponent(JSON.stringify({ ...design, text: trimText(design.text, own) }))}`;
   const filled = allSlots.filter((slot) => design.slots[slot.id]).length;
 
   const aspectOf = (photoId: string) => { const size = sizes[photoId]; return size ? size.width / size.height : null; };
@@ -125,7 +141,8 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
                 onLoad={(photoId, size) => setSizes((current) => current[photoId] ? current : { ...current, [photoId]: size })}
                 onOver={(value) => setOver(value ? slot.id : null)}
                 onDropPhoto={(photoId) => place(slot.id, photoId)} onDropSlot={(from) => { setDesign((current) => swapSlots(current, from, slot.id)); setSelected(slot.id); }} />)}
-              {side === "Front" ? <FrontText name={name} location={location} layout={layout} theme={theme} /> : <BackText stats={design.measurements ? stats : []} contact={contact} layout={layout} theme={theme} />}
+              {side === "Front" ? <FrontText name={text.name} subtitle={text.subtitle} layout={layout} theme={theme} brand={brand} />
+                : <BackText stats={design.measurements && measurementsAllowed ? text.stats : []} contact={text.contact} layout={layout} theme={theme} brand={brand} />}
             </div>
           </figure>)}
         </div>
@@ -138,6 +155,38 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
           <Button variant="ghost" size="sm" onClick={() => update(selectedSlot, { ...selectedPlacement, zoom: 1, centerX: 0.5, centerY: 0.5 })}>Fit</Button>
           <span className="text-xs text-[#6b6d66]">Arrow keys move the photo in its frame.</span>
         </div>}
+
+        <section className="rounded-lg border border-[#e7e7e3] bg-white p-4" aria-label="Text on the card">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-sm font-800">Text on the card</h2>
+            {textChanged && <Button variant="ghost" size="sm" icon={<RotateCcw size={13} aria-hidden />} onClick={() => setDesign((current) => ({ ...current, text: undefined }))}>Back to the talent&rsquo;s own text</Button>}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TextField label="Name" name="card_name" value={design.text?.name ?? name} onChange={(value) => setText({ name: value.slice(0, TEXT_LIMITS.name) })} hint="Printed in capitals on the front." />
+            <TextField label="Line under the name" name="card_subtitle" value={design.text?.subtitle ?? location ?? ""} onChange={(value) => setText({ subtitle: value.slice(0, TEXT_LIMITS.subtitle) })} hint="Leave empty to print nothing." />
+          </div>
+          <fieldset className="mt-4" disabled={!measurementsAllowed || !design.measurements}>
+            <legend className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Stats on the back</legend>
+            {!measurementsAllowed ? <p className="mt-2 text-xs text-[#6b6d66]">Not public for this talent, so never printed.</p>
+              : !design.measurements ? <p className="mt-2 text-xs text-[#6b6d66]">Tick Measurements above to print and edit them.</p>
+              : <>
+                <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">{statRows.map((stat, index) => <li key={index} className="flex items-center gap-2">
+                  <input aria-label={`Stat ${index + 1} label`} value={stat.label} maxLength={TEXT_LIMITS.statLabel} onChange={(event) => setStat(index, { label: event.target.value })}
+                    className="w-24 min-w-0 rounded-md border border-[#dcdcd6] bg-white px-2.5 py-2 text-xs outline-none focus:border-[#a4502f]" />
+                  <input aria-label={`Stat ${index + 1} value`} value={stat.value} maxLength={TEXT_LIMITS.statValue} onChange={(event) => setStat(index, { value: event.target.value })}
+                    className="min-w-0 flex-1 rounded-md border border-[#dcdcd6] bg-white px-2.5 py-2 text-xs font-700 outline-none focus:border-[#a4502f]" />
+                  <button type="button" aria-label={`Remove ${stat.label || "this stat"}`} onClick={() => setText({ stats: statRows.filter((_, at) => at !== index) })} className="rounded border border-[#e7e7e3] p-1.5 text-[#5f615b] hover:border-[#20211f]"><X size={12} /></button>
+                </li>)}</ul>
+                {statRows.length < TEXT_LIMITS.stats && <Button variant="ghost" size="sm" className="mt-2" icon={<Plus size={13} aria-hidden />} onClick={() => setText({ stats: [...statRows, { label: "", value: "" }] })}>Add a stat</Button>}
+              </>}
+          </fieldset>
+          <TextareaField className="mt-4" label="Contact lines on the back" name="card_contact" rows={4} value={(design.text?.contact ?? contact).join("\n")}
+            onChange={(value) => setText({ contact: value.split("\n").slice(0, TEXT_LIMITS.contactLines).map((entry) => entry.slice(0, TEXT_LIMITS.contactLine)) })}
+            hint={`One per line, up to ${TEXT_LIMITS.contactLines}. The agency's details only, never a talent's own.`} />
+          <p className="mt-3 text-xs text-[#6b6d66]">Changes are for this talent&rsquo;s card and are remembered on this computer.</p>
+        </section>
+
+        {canEditBrand && <LogoPanel brand={brand} />}
       </div>
 
       <aside className="min-w-0 rounded-lg border border-[#e7e7e3] bg-white p-4" aria-label="Gallery">
@@ -253,40 +302,100 @@ function Frame({ slot, placement, photo, size, theme, selected, over, picking, o
   </div>;
 }
 
-function Logo() {
+// The logo as the card prints it: fitted into the same box as in the PDF (logoSize).
+function Logo({ brand }: { brand: Brand }) {
+  const [size, setSize] = useState<Size | null>(null);
+  const fitted = size ? logoSize(size.width, size.height) : null;
   return <div className="flex flex-col items-center">
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src="/brand/logo-mark-480.webp" alt="42 Model Management" style={{ height: pt(LOGO_HEIGHT), width: "auto" }} />
-    <span className="whitespace-nowrap font-800 uppercase leading-none" style={{ fontSize: pt(6), letterSpacing: pt(2.2), marginTop: pt(2) }}>Model Management</span>
+    <img src={brand.logoUrl ?? BUILT_IN_LOGO} alt="Logo" onLoad={(event) => setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
+      style={fitted ? { width: pt(fitted.width), height: pt(fitted.height) } : { maxHeight: pt(LOGO_HEIGHT), maxWidth: pt(LOGO_MAX_WIDTH), width: "auto", height: "auto" }} />
+    {brand.tagline.trim() && <span className="whitespace-nowrap font-800 uppercase leading-none" style={{ fontSize: pt(6), letterSpacing: pt(2.2), marginTop: pt(2) }}>{brand.tagline.trim()}</span>}
   </div>;
 }
 
-function FrontText({ name, location, layout, theme }: { name: string; location: string | null; layout: Layout; theme: Theme }) {
+// Replace the logo on every comp card: drop an image, or choose one. Only for staff
+// who manage settings; everyone else just sees the logo on the card.
+function LogoPanel({ brand }: { brand: Brand }) {
+  const toast = useToast();
+  const { run, pending } = useMutation();
+  const input = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [tagline, setTagline] = useState(brand.tagline);
+  const custom = Boolean(brand.logoUrl) || brand.tagline !== DEFAULT_TAGLINE;
+
+  async function upload(file: File | undefined) {
+    if (!file || uploading) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast.error("Use a PNG, JPEG or WebP image."); return; }
+    if (file.size > 4 * 1024 * 1024) { toast.error("That file is too large. Use an image under 4 MB."); return; }
+    setUploading(true);
+    try {
+      const response = await fetch("/api/dashboard/comp-card/logo", { method: "POST", headers: { "Content-Type": file.type }, body: file });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) { toast.error(body?.error ?? "The logo could not be saved."); return; }
+      toast.success("Logo changed on every comp card");
+      window.location.reload();
+    } catch {
+      toast.error("Network error. Check your connection and try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return <section className="rounded-lg border border-[#e7e7e3] bg-white p-4" aria-label="Logo">
+    <h2 className="text-sm font-800">Logo</h2>
+    <p className="mt-1 text-xs text-[#6b6d66]">Printed on both sides of every comp card, for every talent.</p>
+    <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div role="button" tabIndex={0} aria-label="Drop a new logo here, or press Enter to choose a file"
+        onClick={() => input.current?.click()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); input.current?.click(); } }}
+        onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) { event.preventDefault(); setOver(true); } }} onDragLeave={() => setOver(false)}
+        onDrop={(event) => { event.preventDefault(); setOver(false); void upload(event.dataTransfer.files[0]); }}
+        className={`flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-5 text-center outline-none focus-visible:border-[#a4502f] ${over ? "border-[#a4502f] bg-[#fbf3ee]" : "border-[#d6d6d0] hover:border-[#20211f]"}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={brand.logoUrl ?? BUILT_IN_LOGO} alt="Current logo" className="max-h-14 max-w-[70%] object-contain" />
+        <span className="inline-flex items-center gap-1.5 text-[11px] font-700 text-[#3d3f3a]"><ImageUp size={13} aria-hidden />{uploading ? "Uploading…" : "Drop a new logo here, or click to choose"}</span>
+        <span className="text-[11px] text-[#6b6d66]">PNG, JPEG or WebP, under 4 MB. A PNG with a clear background prints best.</span>
+        <input ref={input} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} onChange={(event) => { void upload(event.target.files?.[0]); event.target.value = ""; }} />
+      </div>
+      <div className="space-y-3">
+        <TextField label="Line under the logo" name="tagline" value={tagline} onChange={(value) => setTagline(value.slice(0, TEXT_LIMITS.tagline))} hint="Leave empty if the logo already says it." />
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" disabled={pending || tagline.trim() === brand.tagline.trim()} onClick={() => run("/api/dashboard/comp-card/logo", { method: "PUT", body: { tagline }, success: "Saved" })}>Save line</Button>
+          {custom && <Button size="sm" variant="ghost" icon={<RotateCcw size={13} aria-hidden />} disabled={pending || uploading}
+            onClick={async () => { if (window.confirm("Go back to the 42 logo and \"Model Management\" on every comp card?") && await run("/api/dashboard/comp-card/logo", { method: "DELETE", success: "Back to the 42 logo", refresh: false })) window.location.reload(); }}>Use the 42 logo</Button>}
+        </div>
+      </div>
+    </div>
+  </section>;
+}
+
+function FrontText({ name, subtitle, layout, theme, brand }: { name: string; subtitle: string; layout: Layout; theme: Theme; brand: Brand }) {
   const bottom = Math.max(...layout.slots.map((slot) => slot.y + slot.height));
   const nameWidth = PAGE.width - MARGIN * 2 - FRONT_LOGO_WIDTH - 12;
   return <div className="pointer-events-none absolute flex items-center justify-between"
     style={{ left: pct(MARGIN, PAGE.width), right: pct(MARGIN, PAGE.width), top: pct(bottom + 10, PAGE.height), bottom: pct(14, PAGE.height) }}>
     <div style={{ width: pt(nameWidth) }} className="min-w-0">
       <p className="whitespace-nowrap font-800 uppercase leading-none" style={{ fontSize: pt(nameSize(name, nameWidth)), letterSpacing: pt(NAME_TRACKING) }}>{name}</p>
-      {location && <p className="truncate uppercase" style={{ fontSize: pt(7), letterSpacing: pt(1.4), marginTop: pt(4), color: theme.muted }}>{location}</p>}
+      {subtitle && <p className="truncate uppercase" style={{ fontSize: pt(7), letterSpacing: pt(1.4), marginTop: pt(4), color: theme.muted }}>{subtitle}</p>}
     </div>
-    <Logo />
+    <Logo brand={brand} />
   </div>;
 }
 
-function BackText({ stats, contact, layout, theme }: { stats: { label: string; value: string }[]; contact: string[]; layout: Layout; theme: Theme }) {
+function BackText({ stats, contact, layout, theme, brand }: { stats: Stat[]; contact: string[]; layout: Layout; theme: Theme; brand: Brand }) {
   const bottom = Math.max(...layout.slots.map((slot) => slot.y + slot.height));
   return <>
     {stats.length > 0 && <div className="pointer-events-none absolute flex flex-wrap border-t"
       style={{ left: pct(MARGIN, PAGE.width), right: pct(MARGIN, PAGE.width), top: pct(bottom + 12, PAGE.height), borderColor: theme.rule, paddingTop: pt(8), columnGap: pt(14), rowGap: pt(6) }}>
-      {stats.map((stat) => <div key={stat.label}>
+      {stats.map((stat, index) => <div key={`${stat.label}-${index}`}>
         <p className="uppercase" style={{ fontSize: pt(6), letterSpacing: pt(1.2), color: theme.muted }}>{stat.label}</p>
         <p className="font-800" style={{ fontSize: pt(9) }}>{stat.value}</p>
       </div>)}
     </div>}
     <div className="pointer-events-none absolute flex items-end justify-between" style={{ left: pct(MARGIN, PAGE.width), right: pct(MARGIN, PAGE.width), bottom: pct(16, PAGE.height) }}>
-      <Logo />
-      <div className="text-right" style={{ fontSize: pt(7), lineHeight: 1.5 }}>{contact.map((line) => <p key={line}>{line}</p>)}</div>
+      <Logo brand={brand} />
+      <div className="text-right" style={{ fontSize: pt(7), lineHeight: 1.5 }}>{contact.map((line, index) => <p key={`${line}-${index}`}>{line}</p>)}</div>
     </div>
   </>;
 }

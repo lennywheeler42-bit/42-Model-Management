@@ -2,8 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  BACK_LAYOUTS, FRONT_LAYOUTS, FRONT_LOGO_WIDTH, LOGO_HEIGHT, MARGIN, PAGE, THEMES,
-  changeLayout, clearSlot, defaultDesign, designSchema, dropPhoto, filledSlots, nameSize, swapSlots,
+  BACK_LAYOUTS, FRONT_LAYOUTS, FRONT_LOGO_WIDTH, LOGO_HEIGHT, LOGO_MAX_WIDTH, MARGIN, PAGE, TEXT_LIMITS, THEMES,
+  cardText, changeLayout, clearSlot, defaultDesign, designSchema, dropPhoto, filledSlots, logoSize, nameSize, swapSlots, trimText,
 } from "../../src/features/compcard/layout.ts";
 
 const ids = Array.from({ length: 8 }, (_, index) => `00000000-0000-4000-8000-00000000000${index}`);
@@ -89,4 +89,48 @@ test("a long name gets smaller so it stays on one line beside the logo", () => {
 test("every theme has its own paper and ink", () => {
   assert.equal(new Set(THEMES.map((theme) => theme.key)).size, THEMES.length);
   for (const theme of THEMES) assert.notEqual(theme.paper, theme.ink);
+});
+
+const own = { name: "Ava Stone", subtitle: "Dallas, TX", stats: [{ label: "Height", value: "5'9\"" }, { label: "Waist", value: "25\"" }], contact: ["bookings@example.test", "example.test"] };
+
+test("the card prints the talent's own text until staff type over it", () => {
+  assert.deepEqual(cardText(undefined, own), own);
+  const typed = cardText({ name: "  AVA S.  ", subtitle: "New York", stats: [{ label: "Height", value: "5'10\"" }], contact: ["one@example.test"] }, own);
+  assert.deepEqual(typed, { name: "AVA S.", subtitle: "New York", stats: [{ label: "Height", value: "5'10\"" }], contact: ["one@example.test"] });
+});
+
+test("a card always has a name; emptied lines, stats and contact lines are left out", () => {
+  const typed = cardText({ name: "   ", subtitle: "", stats: [{ label: "Height", value: "" }, { label: "", value: "x" }, { label: "Shoe", value: "8" }], contact: ["", "  ", "a@example.test"] }, own);
+  assert.equal(typed.name, "Ava Stone");
+  assert.equal(typed.subtitle, "");
+  assert.deepEqual(typed.stats, [{ label: "Shoe", value: "8" }]);
+  assert.deepEqual(typed.contact, ["a@example.test"]);
+});
+
+test("only text that differs from the card's own is kept with the design", () => {
+  assert.equal(trimText(undefined, own), undefined);
+  assert.equal(trimText({ name: own.name, subtitle: own.subtitle, stats: own.stats, contact: own.contact }, own), undefined);
+  assert.deepEqual(trimText({ name: own.name, subtitle: "" }, own), { subtitle: "" });
+  assert.deepEqual(trimText({ name: "Ava", contact: own.contact }, own), { name: "Ava" });
+});
+
+test("typed text is checked: one line each, within the limits", () => {
+  const design = defaultDesign(ids, true);
+  const parsed = designSchema.safeParse({ ...design, text: { name: "Ava\nStone\tX", contact: ["a@example.test\r\nBcc: x"] } });
+  assert.ok(parsed.success);
+  assert.equal(parsed.data.text?.name, "Ava Stone X");
+  assert.deepEqual(parsed.data.text?.contact, ["a@example.test Bcc: x"]);
+  assert.equal(designSchema.safeParse({ ...design, text: { name: "x".repeat(TEXT_LIMITS.name + 1) } }).success, false);
+  assert.equal(designSchema.safeParse({ ...design, text: { contact: Array(TEXT_LIMITS.contactLines + 1).fill("x") } }).success, false);
+  assert.equal(designSchema.safeParse({ ...design, text: { stats: Array(TEXT_LIMITS.stats + 1).fill({ label: "a", value: "b" }) } }).success, false);
+  assert.ok(designSchema.safeParse(design).success, "a design without typed text is still valid");
+});
+
+test("any logo fits the logo box; the 42 mark keeps its size", () => {
+  assert.deepEqual(logoSize(480, 215), { width: 71.44, height: LOGO_HEIGHT });
+  const wide = logoSize(2000, 200);
+  assert.deepEqual(wide, { width: LOGO_MAX_WIDTH, height: 10 });
+  const square = logoSize(50, 50);
+  assert.deepEqual(square, { width: LOGO_HEIGHT, height: LOGO_HEIGHT });
+  assert.ok(LOGO_MAX_WIDTH <= FRONT_LOGO_WIDTH);
 });

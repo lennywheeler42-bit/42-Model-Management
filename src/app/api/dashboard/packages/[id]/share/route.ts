@@ -25,12 +25,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({ url: `${origin}/p/${token}`, expires_at: expiresAt });
 }
 
-// Revokes the link immediately.
+// Revokes the link immediately, and with it every link that was emailed: "stop
+// sharing" means the whole package.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await requireApi("packages.manage");
   if ("response" in auth) return auth.response;
-  const { error } = await auth.context.supabase.from("packages").update({ revoked_at: new Date().toISOString() }).eq("id", id);
+  const now = new Date().toISOString();
+  const { error } = await auth.context.supabase.from("packages").update({ revoked_at: now }).eq("id", id);
   if (error) return databaseError(error, "revoke the link");
+  const { error: emailError } = await auth.context.supabase.from("package_emails").update({ revoked_at: now }).eq("package_id", id).is("revoked_at", null);
+  if (emailError) return databaseError(emailError, "revoke the emailed links");
   return NextResponse.json({ ok: true });
 }

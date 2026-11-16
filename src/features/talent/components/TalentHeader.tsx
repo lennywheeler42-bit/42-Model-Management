@@ -30,7 +30,7 @@ Cancel: go back without publishing.`)) {
           const shown = await run(`/api/dashboard/talents/${talent.id}/media/publish-all`, { refresh: false });
           if (!shown) return;
         } else return;
-      } else if (!window.confirm("This model has no photos to show, so the website will display a placeholder. Upload photos in the Media tab first, or publish anyway?")) return;
+      } else if (!window.confirm("This model has no photo, so the website will not show them until one is added in the Media tab. Publish anyway? They appear on the website as soon as a photo is shown there.")) return;
     }
     if (boardCount === 0 && !window.confirm("This talent is not on any board, so it will not appear on board pages or the roster. Publish anyway?")) return;
     if (talent.is_minor && talent.consent_status !== "granted" && !window.confirm("Guardian consent is not recorded as granted for this minor. Publish anyway?")) return;
@@ -45,8 +45,10 @@ Cancel: go back without publishing.`)) {
         <h1 className="mt-1 text-3xl font-700 tracking-[-.03em]">{talent.display_name}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6b6d66]">
           <StatusBadge status={talent.publication_status} />
-          {live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
-          {photos && photos.onWebsite === 0 && <Badge tone="internal">No photos on website</Badge>}
+          {/* Without a photo on the website a published talent is not shown there (042). */}
+          {live && photos && photos.onWebsite === 0 ? <Badge tone="danger">No photo: not on website</Badge>
+            : live ? <Badge tone="public">Live on website</Badge> : <Badge tone="private">Not on website</Badge>}
+          {!live && photos && photos.onWebsite === 0 && <Badge tone={photos.ready ? "internal" : "danger"}>{photos.ready ? "No photos on website" : "No photo"}</Badge>}
           {talent.featured && <Badge tone="review">Featured</Badge>}
           {talent.is_minor && <Badge tone="internal">Minor</Badge>}
           <CrmBadges status={talent.crm_status} programs={talent.crm_programs} />
@@ -57,7 +59,7 @@ Cancel: go back without publishing.`)) {
 
     <div className="flex flex-wrap gap-2">
       <ButtonLink href={`/preview/talent/${talent.id}`} variant="secondary" size="sm" icon={<Eye size={13} />} target="_blank">Preview profile</ButtonLink>
-      {live && <ButtonLink href={`/models/${talent.slug}`} variant="secondary" size="sm" icon={<Globe2 size={13} />} target="_blank">View live</ButtonLink>}
+      {live && !(photos && photos.onWebsite === 0) && <ButtonLink href={`/models/${talent.slug}`} variant="secondary" size="sm" icon={<Globe2 size={13} />} target="_blank">View live</ButtonLink>}
       {canPublish && !archived && <>
         {talent.publication_status !== "review" && !live && <Button size="sm" variant="secondary" icon={<Send size={13} />} disabled={pending} onClick={() => act("review", "Sent to review")}>Send to review</Button>}
         <Button size="sm" variant="secondary" icon={<Star size={13} />} disabled={pending}

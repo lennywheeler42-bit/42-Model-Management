@@ -10,6 +10,8 @@ const tones = {
   internal: "bg-[#f8e8df] text-[#a9593d]",
   inactive: "bg-[#efefeb] text-[#717369]",
   neutral: "bg-[#efefeb] text-[#5f615b]",
+  // Something is missing and needs attention, e.g. a talent with no photo.
+  danger: "bg-[#fbe2df] text-[#b3261e]",
 } as const;
 
 export type BadgeTone = keyof typeof tones;

@@ -4,12 +4,23 @@ import { photoUrls, type StoredPhoto } from "@/features/media/urls";
 import type { PermissionSet } from "@/lib/permissions";
 import { ageFromDob } from "@/lib/format";
 import { PRIVATE_COLUMNS, TALENT_COLUMNS, type TalentCore, type TalentPrivate } from "./types";
+import { NO_PHOTOS, type PhotoCounts } from "./website";
 
 export const PAGE_SIZE = 40;
 
 export type TalentListFilters = { q?: string; status?: string; board?: string; program?: string; crm?: string; page?: number };
 
-export type TalentListRow = TalentCore & { boards: { id: string; name: string }[]; age: number | null; thumbnail: string | null };
+// `photos` is null when the viewer may not see photos, or the counts could not be read.
+export type TalentListRow = TalentCore & { boards: { id: string; name: string }[]; age: number | null; thumbnail: string | null; photos: PhotoCounts | null };
+
+// Photo counts per talent (migration 042), as the signed-in user. Null if they cannot
+// be read, so callers fall back to the publication status alone.
+export async function photoCounts(supabase: SupabaseClient, ids: string[]): Promise<Map<string, PhotoCounts> | null> {
+  if (!ids.length) return new Map();
+  const { data, error } = await supabase.rpc("talent_photo_counts", { targets: ids });
+  if (error) return null;
+  return new Map(((data ?? []) as ({ talent_id: string } & PhotoCounts)[]).map((row) => [row.talent_id, { photos: row.photos, approved: row.approved, website: row.website }]));
+}
 
 // PostgREST `or` filters are comma/parenthesis delimited; strip those from input.
 function searchTerm(value: string) {
@@ -53,13 +64,14 @@ export async function listTalent(supabase: SupabaseClient, permissions: Permissi
   const rows = (data ?? []) as unknown as (TalentCore & { talent_board_assignments: { board_id: string; boards: { id: string; name: string } | null }[] })[];
   const ids = rows.map((row) => row.id);
 
-  const [privateResult, photoResult] = await Promise.all([
+  const [privateResult, photoResult, counts] = await Promise.all([
     permissions.has("talent.private.view") && ids.length
       ? supabase.from("talent_private_details").select("talent_id,date_of_birth").in("talent_id", ids)
       : Promise.resolve({ data: [] as { talent_id: string; date_of_birth: string | null }[] }),
     permissions.has("media.view") && ids.length
       ? supabase.from("talent_photos").select("id,talent_id,storage_bucket,storage_path,public_storage_path,thumbnail_path,featured,display_order").in("talent_id", ids).is("archived_at", null).order("featured", { ascending: false }).order("display_order")
       : Promise.resolve({ data: [] as (StoredPhoto & { talent_id: string })[] }),
+    permissions.has("media.view") ? photoCounts(supabase, ids) : Promise.resolve(null),
   ]);
 
   const dobs = new Map((privateResult.data ?? []).map((row) => [row.talent_id, row.date_of_birth]));
@@ -72,6 +84,7 @@ export async function listTalent(supabase: SupabaseClient, permissions: Permissi
     boards: talent_board_assignments.map((assignment) => assignment.boards).filter((board): board is { id: string; name: string } => Boolean(board)),
     age: ageFromDob(dobs.get(row.id) ?? null),
     thumbnail: primary.has(row.id) ? urls.get(primary.get(row.id)!.id) ?? null : null,
+    photos: counts ? counts.get(row.id) ?? NO_PHOTOS : null,
   }));
 
   return { talent, total: count ?? 0, page, pageCount: Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE)) };
