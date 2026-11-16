@@ -22,9 +22,9 @@ export type PackageData = {
   items: { talent_id: string; note: string | null }[];
 };
 
-export function PackageEditor({ pkg, talent, companies, contacts, emails, template, mailReady, senderName, now }: {
+export function PackageEditor({ pkg, talent, companies, contacts, emails, template, mailReady, senderName, contactEmail, now }: {
   pkg: PackageData; talent: { id: string; display_name: string }[]; companies: { id: string; name: string; email: string | null }[]; contacts: { id: string; name: string; company_id: string; email: string | null }[];
-  emails: PackageEmailRow[]; template: EmailTemplate; mailReady: boolean; senderName: string; now: number;
+  emails: PackageEmailRow[]; template: EmailTemplate; mailReady: boolean; senderName: string; contactEmail: string; now: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -119,8 +119,8 @@ export function PackageEditor({ pkg, talent, companies, contacts, emails, templa
           {(state === "live" || liveEmails > 0) && <Button size="sm" variant="ghost" disabled={pending} onClick={() => window.confirm(liveEmails ? "Stop this package's links working now, including the ones sent by email?" : "Stop this link working now?") && run(`/api/dashboard/packages/${pkg.id}/share`, { method: "DELETE", success: liveEmails ? "All links revoked" : "Link revoked" })}>{liveEmails ? "Revoke all links" : "Revoke link"}</Button>}
         </div>
       </Card>
-      <Card title="Email the package" description="Send the client a message with a private link. Change the wording here, or save it as the template for next time.">
-        <PackageEmailForm packages={[{ id: pkg.id, title: title.trim() || pkg.title, talent: items.length }]} people={people} preselected={contactId ? [contactId] : []} template={template} mailReady={mailReady} senderName={senderName}
+      <Card title="Email the package" description="Send one person or several a message with a private link. Change the wording here, or save it for next time.">
+        <PackageEmailForm packages={[{ id: pkg.id, title: title.trim() || pkg.title, talent: items.length }]} people={people} preselected={contactId ? [contactId] : []} template={template} mailReady={mailReady} senderName={senderName} contactEmail={contactEmail}
           before={async () => Boolean(await save())} />
       </Card>
       <Card title={`Emails sent (${emails.length})`}><PackageEmailLog packageId={pkg.id} emails={emails} now={now} /></Card>

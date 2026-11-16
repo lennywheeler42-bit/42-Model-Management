@@ -1,70 +1,94 @@
-// Package emails: the template and how it becomes a message. Run: npm run test:unit
+// Package emails: what staff write and how it becomes a message. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  DEFAULT_TEMPLATE, PLACEHOLDERS, composeHtml, composeSubject, composeText, isEmail, mailtoHref, parseAddresses, renderTemplate, withLink,
-  type TemplateValues,
+  DEFAULT_TEMPLATE, MAX_RECIPIENTS, composeHtml, composeSubject, composeText, isEmail, mailtoHref, noReplyNote, parseAddresses, plainBody,
+  subjectFor, subjectToTemplate, type MessageParts,
 } from "../../src/features/packages/email.ts";
 import { companyPeople } from "../../src/features/packages/queries.ts";
 
-const values: TemplateValues = {
-  contact_name: "Casey", company: "Acme Studio", package_title: "Spring campaign", message: "Two options for the shoot.",
-  link: "https://example.test/p/abc123", expires: "December 17, 2026", sender_name: "Lenny",
+const parts: MessageParts = {
+  firstName: "Casey", body: "Two options for the shoot.\n\nBoth are free that week.", link: "https://example.test/p/abc123",
+  expires: "December 17, 2026", sender: "Lenny", noReplyContact: "lenny@example.test",
 };
+const BRACES = /[{}]/;
 
-test("every placeholder in the built-in template is one staff are told about", () => {
-  const known = new Set<string>(PLACEHOLDERS.map((item) => item.key));
-  for (const text of [DEFAULT_TEMPLATE.subject, DEFAULT_TEMPLATE.body]) {
-    for (const match of text.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)) assert.ok(known.has(match[1]), match[1]);
-  }
+test("staff never see a curly bracket: not in the subject, the message or the email", () => {
+  const subject = subjectFor(DEFAULT_TEMPLATE.subject, "Spring campaign");
+  assert.equal(subject, "Spring campaign from 42 Model Management");
+  assert.ok(!BRACES.test(subject));
+  assert.ok(!BRACES.test(plainBody(DEFAULT_TEMPLATE.body)));
+  assert.ok(!BRACES.test(composeText({ ...parts, body: DEFAULT_TEMPLATE.body })));
+  assert.ok(!BRACES.test(composeHtml({ ...parts, body: DEFAULT_TEMPLATE.body })));
+  // Before a package is chosen the subject still reads as a sentence.
+  assert.equal(subjectFor(DEFAULT_TEMPLATE.subject, ""), "Talent selection from 42 Model Management");
 });
 
-test("placeholders are filled once; unknown ones stay visible", () => {
-  assert.equal(renderTemplate("Hi {{ contact_name }} at {{company}}, {{nope}}", values), "Hi Casey at Acme Studio, {{nope}}");
-  // A value that looks like a placeholder is not expanded again.
-  assert.equal(renderTemplate("{{message}}", { ...values, message: "{{link}}" }), "{{link}}");
+test("saved wording follows the next package's title", () => {
+  const saved = subjectToTemplate("New faces: Spring campaign, from 42", "Spring campaign");
+  assert.equal(subjectFor(saved, "Summer lookbook"), "New faces: Summer lookbook, from 42");
+  // A subject that does not name the package is kept word for word.
+  assert.equal(subjectFor(subjectToTemplate("A selection for you", "Spring campaign"), "Summer lookbook"), "A selection for you");
+  // A title is text, never a pattern; a marker typed into a title is dropped, not filled in.
+  assert.equal(subjectFor(DEFAULT_TEMPLATE.subject, "$& {{package_title}} (a+)"), "$& (a+) from 42 Model Management");
 });
 
-test("the built-in template makes a complete message", () => {
-  assert.equal(composeSubject(DEFAULT_TEMPLATE.subject, values), "Spring campaign from 42 Model Management");
-  const text = composeText(DEFAULT_TEMPLATE.body, values);
-  assert.ok(text.startsWith("Hi Casey,"));
-  assert.ok(text.includes("https://example.test/p/abc123"));
-  assert.ok(text.includes("December 17, 2026"));
-  assert.ok(!/\{\{/.test(text));
+test("an older template with markers is shown as plain words", () => {
+  const old = "Hi {{contact_name}},\n\nHere is the selection: {{package_title}}.\n\n{{message}}\n\n{{link}}\n\nOpen until {{expires}}.\n\n{{sender_name}}";
+  assert.equal(plainBody(old), "Hi ,\n\nHere is the selection: .\n\nOpen until .");
+  assert.ok(!BRACES.test(subjectFor("{{package_title}} for {{contact_name}}", "Spring")));
 });
 
-test("a message always carries the link", () => {
-  assert.equal(withLink("Hello"), "Hello\n\n{{link}}");
-  assert.equal(withLink("See {{ link }} now"), "See {{ link }} now");
-  assert.ok(composeText("Hello {{contact_name}}", values).endsWith("https://example.test/p/abc123"));
+test("the email is put together around what staff wrote", () => {
+  assert.equal(composeText(parts), [
+    "Hi Casey,",
+    "Two options for the shoot.\n\nBoth are free that week.",
+    "View the package: https://example.test/p/abc123",
+    "This link is private and stays open until December 17, 2026.",
+    "Lenny\n42 Model Management",
+    "Please do not reply to this email. It was sent from a no-reply address used for automated messages, so replies are not read. To get in touch, kindly email lenny@example.test.",
+  ].join("\n\n"));
 });
 
-test("blank values leave no empty paragraphs", () => {
-  const text = composeText("Hi {{contact_name}},\n\n{{message}}\n\n{{company}}\n\n{{link}}", { ...values, message: "", company: "" });
-  assert.equal(text, "Hi Casey,\n\nhttps://example.test/p/abc123");
+test("without a name the greeting is general; without a sender the agency signs", () => {
+  const text = composeText({ ...parts, firstName: null, sender: "42 Model Management" });
+  assert.ok(text.startsWith("Hello,\n\n"));
+  assert.ok(text.includes("\n\n42 Model Management\n\nPlease do not reply"));
+  assert.ok(!text.includes("42 Model Management\n42 Model Management"));
 });
 
-test("a subject is one line, whatever a name or title holds", () => {
-  const subject = composeSubject("{{package_title}} for {{contact_name}}", { ...values, package_title: "Spring\r\nBcc: someone@evil.test", contact_name: "Casey\tX" });
+test("the no-reply note names where to write, and is left out when staff send from their own mailbox", () => {
+  assert.ok(noReplyNote("lenny@example.test").includes("kindly email lenny@example.test"));
+  assert.ok(composeText(parts).endsWith(noReplyNote("lenny@example.test")));
+  const own = composeText({ ...parts, noReplyContact: null });
+  assert.ok(!/no-reply|do not reply/i.test(own));
+  assert.ok(own.endsWith("Lenny\n42 Model Management"));
+  assert.ok(!/no-reply/i.test(composeHtml({ ...parts, noReplyContact: null })));
+});
+
+test("a subject is one line, whatever is typed into it", () => {
+  const subject = composeSubject("Spring\r\nBcc: someone@evil.test\tX");
   assert.ok(!/[\r\n\t]/.test(subject));
-  assert.equal(subject, "Spring Bcc: someone@evil.test for Casey X");
+  assert.equal(subject, "Spring Bcc: someone@evil.test X");
+  assert.equal(composeSubject("  "), "");
 });
 
-test("the HTML version escapes what staff typed and links only to the package", () => {
-  const html = composeHtml("Hi {{contact_name}} <b>bold</b>\n\n{{link}}", { ...values, contact_name: "<script>alert(1)</script>", link: "https://example.test/p/a\"b" });
+test("the HTML version escapes what staff typed and links only to the package and the contact address", () => {
+  const html = composeHtml({ ...parts, firstName: "<script>alert(1)</script>", body: "See <b>bold</b>", link: "https://example.test/p/a\"b", sender: "A & B" });
   assert.ok(!html.includes("<script>"));
   assert.ok(html.includes("&lt;script&gt;"));
   assert.ok(html.includes("&lt;b&gt;bold&lt;/b&gt;"));
-  assert.equal([...html.matchAll(/href="([^"]*)"/g)].length, 1);
-  assert.ok(html.includes('href="https://example.test/p/a&quot;b"'));
+  assert.ok(html.includes("A &amp; B"));
+  assert.deepEqual([...html.matchAll(/href="([^"]*)"/g)].map((match) => match[1]), ["https://example.test/p/a&quot;b", "mailto:lenny@example.test"]);
 });
 
-test("addresses typed by hand are split, de-duplicated and checked", () => {
-  const result = parseAddresses("a@x.test, B@x.test; a@X.test\nnot-an-email  c@x");
-  assert.deepEqual(result.valid, ["a@x.test", "B@x.test"]);
+test("several addresses typed or pasted at once are split, de-duplicated and checked", () => {
+  const result = parseAddresses("a@x.test, B@x.test; a@X.test\nnot-an-email  c@x\nd@y.test e@z.test");
+  assert.deepEqual(result.valid, ["a@x.test", "B@x.test", "d@y.test", "e@z.test"]);
   assert.deepEqual(result.invalid, ["not-an-email", "c@x"]);
   assert.deepEqual(parseAddresses("  "), { valid: [], invalid: [] });
+  const many = parseAddresses(Array.from({ length: MAX_RECIPIENTS }, (_, index) => `person${index}@x.test`).join(", "));
+  assert.equal(many.valid.length, MAX_RECIPIENTS);
 });
 
 test("an address cannot smuggle a second recipient or a header", () => {

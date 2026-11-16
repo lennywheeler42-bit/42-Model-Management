@@ -5,6 +5,7 @@ import { ErrorState, UnauthorizedState } from "@/components/ui/States";
 import { requirePage } from "@/lib/agency-auth";
 import { log } from "@/lib/log";
 import { mailerConfigured } from "@/lib/mailer";
+import { getSiteSettings } from "@/features/cms/queries";
 import { PackageEmailForm } from "@/features/packages/PackageEmailForm";
 import { companyPeople, packageOptions, packageTemplate } from "@/features/packages/queries";
 
@@ -53,13 +54,14 @@ export default async function SendPackagePage({ searchParams }: { searchParams: 
     return <ErrorState title="This page could not be loaded" />;
   }
   const people = companyPeople(company, contacts);
+  const settings = await getSiteSettings();
   const back = company ? { href: `/dashboard/companies/${company.id}`, label: company.name } : { href: "/dashboard/contacts", label: "Contacts" };
 
   return <div className="space-y-6">
     <Link href={back.href} className="inline-flex items-center gap-2 text-xs text-[#6b6d66] hover:text-[#20211f]"><ArrowLeft size={14} aria-hidden />{back.label}</Link>
     <PageHeader eyebrow="Packages" title="Email a package" description={company ? `Send ${company.name} a package with a private link.` : "Send a package with a private link."} />
-    <Card className="max-w-2xl" title="Email" description="Choose a package and who gets it. Each person gets a private link of their own.">
-      <PackageEmailForm packages={packages} people={people} preselected={preselected} template={template} mailReady={mailerConfigured()} senderName={context.membership.full_name || "42 Model Management"} />
+    <Card className="max-w-2xl" title="Email" description="Choose a package and who gets it: one person or several. Each gets an email and a private link of their own.">
+      <PackageEmailForm packages={packages} people={people} preselected={preselected} template={template} mailReady={mailerConfigured()} senderName={context.membership.full_name || "42 Model Management"} contactEmail={settings.contact_email} />
       <p className="mt-5 border-t border-[#efefeb] pt-4 text-xs text-[#6b6d66]">Need a new selection first? <Link href="/dashboard/packages" className="font-700 underline underline-offset-2">Create a package</Link>, add talent, then email it from the package page.</p>
     </Card>
   </div>;
