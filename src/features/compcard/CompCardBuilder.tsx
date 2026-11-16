@@ -16,7 +16,8 @@ import {
 type Photo = { id: string; url: string; alt: string; public: boolean; cropped: boolean };
 type Size = { width: number; height: number };
 // The logo every comp card prints: an uploaded one, or the built-in 42 mark (null).
-type Brand = { logoUrl: string | null; tagline: string };
+// What every card prints unless this card types over it (migrations 043, 046).
+type Brand = { logoUrl: string | null; tagline: string; subtitle: string; contact: string[] };
 const BUILT_IN_LOGO = "/brand/logo-mark-480.webp";
 
 const PAGE_SIZE = 40;
@@ -37,8 +38,8 @@ function settle(placement: Placement, imageAspect: number, slotAspect: number): 
 // the gallery onto the frames (or tap a photo, then a frame), drag a placed photo to
 // move it inside its frame, zoom it, or drag its handle onto another frame to swap.
 // The text on the card can be typed over, and the logo replaced (for every card).
-export function CompCardBuilder({ talentId, name, location, photos, stats, measurementsAllowed, contact, brand, canEditBrand }: {
-  talentId: string; name: string; location: string | null; photos: Photo[]; stats: Stat[]; measurementsAllowed: boolean; contact: string[];
+export function CompCardBuilder({ talentId, name, photos, stats, measurementsAllowed, brand, canEditBrand }: {
+  talentId: string; name: string; photos: Photo[]; stats: Stat[]; measurementsAllowed: boolean;
   brand: Brand; canEditBrand: boolean;
 }) {
   const storageKey = `compcard:${talentId}`;
@@ -74,7 +75,19 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
   }, [design, storageKey, restored]);
 
   // The card's own text, and what it prints once staff have typed over any of it.
-  const own = useMemo(() => ({ name, subtitle: location, stats, contact }), [name, location, stats, contact]);
+  const own = useMemo(() => ({ name, subtitle: brand.subtitle, stats, contact: brand.contact }), [name, brand.subtitle, stats, brand.contact]);
+  const { run: save, pending: saving } = useMutation();
+  // The line under the name and the contact lines as this card shows them.
+  const subtitleShown = design.text?.subtitle ?? brand.subtitle;
+  const contactShown = (design.text?.contact ?? brand.contact).map((entry) => entry.trim()).filter(Boolean);
+  const differsFromEveryCard = subtitleShown.trim() !== brand.subtitle.trim() || JSON.stringify(contactShown) !== JSON.stringify(brand.contact);
+  async function saveForEveryCard() {
+    if (!window.confirm("Use this line under the name and these contact lines on every talent's comp card?")) return;
+    if (!(await save("/api/dashboard/comp-card/logo", { method: "PUT", body: { subtitle: subtitleShown, contact: contactShown }, success: "Saved for every card", refresh: false }))) return;
+    // This card now simply follows the saved text.
+    setDesign((current) => ({ ...current, text: current.text ? { ...current.text, subtitle: undefined, contact: undefined } : undefined }));
+    window.location.reload();
+  }
   const text = cardText(design.text, own);
   const setText = (patch: CardText) => setDesign((current) => ({ ...current, text: { ...current.text, ...patch } }));
   const statRows = design.text?.stats ?? stats;
@@ -159,11 +172,11 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
         <section className="rounded-lg border border-[#e7e7e3] bg-white p-4" aria-label="Text on the card">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
             <h2 className="text-sm font-800">Text on the card</h2>
-            {textChanged && <Button variant="ghost" size="sm" icon={<RotateCcw size={13} aria-hidden />} onClick={() => setDesign((current) => ({ ...current, text: undefined }))}>Back to the talent&rsquo;s own text</Button>}
+            {textChanged && <Button variant="ghost" size="sm" icon={<RotateCcw size={13} aria-hidden />} onClick={() => setDesign((current) => ({ ...current, text: undefined }))}>Back to the usual text</Button>}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <TextField label="Name" name="card_name" value={design.text?.name ?? name} onChange={(value) => setText({ name: value.slice(0, TEXT_LIMITS.name) })} hint="Printed in capitals on the front." />
-            <TextField label="Line under the name" name="card_subtitle" value={design.text?.subtitle ?? location ?? ""} onChange={(value) => setText({ subtitle: value.slice(0, TEXT_LIMITS.subtitle) })} hint="Leave empty to print nothing." />
+            <TextField label="Line under the name" name="card_subtitle" value={subtitleShown} onChange={(value) => setText({ subtitle: value.slice(0, TEXT_LIMITS.subtitle) })} hint="The same on every card unless changed here. Leave empty to print nothing." />
           </div>
           <fieldset className="mt-4" disabled={!measurementsAllowed || !design.measurements}>
             <legend className="text-[10px] font-800 uppercase tracking-[.14em] text-[#6f716b]">Stats on the back</legend>
@@ -180,10 +193,13 @@ export function CompCardBuilder({ talentId, name, location, photos, stats, measu
                 {statRows.length < TEXT_LIMITS.stats && <Button variant="ghost" size="sm" className="mt-2" icon={<Plus size={13} aria-hidden />} onClick={() => setText({ stats: [...statRows, { label: "", value: "" }] })}>Add a stat</Button>}
               </>}
           </fieldset>
-          <TextareaField className="mt-4" label="Contact lines on the back" name="card_contact" rows={4} value={(design.text?.contact ?? contact).join("\n")}
+          <TextareaField className="mt-4" label="Contact lines on the back" name="card_contact" rows={4} value={(design.text?.contact ?? brand.contact).join("\n")}
             onChange={(value) => setText({ contact: value.split("\n").slice(0, TEXT_LIMITS.contactLines).map((entry) => entry.slice(0, TEXT_LIMITS.contactLine)) })}
-            hint={`One per line, up to ${TEXT_LIMITS.contactLines}. The agency's details only, never a talent's own.`} />
-          <p className="mt-3 text-xs text-[#6b6d66]">Changes are for this talent&rsquo;s card and are remembered on this computer.</p>
+            hint={`One per line, up to ${TEXT_LIMITS.contactLines}. The agency's details only, never a talent's own. The same on every card unless changed here.`} />
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="text-xs text-[#6b6d66]">Changes here are for this talent&rsquo;s card and are remembered on this computer.</p>
+            {canEditBrand && differsFromEveryCard && <Button size="sm" variant="secondary" disabled={saving} onClick={saveForEveryCard}>Use the line and contact lines on every card</Button>}
+          </div>
         </section>
 
         {canEditBrand && <LogoPanel brand={brand} />}

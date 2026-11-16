@@ -12,8 +12,10 @@ before(async () => {
 
 describe("043: comp card logo", () => {
   test("only settings managers change the logo; staff who see media can read it", async () => {
-    assert.ok(await rejects(db, users.creative, "insert into public.comp_card_settings (id, logo_path) values (true, 'comp-card/logo-1763400000000.png')"));
-    await as(db, users.owner, "insert into public.comp_card_settings (id, logo_path) values (true, 'comp-card/logo-1763400000000.png')");
+    // The row exists from the start (046 seeds the default text).
+    await as(db, users.creative, "update public.comp_card_settings set logo_path = 'comp-card/logo-1763400000000.png'");
+    assert.equal((await su("select logo_path from public.comp_card_settings"))[0].logo_path, null, "staff without settings.manage change nothing");
+    await as(db, users.owner, "update public.comp_card_settings set logo_path = 'comp-card/logo-1763400000000.png'");
     assert.deepEqual(await rowsAs(db, users.creative, "select logo_path, tagline from public.comp_card_settings"), [{ logo_path: "comp-card/logo-1763400000000.png", tagline: null }]);
     await as(db, users.creative, "update public.comp_card_settings set tagline = 'Hijacked'");
     assert.equal((await su("select tagline from public.comp_card_settings"))[0].tagline, null, "an update by someone without settings.manage changes nothing");
@@ -48,6 +50,32 @@ describe("043: comp card logo", () => {
     assert.deepEqual(await rowsAs(db, users.outsider, "select name from storage.objects where bucket_id = 'brand-assets'"), []);
     await as(db, users.owner, "delete from storage.objects where bucket_id = 'brand-assets'");
     assert.equal((await su("select count(*)::int as n from storage.objects where bucket_id = 'brand-assets'"))[0].n, 0);
+  });
+});
+
+describe("046: default text on every comp card", () => {
+  test("the owner's line under the name and contact lines are there from the start", async () => {
+    const fresh = await createDatabase();
+    assert.deepEqual((await fresh.query("select subtitle, contact_lines from public.comp_card_settings")).rows,
+      [{ subtitle: "42modelmanagement.com", contact_lines: ["lenny@42modelmanagement.com", "214-463-9970"] }]);
+  });
+
+  test("only settings managers change them; staff who see media read them", async () => {
+    await as(db, users.owner, "update public.comp_card_settings set subtitle = 'Models & Talent', contact_lines = array['a@example.test']");
+    await as(db, users.creative, "update public.comp_card_settings set subtitle = 'Hijacked'");
+    assert.deepEqual(await rowsAs(db, users.creative, "select subtitle, contact_lines from public.comp_card_settings"), [{ subtitle: "Models & Talent", contact_lines: ["a@example.test"] }]);
+  });
+
+  test("they stay short", async () => {
+    assert.ok(await rejects(db, users.owner, `update public.comp_card_settings set subtitle = '${"x".repeat(81)}'`));
+    assert.ok(await rejects(db, users.owner, "update public.comp_card_settings set contact_lines = array['1','2','3','4','5','6']"));
+    assert.ok(await rejects(db, users.owner, `update public.comp_card_settings set contact_lines = array['${"x".repeat(320)}']`));
+  });
+
+  test("running the migration again keeps what staff saved", async () => {
+    const { readFileSync } = await import("node:fs");
+    await db.exec(readFileSync(new URL("../../supabase/migrations/046_comp_card_default_text.sql", import.meta.url), "utf8"));
+    assert.deepEqual((await su("select subtitle, contact_lines from public.comp_card_settings"))[0], { subtitle: "Models & Talent", contact_lines: ["a@example.test"] });
   });
 });
 

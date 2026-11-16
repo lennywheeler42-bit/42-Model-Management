@@ -3,8 +3,6 @@ import { createElement } from "react";
 import sharp from "sharp";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { feetInches, lengthLabel, shoeLabel } from "@/lib/format";
-import { siteOrigin } from "@/lib/site";
-import { getSiteSettings } from "@/features/cms/queries";
 import { readStored } from "@/features/media/library";
 import { cropPixels, frameToCrop } from "@/features/media/crop";
 import { LIBRARY_BUCKET, type StoredPhoto } from "@/features/media/urls";
@@ -18,7 +16,7 @@ import { BACK_LAYOUTS, FRONT_LAYOUTS, cardText, defaultDesign, filledSlots, find
 // signed-in staff member, so RLS decides what can be read. Measurements print only if
 // the talent allows them to be public. Private contact and legal details are never read.
 // The name, the line under it, the stats and the contact lines are the talent's and
-// the agency's own unless staff typed over them in the editor (design.text).
+// the defaults for every card unless staff typed over them in the editor (design.text).
 
 export type CompCardPhoto = StoredPhoto & { cropped_path: string | null; alt_text: string | null; featured: boolean; public: boolean };
 
@@ -60,12 +58,6 @@ async function source(supabase: SupabaseClient, photo: CompCardPhoto) {
 const PIXELS_PER_POINT = 300 / 72;
 const MAX_EDGE = 2200;
 
-// The agency's contact lines, as printed in the footer of the back.
-export async function agencyContact() {
-  const settings = await getSiteSettings();
-  return [settings.contact_email, settings.contact_phone, siteOrigin()?.replace(/^https?:\/\//, "") ?? null, settings.location_line].filter((entry): entry is string => Boolean(entry));
-}
-
 export async function renderCompCard(supabase: SupabaseClient, talentId: string, requested: Design | null) {
   const { data: talent, error } = await supabase.from("talent").select("id,display_name,location,gender,show_measurements").eq("id", talentId).maybeSingle();
   if (error) throw error;
@@ -91,8 +83,10 @@ export async function renderCompCard(supabase: SupabaseClient, talentId: string,
   }));
 
   const theme = findTheme(design.theme);
-  const [brand, contact, stats] = await Promise.all([compCardBrand(supabase), agencyContact(), publicStats(supabase, talentId, talent.gender)]);
-  const text = cardText(design.text, { name: talent.display_name, subtitle: talent.location, stats, contact });
+  const [brand, stats] = await Promise.all([compCardBrand(supabase), publicStats(supabase, talentId, talent.gender)]);
+  // The line under the name and the contact lines are the same on every card (046)
+  // unless this card typed over them. A talent's location is never printed by default.
+  const text = cardText(design.text, { name: talent.display_name, subtitle: brand.subtitle, stats, contact: brand.contact });
   const card: CompCardData = {
     name: text.name,
     subtitle: text.subtitle,

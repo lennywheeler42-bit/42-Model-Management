@@ -45,18 +45,29 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
-const schema = z.object({ tagline: z.string().max(TEXT_LIMITS.tagline).transform((value) => value.replace(/\s+/g, " ").trim()) });
+const line = (max: number) => z.string().max(max).transform((value) => value.replace(/\s+/g, " ").trim());
+const schema = z.object({
+  tagline: line(TEXT_LIMITS.tagline).optional(),
+  // The line under the talent's name on every card. Empty prints nothing.
+  subtitle: line(TEXT_LIMITS.subtitle).optional(),
+  // The contact lines on the back of every card; empty lines are dropped.
+  contact: z.array(line(TEXT_LIMITS.contactLine)).max(TEXT_LIMITS.contactLines).optional()
+    .transform((lines) => lines?.filter(Boolean)),
+});
 
-// PUT { tagline }: the line under the logo. Empty prints no line.
+// PUT { tagline?, subtitle?, contact? }: the text every comp card prints unless a card
+// types over it. Only the fields sent are changed.
 export async function PUT(request: Request) {
   const auth = await requireApi("settings.manage");
   if ("response" in auth) return auth.response;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
   const { supabase } = auth.context;
-  const { error } = await supabase.from("comp_card_settings").upsert({ id: true, tagline: parsed.data.tagline }, { onConflict: "id" });
-  if (error) return databaseError(error, "save the line under the logo");
-  await writeAudit(supabase, { action: "compcard.logo_changed", entityType: "comp_card_settings", metadata: { tagline: "changed" } });
+  const changes = Object.fromEntries(Object.entries({ tagline: parsed.data.tagline, subtitle: parsed.data.subtitle, contact_lines: parsed.data.contact }).filter(([, value]) => value !== undefined));
+  if (!Object.keys(changes).length) return NextResponse.json({ error: "Nothing to save" }, { status: 400 });
+  const { error } = await supabase.from("comp_card_settings").upsert({ id: true, ...changes }, { onConflict: "id" });
+  if (error) return databaseError(error, "save the comp card text");
+  await writeAudit(supabase, { action: "compcard.defaults_changed", entityType: "comp_card_settings", metadata: { fields: Object.keys(changes) } });
   return NextResponse.json({ ok: true });
 }
 

@@ -7,20 +7,33 @@ import { log } from "@/lib/log";
 import { readStored } from "@/features/media/library";
 import { DEFAULT_TAGLINE } from "./layout";
 
-// The logo and the line under it that every comp card prints (migration 043). The
-// built-in 42 mark is used until staff with settings.manage upload another in the
-// comp card editor. Everything runs as the signed-in user.
+// What every comp card prints unless a card types over it (migrations 043, 046): the
+// logo and the line under it, the line under the talent's name, and the contact lines
+// on the back. Edited in the comp card editor by staff with settings.manage. Before
+// those are saved, the built-in 42 logo and the fallbacks below are used. Everything
+// runs as the signed-in user.
 
 export const BRAND_BUCKET = "brand-assets";
 export const LOGO_MAX_BYTES = 4 * 1024 * 1024;
 const LOGO_EDGE = 1200;
 
-export type CompCardBrand = { logoPath: string | null; tagline: string };
+// The owner's defaults (2026-11-17), also seeded by migration 046.
+export const DEFAULT_SUBTITLE = "42modelmanagement.com";
+export const DEFAULT_CONTACT = ["lenny@42modelmanagement.com", "214-463-9970"];
+
+export type CompCardBrand = { logoPath: string | null; tagline: string; subtitle: string; contact: string[] };
 
 export async function compCardBrand(supabase: SupabaseClient): Promise<CompCardBrand> {
-  // Before migration 043 there is no table: the built-in logo is used.
-  const { data } = await supabase.from("comp_card_settings").select("logo_path,tagline").eq("id", true).maybeSingle();
-  return { logoPath: (data?.logo_path as string | null) ?? null, tagline: typeof data?.tagline === "string" ? data.tagline : DEFAULT_TAGLINE };
+  // Before migration 046 the newer columns are missing: fall back to the older select.
+  const full = await supabase.from("comp_card_settings").select("logo_path,tagline,subtitle,contact_lines").eq("id", true).maybeSingle();
+  const data = full.error ? (await supabase.from("comp_card_settings").select("logo_path,tagline").eq("id", true).maybeSingle()).data : full.data;
+  const row = (data ?? {}) as { logo_path?: string | null; tagline?: string | null; subtitle?: string | null; contact_lines?: string[] | null };
+  return {
+    logoPath: row.logo_path ?? null,
+    tagline: typeof row.tagline === "string" ? row.tagline : DEFAULT_TAGLINE,
+    subtitle: typeof row.subtitle === "string" ? row.subtitle : DEFAULT_SUBTITLE,
+    contact: Array.isArray(row.contact_lines) ? row.contact_lines : DEFAULT_CONTACT,
+  };
 }
 
 export const brandLogoUrl = (supabase: SupabaseClient, path: string | null) => (path ? supabase.storage.from(BRAND_BUCKET).getPublicUrl(path).data.publicUrl : null);
